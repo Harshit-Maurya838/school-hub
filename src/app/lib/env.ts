@@ -1,0 +1,24 @@
+import { z } from "zod";
+
+export const envSchema = z.object({
+  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().default(3000),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  REDIS_URL: z.string().min(1, "REDIS_URL is required"),
+  APP_SECRET: z.string().min(32, "APP_SECRET must be at least 32 characters long"),
+});
+
+export type Env = z.infer<typeof envSchema>;
+
+function validateEnv(): Env {
+  const result = envSchema.safeParse(process.env);
+
+  if (!result.success) {
+    const errorDetails = result.error.format();
+    throw new Error(`Invalid environment variables: ${JSON.stringify(errorDetails, null, 2)}`);
+  }
+
+  return result.data;
+}
+
+export const env = validateEnv();
