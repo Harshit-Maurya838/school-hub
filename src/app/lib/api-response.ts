@@ -8,7 +8,6 @@ export interface ApiResponseSuccess<T>{
 export interface ApiErrorPayload{
     code: string;
     message: string;
-    details?: Record<string, any>;
 }
 
 export interface ApiResponseError {
@@ -22,4 +21,18 @@ export function errorResponse(
   status: number = 500
 ): NextResponse<ApiResponseError> {
   return NextResponse.json({ error }, { status });
+}
+
+export function successResponse<T>(
+  data: T,
+  meta?: Record<string, unknown>,
+  status: number = 200
+): NextResponse<ApiResponseSuccess<T>> {
+  return NextResponse.json(
+    {
+      data,
+      ...(meta ? { meta } : {}),
+    },
+    { status }
+  );
 }
