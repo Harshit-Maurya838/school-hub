@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 export interface ApiResponseSuccess<T> {
   data: T;
-  meta?: Record<string, any>;
+  meta?: Record<string, unknown>;
 }
 
 export interface ApiErrorPayload {

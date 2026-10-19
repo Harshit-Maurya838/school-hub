@@ -4,18 +4,17 @@ import { AppError } from "./errors";
 import { ZodError } from "zod";
 import { logger } from "./logger";
 
-type RouteHandler<T> = (
+export type RouteContext<P = Record<string, string | string[]>> = {
+  params?: Promise<P>;
+};
+
+type RouteHandler<T, P = Record<string, string | string[]>> = (
   req: NextRequest,
-  context?: {
-    params?: Record<string, string | string[]>;
-  }
+  context?: RouteContext<P>
 ) => Promise<NextResponse<T>> | NextResponse;
 
-export function apiHandler<T>(handler: RouteHandler<T>) {
-  return async (
-    req: NextRequest,
-    context?: { params?: Record<string, string | string[]> }
-  ): Promise<NextResponse> => {
+export function apiHandler<T, P = Record<string, string | string[]>>(handler: RouteHandler<T, P>) {
+  return async (req: NextRequest, context?: RouteContext<P>): Promise<NextResponse> => {
     try {
       return await handler(req, context);
     } catch (err: unknown) {
