@@ -10,7 +10,18 @@ export type AuditLogAction =
   | "USER_DEACTIVATED"
   | "TENANT_VIOLATION_ATTEMPT"
   | "SCHOOL_CREATED"
-  | "SCHOOL_UPDATED";
+  | "SCHOOL_UPDATED"
+  | "SCHOOL_PROVISIONED"
+  | "INVITATION_CREATED"
+  | "INVITATION_ACCEPTED"
+  | "INVITATION_REVOKED"
+  | "INVITATION_RESENT"
+  | "REGISTRATION_SUBMITTED"
+  | "REGISTRATION_VERIFIED"
+  | "REGISTRATION_APPROVED"
+  | "REGISTRATION_REJECTED"
+  | "PARENT_ONBOARDED"
+  | "STUDENT_ONBOARDED";
 
 export interface CreateAuditLogParams {
   action: AuditLogAction;
@@ -38,6 +49,8 @@ function sanitizeAuditDetails(
     "aadhaar",
     "apaarId",
     "sessionToken",
+    "tokenHash",
+    "verificationTokenHash",
   ]);
 
   for (const [key, value] of Object.entries(details)) {

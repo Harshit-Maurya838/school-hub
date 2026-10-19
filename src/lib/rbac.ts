@@ -10,11 +10,16 @@ export type Permission =
   | "platform:manage"
   | "platform:view"
   | "school:create"
+  | "registration:manage"
+  | "registration:view"
   // School administration permissions
   | "school:manage"
   | "school:view"
   | "staff:manage"
   | "staff:view"
+  | "invitation:create"
+  | "invitation:view"
+  | "invitation:revoke"
   // Student & Guardian permissions
   | "student:create"
   | "student:update"
@@ -49,12 +54,17 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "school:manage",
     "school:view",
     "audit:view",
+    "registration:manage",
+    "registration:view",
   ],
   SCHOOL_ADMIN: [
     "school:manage",
     "school:view",
     "staff:manage",
     "staff:view",
+    "invitation:create",
+    "invitation:view",
+    "invitation:revoke",
     "student:create",
     "student:update",
     "student:delete",
@@ -202,16 +212,17 @@ export async function assertStudentOwnAccess(
     throw new ForbiddenError("Only the student or school administrators can access this record");
   }
 
-  // Verify student identity matches user (by email or phone or admission link)
+  // Verify student identity matches authenticated user
   const student = await prisma.student.findFirst({
     where: {
       id: studentId,
+      userId: user.id,
       schoolId: user.schoolId ?? undefined,
     },
     select: { id: true },
   });
 
   if (!student) {
-    throw new ForbiddenError("Student record not found in your school");
+    throw new ForbiddenError("Access denied: student can only access their own record");
   }
 }

@@ -12,6 +12,7 @@ export const TENANT_MODELS = [
   "guardian",
   "studentGuardian",
   "enrollment",
+  "invitation",
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];

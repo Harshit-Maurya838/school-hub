@@ -42,14 +42,36 @@ enum EnrollmentStatus {
   DROPPED
 }
 
+enum SchoolStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+enum RegistrationStatus {
+  PENDING_VERIFICATION
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
 model School {
-  id               String            @id @default(cuid())
+  id               String               @id @default(cuid())
   name             String
-  code             String            @unique
-  slug             String            @unique
-  isActive         Boolean           @default(true)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  code             String               @unique
+  slug             String               @unique
+  isActive         Boolean              @default(true)
+  status           SchoolStatus         @default(ACTIVE)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
   users            User[]
   auditLogs        AuditLog[]
   academicYears    AcademicYear[]
@@ -60,26 +82,31 @@ model School {
   guardians        Guardian[]
   studentGuardians StudentGuardian[]
   enrollments      Enrollment[]
+  invitations      Invitation[]
+  registrations    SchoolRegistration[]
 
   @@map("schools")
 }
 
 model User {
-  id           String     @id @default(cuid())
-  schoolId     String?
-  name         String
-  email        String?    @unique
-  phone        String?
-  passwordHash String?
-  role         Role
-  isActive     Boolean    @default(true)
-  deletedAt    DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                    String               @id @default(cuid())
+  schoolId              String?
+  name                  String
+  email                 String?              @unique
+  phone                 String?
+  passwordHash          String?
+  role                  Role
+  isActive              Boolean              @default(true)
+  deletedAt             DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  school       School?    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  auditLogs    AuditLog[]
-  guardians    Guardian[]
+  school                School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  auditLogs             AuditLog[]
+  guardians             Guardian[]
+  student               Student?
+  createdInvitations    Invitation[]         @relation("CreatedInvitations")
+  reviewedRegistrations SchoolRegistration[] @relation("ReviewedRegistrations")
 
   @@index([schoolId])
   @@index([role])
@@ -189,14 +216,17 @@ model Student {
   dob             DateTime
   gender          Gender
   apaarId         String?
+  userId          String?           @unique
   isActive        Boolean           @default(true)
   deletedAt       DateTime?
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
   school          School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user            User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   guardians       StudentGuardian[]
   enrollments     Enrollment[]
+  invitations     Invitation[]
 
   @@unique([schoolId, admissionNumber])
   @@index([schoolId])
@@ -206,20 +236,21 @@ model Student {
 }
 
 model Guardian {
-  id         String            @id @default(cuid())
-  schoolId   String
-  name       String
-  phone      String
-  email      String?
-  occupation String?
-  address    String?
-  userId     String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  schoolId    String
+  name        String
+  phone       String
+  email       String?
+  occupation  String?
+  address     String?
+  userId      String?           @unique
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
 
-  school     School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  user       User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
-  students   StudentGuardian[]
+  school      School            @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  students    StudentGuardian[]
+  invitations Invitation[]
 
   @@unique([schoolId, phone])
   @@index([schoolId])
@@ -269,5 +300,62 @@ model Enrollment {
   @@index([sectionId, academicYearId])
   @@index([studentId])
   @@map("enrollments")
+}
+
+model Invitation {
+  id          String           @id @default(cuid())
+  schoolId    String
+  email       String
+  role        Role
+  tokenHash   String           @unique
+  status      InvitationStatus @default(PENDING)
+  invitedById String?
+  guardianId  String?
+  studentId   String?
+  metadata    Json?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  school      School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  invitedBy   User?            @relation("CreatedInvitations", fields: [invitedById], references: [id], onDelete: SetNull)
+  guardian    Guardian?        @relation(fields: [guardianId], references: [id], onDelete: SetNull)
+  student     Student?         @relation(fields: [studentId], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@index([email])
+  @@index([schoolId, role])
+  @@index([status])
+  @@map("invitations")
+}
+
+model SchoolRegistration {
+  id                    String             @id @default(cuid())
+  schoolName            String
+  schoolCode            String             @unique
+  desiredSlug           String             @unique
+  adminName             String
+  adminEmail            String             @unique
+  adminPhone            String?
+  status                RegistrationStatus @default(PENDING_VERIFICATION)
+  verificationTokenHash String?            @unique
+  emailVerifiedAt       DateTime?
+  reviewedById          String?
+  reviewedAt            DateTime?
+  rejectionReason       String?
+  schoolId              String?            @unique
+  ipAddress             String?
+  userAgent             String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  reviewedBy            User?              @relation("ReviewedRegistrations", fields: [reviewedById], references: [id], onDelete: SetNull)
+  school                School?            @relation(fields: [schoolId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([adminEmail])
+  @@map("school_registrations")
 }
 
