@@ -8,12 +8,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
     "postinstall": "prisma skills sync || exit 0"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "clsx": "^2.1.1",
+    "ioredis": "^6.0.0",
     "jose": "^6.2.12",
     "next": "16.4.2",
     "pg": "^8.23.1",
