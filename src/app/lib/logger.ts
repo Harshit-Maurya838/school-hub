@@ -1,10 +1,10 @@
-import pino from 'pino';
+import pino from "pino";
 
-const isDev = process.env.NODE_ENV === 'development';
+const isDev = process.env.NODE_ENV === "development";
 
 export const logger = pino({
-    level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
-    redact: {
+  level: process.env.LOG_LEVEL || (isDev ? "debug" : "info"),
+  redact: {
     paths: [
       "password",
       "token",
@@ -37,4 +37,4 @@ export const logger = pino({
         },
       }
     : undefined,
-})
+});

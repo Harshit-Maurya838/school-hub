@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server'
+import { NextResponse } from "next/server";
 
-export interface ApiResponseSuccess<T>{
+export interface ApiResponseSuccess<T> {
   data: T;
-  meta?: Record<string, any>; 
+  meta?: Record<string, any>;
 }
 
-export interface ApiErrorPayload{
-    code: string;
-    message: string;
+export interface ApiErrorPayload {
+  code: string;
+  message: string;
 }
 
 export interface ApiResponseError {
