@@ -12,6 +12,7 @@
     "format:fix": "prettier --write .",
     "bootstrap:admin": "node --env-file=.env --import tsx src/scripts/bootstrap-super-admin.ts",
     "bootstrap:school": "node --env-file=.env --import tsx src/scripts/bootstrap-first-school.ts",
+    "db:seed": "node --env-file=.env --import tsx src/scripts/seed-mock-data.ts",
     "test": "node --env-file=.env --import tsx --test 'tests/**/*.test.ts'",
     "postinstall": "prisma skills sync || exit 0"
   },
