@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AcademicNav } from "@/components/academics/AcademicNav";
 import { AcademicSectionsClient } from "@/components/academics/AcademicSectionsClient";
 import { listSections } from "@/lib/academics";
+import { getAcademicSetupReadiness } from "@/lib/school-readiness";
 
 interface PageProps {
   params: Promise<{
@@ -48,16 +49,14 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
     );
   }
 
-  const [sections, classes, currentYear] = await Promise.all([
+  const [sections, classes, readiness] = await Promise.all([
     listSections(school.id),
     prisma.class.findMany({
       where: { schoolId: school.id },
       select: { id: true, name: true },
       orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
     }),
-    prisma.academicYear.findFirst({
-      where: { schoolId: school.id, isCurrent: true },
-    }),
+    getAcademicSetupReadiness(school.id, school.slug),
   ]);
 
   return (
@@ -67,8 +66,10 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
           schoolSlug={school.slug}
           schoolName={school.name}
           schoolCode={school.code}
-          currentYear={currentYear}
+          currentYear={readiness.summary.currentAcademicYear}
           userRole={user.role}
+          isSchoolDetailsReady={readiness.schoolDetails.isReady}
+          schoolDetailsReason={readiness.schoolDetails.reason}
         />
 
         <main>
@@ -77,6 +78,10 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
             initialSections={sections}
             classes={classes}
             preselectedClassId={classIdParam}
+            canCreate={readiness.summary.canCreateSections}
+            blockedReason={readiness.steps.sections.message}
+            actionUrl={readiness.steps.sections.actionUrl}
+            actionLabel={readiness.steps.sections.actionLabel}
           />
         </main>
       </div>

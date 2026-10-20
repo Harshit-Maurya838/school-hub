@@ -5,6 +5,13 @@ import { logAuditEvent } from "./audit";
 import { AuthenticatedUser } from "./auth";
 import { assertSchoolAccess, requireAuth, requireRole } from "./rbac";
 import { NextRequest } from "next/server";
+import {
+  assertCanMutateAcademicYear,
+  assertCanMutateClass,
+  assertCanMutateSection,
+  assertCanMutateSubject,
+  getAcademicSetupReadiness,
+} from "./school-readiness";
 
 // Authorization & School Context Helper
 export interface SchoolContext {
@@ -232,6 +239,8 @@ export async function createAcademicYear(
   input: z.infer<typeof createAcademicYearSchema>,
   userId?: string
 ) {
+  await assertCanMutateAcademicYear(schoolId);
+
   const name = input.name.trim();
   const startDate = new Date(input.startDate);
   const endDate = new Date(input.endDate);
@@ -298,6 +307,8 @@ export async function updateAcademicYear(
   input: z.infer<typeof updateAcademicYearSchema>,
   userId?: string
 ) {
+  await assertCanMutateAcademicYear(schoolId);
+
   const existing = await prisma.academicYear.findFirst({
     where: { id: yearId, schoolId },
   });
@@ -363,6 +374,8 @@ export async function updateAcademicYear(
 }
 
 export async function setCurrentAcademicYear(schoolId: string, yearId: string, userId?: string) {
+  await assertCanMutateAcademicYear(schoolId);
+
   const target = await prisma.academicYear.findFirst({
     where: { id: yearId, schoolId },
   });
@@ -406,6 +419,8 @@ export async function setCurrentAcademicYear(schoolId: string, yearId: string, u
 }
 
 export async function deleteAcademicYear(schoolId: string, yearId: string, userId?: string) {
+  await assertCanMutateAcademicYear(schoolId);
+
   const existing = await prisma.academicYear.findFirst({
     where: { id: yearId, schoolId },
     include: {
@@ -493,6 +508,8 @@ export async function createClass(
   input: z.infer<typeof createClassSchema>,
   userId?: string
 ) {
+  await assertCanMutateClass(schoolId);
+
   const name = input.name.trim();
 
   // Check unique class name in this school
@@ -540,6 +557,8 @@ export async function updateClass(
   input: z.infer<typeof updateClassSchema>,
   userId?: string
 ) {
+  await assertCanMutateClass(schoolId);
+
   const existing = await prisma.class.findFirst({
     where: { id: classId, schoolId },
   });
@@ -588,6 +607,8 @@ export async function updateClass(
 }
 
 export async function deleteClass(schoolId: string, classId: string, userId?: string) {
+  await assertCanMutateClass(schoolId);
+
   const existing = await prisma.class.findFirst({
     where: { id: classId, schoolId },
     include: {
@@ -662,14 +683,8 @@ export async function createSection(
   const name = input.name.trim();
   const classId = input.classId.trim();
 
-  // Validate that the parent class belongs to this school
-  const parentClass = await prisma.class.findFirst({
-    where: { id: classId, schoolId },
-  });
-
-  if (!parentClass) {
-    throw new BadRequestError("Parent class does not belong to this school");
-  }
+  // Validate prerequisites and parent class
+  const parentClass = await assertCanMutateSection(schoolId, classId);
 
   // Check section name uniqueness within this class
   const existing = await prisma.section.findUnique({
@@ -739,16 +754,7 @@ export async function updateSection(
   }
 
   const targetClassId = input.classId ? input.classId.trim() : existing.classId;
-
-  if (input.classId && input.classId.trim() !== existing.classId) {
-    // Validate target class belongs to this school
-    const targetClass = await prisma.class.findFirst({
-      where: { id: targetClassId, schoolId },
-    });
-    if (!targetClass) {
-      throw new BadRequestError("Target class does not belong to this school");
-    }
-  }
+  await assertCanMutateSection(schoolId, targetClassId);
 
   const targetName = input.name ? input.name.trim() : existing.name;
 
@@ -805,6 +811,8 @@ export async function updateSection(
 }
 
 export async function deleteSection(schoolId: string, sectionId: string, userId?: string) {
+  await assertCanMutateClass(schoolId);
+
   const existing = await prisma.section.findFirst({
     where: { id: sectionId, schoolId },
     include: {
@@ -877,14 +885,7 @@ export async function createSubject(
   const code = input.code ? input.code.trim().toUpperCase() : null;
   const classId = input.classId ? input.classId.trim() : null;
 
-  if (classId) {
-    const targetClass = await prisma.class.findFirst({
-      where: { id: classId, schoolId },
-    });
-    if (!targetClass) {
-      throw new BadRequestError("Selected class does not belong to this school");
-    }
-  }
+  await assertCanMutateSubject(schoolId, classId);
 
   // Check duplicate subject name within the appropriate scope
   const duplicate = await prisma.subject.findFirst({
@@ -948,14 +949,7 @@ export async function updateSubject(
   const targetClassId =
     input.classId !== undefined ? (input.classId ? input.classId.trim() : null) : existing.classId;
 
-  if (targetClassId && targetClassId !== existing.classId) {
-    const targetClass = await prisma.class.findFirst({
-      where: { id: targetClassId, schoolId },
-    });
-    if (!targetClass) {
-      throw new BadRequestError("Selected class does not belong to this school");
-    }
-  }
+  await assertCanMutateSubject(schoolId, targetClassId);
 
   const targetName = input.name ? input.name.trim() : existing.name;
 
@@ -1013,6 +1007,8 @@ export async function updateSubject(
 }
 
 export async function deleteSubject(schoolId: string, subjectId: string, userId?: string) {
+  await assertCanMutateClass(schoolId);
+
   const existing = await prisma.subject.findFirst({
     where: { id: subjectId, schoolId },
   });
@@ -1041,16 +1037,18 @@ export async function deleteSubject(schoolId: string, subjectId: string, userId?
 // Academic Summary Overview (for Dashboard / Academic Hub)
 // ============================================================================
 
-export async function getAcademicOverview(schoolId: string) {
-  const [currentYear, yearsCount, classesCount, sectionsCount, subjectsCount] = await Promise.all([
-    prisma.academicYear.findFirst({
-      where: { schoolId, isCurrent: true },
-    }),
-    prisma.academicYear.count({ where: { schoolId } }),
-    prisma.class.count({ where: { schoolId } }),
-    prisma.section.count({ where: { schoolId } }),
-    prisma.subject.count({ where: { schoolId } }),
-  ]);
+export async function getAcademicOverview(schoolId: string, schoolSlug?: string) {
+  const [currentYear, yearsCount, classesCount, sectionsCount, subjectsCount, readiness] =
+    await Promise.all([
+      prisma.academicYear.findFirst({
+        where: { schoolId, isCurrent: true },
+      }),
+      prisma.academicYear.count({ where: { schoolId } }),
+      prisma.class.count({ where: { schoolId } }),
+      prisma.section.count({ where: { schoolId } }),
+      prisma.subject.count({ where: { schoolId } }),
+      getAcademicSetupReadiness(schoolId, schoolSlug),
+    ]);
 
   return {
     currentYear,
@@ -1060,5 +1058,6 @@ export async function getAcademicOverview(schoolId: string) {
       sectionsCount,
       subjectsCount,
     },
+    readiness,
   };
 }

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AcademicNav } from "@/components/academics/AcademicNav";
 import { AcademicSubjectsClient } from "@/components/academics/AcademicSubjectsClient";
 import { listSubjects } from "@/lib/academics";
+import { getAcademicSetupReadiness } from "@/lib/school-readiness";
 
 interface PageProps {
   params: Promise<{
@@ -42,16 +43,14 @@ export default async function AcademicSubjectsPage({ params }: PageProps) {
     );
   }
 
-  const [subjects, classes, currentYear] = await Promise.all([
+  const [subjects, classes, readiness] = await Promise.all([
     listSubjects(school.id),
     prisma.class.findMany({
       where: { schoolId: school.id },
       select: { id: true, name: true },
       orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
     }),
-    prisma.academicYear.findFirst({
-      where: { schoolId: school.id, isCurrent: true },
-    }),
+    getAcademicSetupReadiness(school.id, school.slug),
   ]);
 
   return (
@@ -61,8 +60,10 @@ export default async function AcademicSubjectsPage({ params }: PageProps) {
           schoolSlug={school.slug}
           schoolName={school.name}
           schoolCode={school.code}
-          currentYear={currentYear}
+          currentYear={readiness.summary.currentAcademicYear}
           userRole={user.role}
+          isSchoolDetailsReady={readiness.schoolDetails.isReady}
+          schoolDetailsReason={readiness.schoolDetails.reason}
         />
 
         <main>
@@ -70,6 +71,10 @@ export default async function AcademicSubjectsPage({ params }: PageProps) {
             schoolSlug={school.slug}
             initialSubjects={subjects}
             classes={classes}
+            canCreate={readiness.summary.canCreateSubjects}
+            blockedReason={readiness.steps.subjects.message}
+            actionUrl={readiness.steps.subjects.actionUrl}
+            actionLabel={readiness.steps.subjects.actionLabel}
           />
         </main>
       </div>

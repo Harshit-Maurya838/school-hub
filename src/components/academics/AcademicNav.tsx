@@ -14,6 +14,8 @@ interface AcademicNavProps {
     endDate: string | Date;
   } | null;
   userRole: string;
+  isSchoolDetailsReady?: boolean;
+  schoolDetailsReason?: string;
 }
 
 export function AcademicNav({
@@ -22,6 +24,8 @@ export function AcademicNav({
   schoolCode,
   currentYear,
   userRole,
+  isSchoolDetailsReady,
+  schoolDetailsReason,
 }: AcademicNavProps) {
   const pathname = usePathname();
   const basePath = `/school/${schoolSlug}/academics`;
@@ -71,6 +75,25 @@ export function AcademicNav({
           </span>
         </div>
       </div>
+
+      {/* Prerequisite Alert Banner */}
+      {isSchoolDetailsReady === false && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-200">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+            <span>
+              {schoolDetailsReason ||
+                "School profile details are incomplete. Academic setup is locked until profile is complete."}
+            </span>
+          </div>
+          <Link
+            href={`/school/${schoolSlug}/settings`}
+            className="font-semibold text-amber-300 underline hover:text-white"
+          >
+            Complete School Profile &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Tabs */}
       <nav className="flex space-x-1 overflow-x-auto border-b border-zinc-800/80 pb-px">

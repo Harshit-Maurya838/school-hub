@@ -16,12 +16,25 @@ export interface AcademicYearData {
   };
 }
 
+import Link from "next/link";
+
 interface Props {
   schoolSlug: string;
   initialYears: AcademicYearData[];
+  canCreate?: boolean;
+  blockedReason?: string;
+  actionUrl?: string;
+  actionLabel?: string;
 }
 
-export function AcademicSessionsClient({ schoolSlug, initialYears }: Props) {
+export function AcademicSessionsClient({
+  schoolSlug,
+  initialYears,
+  canCreate = true,
+  blockedReason,
+  actionUrl = `/school/${schoolSlug}/settings`,
+  actionLabel = "Complete School Profile",
+}: Props) {
   const router = useRouter();
   const [years, setYears] = useState<AcademicYearData[]>(initialYears);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -229,6 +242,29 @@ export function AcademicSessionsClient({ schoolSlug, initialYears }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Prerequisite Required Banner */}
+      {!canCreate && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-950/20 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-amber-300">
+                Setup Prerequisite Required: Complete School Profile
+              </h3>
+              <p className="text-xs text-zinc-300">
+                {blockedReason ||
+                  "Complete your school profile before configuring the academic year."}
+              </p>
+            </div>
+            <Link
+              href={actionUrl}
+              className="inline-flex items-center rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
+            >
+              {actionLabel} &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Notifications */}
       {error && (
         <div className="flex items-center justify-between rounded-xl border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">
@@ -311,7 +347,9 @@ export function AcademicSessionsClient({ schoolSlug, initialYears }: Props) {
 
           <button
             onClick={openCreateModal}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-400 focus:outline-none"
+            disabled={!canCreate}
+            title={!canCreate ? blockedReason : undefined}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-400 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
               <path

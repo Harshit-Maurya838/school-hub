@@ -21,13 +21,27 @@ export interface ClassOption {
   name: string;
 }
 
+import Link from "next/link";
+
 interface Props {
   schoolSlug: string;
   initialSubjects: SubjectData[];
   classes: ClassOption[];
+  canCreate?: boolean;
+  blockedReason?: string;
+  actionUrl?: string;
+  actionLabel?: string;
 }
 
-export function AcademicSubjectsClient({ schoolSlug, initialSubjects, classes }: Props) {
+export function AcademicSubjectsClient({
+  schoolSlug,
+  initialSubjects,
+  classes,
+  canCreate = true,
+  blockedReason,
+  actionUrl = `/school/${schoolSlug}/academics/sessions`,
+  actionLabel = "Configure Academic Year First",
+}: Props) {
   const router = useRouter();
   const [subjects, setSubjects] = useState<SubjectData[]>(initialSubjects);
   const [scopeFilter, setScopeFilter] = useState<string>("ALL"); // "ALL" | "SCHOOL_WIDE" | classId
@@ -185,6 +199,28 @@ export function AcademicSubjectsClient({ schoolSlug, initialSubjects, classes }:
 
   return (
     <div className="space-y-6">
+      {/* Prerequisite Required Banner */}
+      {!canCreate && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-950/20 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-amber-300">
+                Setup Prerequisite Required: Subject Creation Blocked
+              </h3>
+              <p className="text-xs text-zinc-300">
+                {blockedReason || "Set up and activate an academic year before creating subjects."}
+              </p>
+            </div>
+            <Link
+              href={actionUrl}
+              className="inline-flex items-center rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
+            >
+              {actionLabel} &rarr;
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Notifications */}
       {error && (
         <div className="flex items-center justify-between rounded-xl border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">
@@ -279,7 +315,9 @@ export function AcademicSubjectsClient({ schoolSlug, initialSubjects, classes }:
 
         <button
           onClick={openCreateModal}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500"
+          disabled={!canCreate}
+          title={!canCreate ? blockedReason : undefined}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
             <path

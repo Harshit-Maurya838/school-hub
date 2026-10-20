@@ -43,7 +43,7 @@ export default async function AcademicOverviewPage({ params }: PageProps) {
   }
 
   const [overview, recentYears] = await Promise.all([
-    getAcademicOverview(school.id),
+    getAcademicOverview(school.id, school.slug),
     listAcademicYears(school.id),
   ]);
 
@@ -56,6 +56,8 @@ export default async function AcademicOverviewPage({ params }: PageProps) {
           schoolCode={school.code}
           currentYear={overview.currentYear}
           userRole={user.role}
+          isSchoolDetailsReady={overview.readiness?.schoolDetails.isReady}
+          schoolDetailsReason={overview.readiness?.schoolDetails.reason}
         />
 
         <main>

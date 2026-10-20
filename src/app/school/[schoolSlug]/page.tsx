@@ -1,6 +1,8 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getAcademicSetupReadiness } from "@/lib/school-readiness";
 
 interface SchoolPageProps {
   params: Promise<{
@@ -45,14 +47,22 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     );
   }
 
+  const readiness = await getAcademicSetupReadiness(school.id, school.slug);
+
   return (
     <div className="flex min-h-screen flex-col bg-zinc-950 p-8 font-sans text-zinc-100">
-      <header className="mb-8 flex items-center justify-between border-b border-zinc-800 pb-4">
+      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">{school.name}</h1>
           <p className="text-sm text-zinc-400">School Code: {school.code}</p>
         </div>
         <div className="flex items-center gap-4">
+          <Link
+            href={`/school/${school.slug}/settings`}
+            className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+          >
+            Settings & Profile
+          </Link>
           <span className="rounded-full border border-indigo-800 bg-indigo-950 px-3 py-1 text-xs font-medium text-indigo-400">
             {user.role}
           </span>
@@ -60,13 +70,49 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
         </div>
       </header>
 
-      <main className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-white">Students</h2>
-          <p className="text-sm text-zinc-400">
-            Manage admissions, student directories, and records.
-          </p>
+      {/* Prominent Actionable Readiness Banner */}
+      {!readiness.schoolDetails.isReady ? (
+        <div className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-950/20 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-amber-300">
+                Action Required: School Profile Incomplete
+              </h2>
+              <p className="text-xs text-zinc-300">
+                {readiness.schoolDetails.reason ||
+                  "Complete your school profile before configuring the academic year and student rosters."}
+              </p>
+            </div>
+            <Link
+              href={`/school/${school.slug}/settings`}
+              className="inline-flex items-center rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
+            >
+              Complete School Profile &rarr;
+            </Link>
+          </div>
         </div>
+      ) : !readiness.summary.currentAcademicYear ? (
+        <div className="mb-8 rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-sm font-semibold text-indigo-300">
+                Next Setup Step: Configure Academic Calendar
+              </h2>
+              <p className="text-xs text-zinc-300">
+                Set up and activate an academic year before creating classes and divisions.
+              </p>
+            </div>
+            <Link
+              href={`/school/${school.slug}/academics/sessions`}
+              className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500"
+            >
+              Configure Academic Year &rarr;
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <main className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <a
           href={`/school/${school.slug}/academics`}
           className="group block rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
@@ -81,6 +127,12 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
             Classes, sections, subjects, and academic year schedules.
           </p>
         </a>
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+          <h2 className="mb-2 text-lg font-semibold text-white">Students</h2>
+          <p className="text-sm text-zinc-400">
+            Manage admissions, student directories, and records.
+          </p>
+        </div>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
           <h2 className="mb-2 text-lg font-semibold text-white">Attendance</h2>
           <p className="text-sm text-zinc-400">Daily attendance tracking and reporting.</p>

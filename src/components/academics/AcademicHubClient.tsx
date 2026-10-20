@@ -1,7 +1,8 @@
-"use-client";
+"use client";
 
 import Link from "next/link";
 import { AcademicYearData } from "./AcademicSessionsClient";
+import { AcademicSetupReadiness } from "@/lib/school-readiness";
 
 interface Props {
   schoolSlug: string;
@@ -13,49 +14,106 @@ interface Props {
       sectionsCount: number;
       subjectsCount: number;
     };
+    readiness?: AcademicSetupReadiness;
   };
   recentYears: AcademicYearData[];
 }
 
 export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) {
-  const { currentYear, stats } = overview;
+  const { currentYear, stats, readiness } = overview;
   const basePath = `/school/${schoolSlug}/academics`;
 
-  const checklist = [
-    {
-      title: "1. Academic Session",
-      done: Boolean(currentYear),
-      message: currentYear ? `Active: ${currentYear.name}` : "No active session configured",
-      href: `${basePath}/sessions`,
-    },
-    {
-      title: "2. Grade Levels / Classes",
-      done: stats.classesCount > 0,
-      message:
-        stats.classesCount > 0
-          ? `${stats.classesCount} class(es) defined`
-          : "No classes created yet",
-      href: `${basePath}/classes`,
-    },
-    {
-      title: "3. Class Sections",
-      done: stats.sectionsCount > 0,
-      message:
-        stats.sectionsCount > 0
-          ? `${stats.sectionsCount} section(s) defined`
-          : "No sections created yet",
-      href: `${basePath}/sections`,
-    },
-    {
-      title: "4. Curriculum Subjects",
-      done: stats.subjectsCount > 0,
-      message:
-        stats.subjectsCount > 0
-          ? `${stats.subjectsCount} subject(s) cataloged`
-          : "No subjects defined yet",
-      href: `${basePath}/subjects`,
-    },
-  ];
+  const checklist = readiness
+    ? [
+        readiness.steps.schoolDetails,
+        readiness.steps.academicYear,
+        readiness.steps.classes,
+        readiness.steps.sections,
+        readiness.steps.subjects,
+      ]
+    : [
+        {
+          id: "schoolDetails",
+          title: "1. School Details & Activation",
+          status: "COMPLETE" as const,
+          isComplete: true,
+          isBlocked: false,
+          message: "School details and profile verified",
+          actionUrl: `/school/${schoolSlug}/settings`,
+          actionLabel: "View Profile",
+        },
+        {
+          id: "academicYear",
+          title: "2. Academic Session",
+          status: currentYear ? ("COMPLETE" as const) : ("PENDING" as const),
+          isComplete: Boolean(currentYear),
+          isBlocked: false,
+          message: currentYear ? `Active: ${currentYear.name}` : "No active session configured",
+          actionUrl: `${basePath}/sessions`,
+          actionLabel: "Configure Sessions",
+        },
+        {
+          id: "classes",
+          title: "3. Grade Levels / Classes",
+          status: !currentYear
+            ? ("BLOCKED" as const)
+            : stats.classesCount > 0
+              ? ("COMPLETE" as const)
+              : ("PENDING" as const),
+          isComplete: stats.classesCount > 0,
+          isBlocked: !currentYear,
+          message: !currentYear
+            ? "Set up and activate an academic year before creating classes."
+            : stats.classesCount > 0
+              ? `${stats.classesCount} class(es) defined`
+              : "No classes created yet",
+          actionUrl: !currentYear ? `${basePath}/sessions` : `${basePath}/classes`,
+          actionLabel: "Configure Classes",
+        },
+        {
+          id: "sections",
+          title: "4. Class Sections",
+          status:
+            !currentYear || stats.classesCount === 0
+              ? ("BLOCKED" as const)
+              : stats.sectionsCount > 0
+                ? ("COMPLETE" as const)
+                : ("PENDING" as const),
+          isComplete: stats.sectionsCount > 0,
+          isBlocked: !currentYear || stats.classesCount === 0,
+          message: !currentYear
+            ? "Set up and activate an academic year before creating sections."
+            : stats.classesCount === 0
+              ? "Create at least one class before creating sections."
+              : stats.sectionsCount > 0
+                ? `${stats.sectionsCount} section(s) defined`
+                : "No sections created yet",
+          actionUrl: !currentYear
+            ? `${basePath}/sessions`
+            : stats.classesCount === 0
+              ? `${basePath}/classes`
+              : `${basePath}/sections`,
+          actionLabel: "Configure Sections",
+        },
+        {
+          id: "subjects",
+          title: "5. Curriculum Subjects",
+          status: !currentYear
+            ? ("BLOCKED" as const)
+            : stats.subjectsCount > 0
+              ? ("COMPLETE" as const)
+              : ("PENDING" as const),
+          isComplete: stats.subjectsCount > 0,
+          isBlocked: !currentYear,
+          message: !currentYear
+            ? "Set up and activate an academic year before creating subjects."
+            : stats.subjectsCount > 0
+              ? `${stats.subjectsCount} subject(s) cataloged`
+              : "No subjects defined yet",
+          actionUrl: !currentYear ? `${basePath}/sessions` : `${basePath}/subjects`,
+          actionLabel: "Configure Subjects",
+        },
+      ];
 
   return (
     <div className="space-y-8">
@@ -168,24 +226,40 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
             {checklist.map((item, index) => (
               <Link
                 key={index}
-                href={item.href}
-                className="group flex items-start justify-between rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-3.5 transition hover:border-zinc-700 hover:bg-zinc-800/40"
+                href={item.actionUrl}
+                className={`group flex items-start justify-between rounded-xl border p-3.5 transition ${
+                  item.status === "BLOCKED"
+                    ? "border-zinc-800/60 bg-zinc-950/20 opacity-80 hover:border-zinc-700"
+                    : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700 hover:bg-zinc-800/40"
+                }`}
               >
-                <div>
-                  <p className="text-xs font-semibold text-zinc-200 group-hover:text-indigo-400">
+                <div className="pr-2">
+                  <p
+                    className={`text-xs font-semibold ${
+                      item.status === "BLOCKED"
+                        ? "text-zinc-400 group-hover:text-zinc-300"
+                        : "text-zinc-200 group-hover:text-indigo-400"
+                    }`}
+                  >
                     {item.title}
                   </p>
                   <p className="mt-0.5 text-[11px] text-zinc-500">{item.message}</p>
                 </div>
-                {item.done ? (
-                  <span className="rounded-full border border-emerald-800 bg-emerald-950/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                    Ready
-                  </span>
-                ) : (
-                  <span className="rounded-full border border-amber-800 bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
-                    Pending
-                  </span>
-                )}
+                <div>
+                  {item.status === "COMPLETE" ? (
+                    <span className="rounded-full border border-emerald-800 bg-emerald-950/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                      Complete
+                    </span>
+                  ) : item.status === "PENDING" ? (
+                    <span className="rounded-full border border-amber-800 bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+                      Pending
+                    </span>
+                  ) : (
+                    <span className="rounded-full border border-red-900/40 bg-red-950/40 px-2 py-0.5 text-[10px] font-semibold text-red-400">
+                      Blocked
+                    </span>
+                  )}
+                </div>
               </Link>
             ))}
           </div>

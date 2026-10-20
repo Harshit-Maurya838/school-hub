@@ -58,3 +58,9 @@ export class InternalServerError extends AppError {
     super(message, 500, "INTERNAL_SERVER_ERROR", details);
   }
 }
+
+export class PreconditionFailedError extends AppError {
+  constructor(message: string = "Setup prerequisite not met", details?: unknown) {
+    super(message, 400, "SETUP_PREREQUISITE_REQUIRED", details);
+  }
+}

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { AcademicNav } from "@/components/academics/AcademicNav";
 import { AcademicSessionsClient } from "@/components/academics/AcademicSessionsClient";
 import { listAcademicYears } from "@/lib/academics";
+import { getAcademicSetupReadiness } from "@/lib/school-readiness";
 
 interface PageProps {
   params: Promise<{
@@ -42,7 +43,11 @@ export default async function AcademicSessionsPage({ params }: PageProps) {
     );
   }
 
-  const years = await listAcademicYears(school.id);
+  const [years, readiness] = await Promise.all([
+    listAcademicYears(school.id),
+    getAcademicSetupReadiness(school.id, school.slug),
+  ]);
+
   const currentYear = years.find((y) => y.isCurrent);
 
   return (
@@ -54,10 +59,19 @@ export default async function AcademicSessionsPage({ params }: PageProps) {
           schoolCode={school.code}
           currentYear={currentYear}
           userRole={user.role}
+          isSchoolDetailsReady={readiness.schoolDetails.isReady}
+          schoolDetailsReason={readiness.schoolDetails.reason}
         />
 
         <main>
-          <AcademicSessionsClient schoolSlug={school.slug} initialYears={years} />
+          <AcademicSessionsClient
+            schoolSlug={school.slug}
+            initialYears={years}
+            canCreate={readiness.summary.canConfigureAcademicYears}
+            blockedReason={readiness.steps.academicYear.message}
+            actionUrl={readiness.steps.academicYear.actionUrl}
+            actionLabel={readiness.steps.academicYear.actionLabel}
+          />
         </main>
       </div>
     </div>
