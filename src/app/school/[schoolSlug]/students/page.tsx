@@ -79,7 +79,7 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
   const currentYear = academicYears.find((y) => y.isCurrent) || null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 p-6 font-sans text-zinc-100 md:p-8">
+    <div className="space-y-6">
       <StudentNav
         schoolSlug={school.slug}
         schoolName={school.name}
@@ -88,18 +88,16 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
         currentYear={currentYear}
       />
 
-      <main className="flex-1">
-        <StudentDirectoryClient
-          schoolSlug={school.slug}
-          filterOptions={{
-            academicYears,
-            classes,
-            sections,
-          }}
-          initialStudents={initialListResult.students as unknown as StudentListItem[]}
-          initialPagination={initialListResult.pagination}
-        />
-      </main>
+      <StudentDirectoryClient
+        schoolSlug={school.slug}
+        filterOptions={{
+          academicYears,
+          classes,
+          sections,
+        }}
+        initialStudents={initialListResult.students as unknown as StudentListItem[]}
+        initialPagination={initialListResult.pagination}
+      />
     </div>
   );
 }

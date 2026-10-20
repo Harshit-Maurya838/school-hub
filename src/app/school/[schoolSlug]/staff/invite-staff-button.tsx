@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { UserPlus, X, Copy, Check, AlertTriangle, CheckCircle2 } from "lucide-react";
 
 interface InviteStaffButtonProps {
   schoolSlug: string;
@@ -59,14 +60,15 @@ export function InviteStaffButton({ schoolSlug }: InviteStaffButtonProps) {
         const data = await res.json();
 
         if (!res.ok) {
-          setErrorMessage(data?.error?.message || "Failed to issue invitation.");
+          setErrorMessage(data?.error?.message || "Failed to generate staff invitation.");
           return;
         }
 
-        setSuccessLink(data.data?.actionUrl || null);
-        router.refresh();
+        const origin = window.location.origin;
+        const link = `${origin}/invite/${data.data.invitation.token}`;
+        setSuccessLink(link);
       } catch {
-        setErrorMessage("Network error occurred while issuing invitation.");
+        setErrorMessage("Network error while creating staff invitation.");
       }
     });
   };
@@ -74,83 +76,43 @@ export function InviteStaffButton({ schoolSlug }: InviteStaffButtonProps) {
   return (
     <>
       <button
-        onClick={handleOpen}
         type="button"
-        id="invite-staff-btn"
-        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-zinc-950 focus:outline-none"
+        onClick={handleOpen}
+        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="2"
-          stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-        </svg>
+        <UserPlus className="h-4 w-4" />
         <span>Invite Staff</span>
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
-            onClick={handleClose}
-          />
-
-          {/* Modal Card */}
-          <div className="relative z-10 w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-              <div>
-                <h3 className="text-lg font-bold text-white">Invite Staff Member</h3>
-                <p className="text-xs text-zinc-400">
-                  Send a one-time activation link to onboard a teacher or accountant.
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-extrabold text-slate-900">Invite Staff Member</h3>
               <button
                 type="button"
                 onClick={handleClose}
-                className="text-zinc-400 transition hover:text-white focus:outline-none"
+                className="rounded-lg p-1 text-slate-400 hover:text-slate-700"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             {successLink ? (
               <div className="mt-4 space-y-4">
-                <div className="rounded-xl border border-emerald-900/60 bg-emerald-950/40 p-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
-                    <svg
-                      className="h-5 w-5 shrink-0"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth="2"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                     <span>Invitation Successfully Issued!</span>
                   </div>
-                  <p className="mt-1 text-xs text-zinc-300">
+                  <p className="mt-1 text-xs text-emerald-800">
                     An activation invitation has been created for{" "}
-                    <span className="font-semibold text-white">{email}</span> ({role}).
+                    <span className="font-bold">{email}</span> ({role}).
                   </p>
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-zinc-300">
+                  <label className="mb-1 block text-xs font-bold text-slate-700">
                     One-Time Activation Link:
                   </label>
                   <div className="flex items-center gap-2">
@@ -158,33 +120,43 @@ export function InviteStaffButton({ schoolSlug }: InviteStaffButtonProps) {
                       type="text"
                       readOnly
                       value={successLink}
-                      className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-300 select-all"
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-800 select-all"
                     />
                     <button
                       type="button"
                       onClick={handleCopy}
-                      className="shrink-0 rounded-lg bg-zinc-800 px-3 py-2 text-xs font-semibold text-white transition hover:bg-zinc-700"
+                      className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-slate-800"
                     >
-                      {copied ? "Copied!" : "Copy"}
+                      {copied ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          <span>Copied</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5" />
+                          <span>Copy</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 border-t border-slate-100 pt-2">
                   <button
                     type="button"
                     onClick={() => {
                       setSuccessLink(null);
                       setEmail("");
                     }}
-                    className="rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                   >
                     Invite Another
                   </button>
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500"
+                    className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-800"
                   >
                     Done
                   </button>
@@ -195,15 +167,16 @@ export function InviteStaffButton({ schoolSlug }: InviteStaffButtonProps) {
                 {errorMessage && (
                   <div
                     role="alert"
-                    className="rounded-lg border border-red-900/50 bg-red-950/40 p-3 text-xs text-red-300"
+                    className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900"
                   >
-                    {errorMessage}
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+                    <span>{errorMessage}</span>
                   </div>
                 )}
 
                 <div>
-                  <label htmlFor="staffEmail" className="block text-xs font-medium text-zinc-200">
-                    Staff Email Address
+                  <label htmlFor="staffEmail" className="block text-xs font-bold text-slate-700">
+                    Staff Email Address <span className="text-rose-500">*</span>
                   </label>
                   <input
                     id="staffEmail"
@@ -213,43 +186,40 @@ export function InviteStaffButton({ schoolSlug }: InviteStaffButtonProps) {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="teacher@school.edu"
-                    className="mt-1 block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="staffRole" className="block text-xs font-medium text-zinc-200">
-                    Assigned Role
+                  <label htmlFor="staffRole" className="block text-xs font-bold text-slate-700">
+                    Designated Role <span className="text-rose-500">*</span>
                   </label>
                   <select
                     id="staffRole"
-                    value={role}
                     disabled={isPending}
+                    value={role}
                     onChange={(e) => setRole(e.target.value as "TEACHER" | "ACCOUNTANT")}
-                    className="mt-1 block w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3.5 py-2.5 text-sm text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                    className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 focus:border-emerald-500 focus:outline-none"
                   >
-                    <option value="TEACHER">TEACHER (Academics, Attendance, Grades)</option>
-                    <option value="ACCOUNTANT">
-                      ACCOUNTANT (Fee Structures, Payments, Financials)
-                    </option>
+                    <option value="TEACHER">Teacher (Instruction & Roster Management)</option>
+                    <option value="ACCOUNTANT">Accountant (Financial Records & Ledgers)</option>
                   </select>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3">
+                <div className="flex justify-end gap-2.5 border-t border-slate-100 pt-4">
                   <button
                     type="button"
                     onClick={handleClose}
-                    disabled={isPending}
-                    className="rounded-lg border border-zinc-700 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={isPending}
-                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:opacity-50"
+                    className="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800 disabled:opacity-50"
                   >
-                    {isPending ? "Generating Token..." : "Issue Invitation"}
+                    {isPending ? "Generating..." : "Send Invitation"}
                   </button>
                 </div>
               </form>

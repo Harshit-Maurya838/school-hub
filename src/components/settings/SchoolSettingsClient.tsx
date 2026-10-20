@@ -1,7 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
+import {
+  Building2,
+  ShieldCheck,
+  Palette,
+  Save,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowRight,
+  Shield,
+  Sparkles,
+} from "lucide-react";
 import { SchoolDetailsReadiness } from "@/lib/school-readiness";
 
 interface SchoolData {
@@ -26,6 +37,7 @@ export function SchoolSettingsClient({
   initialReadiness,
   userRole,
 }: Props) {
+  const [activeTab, setActiveTab] = useState<"identity" | "readiness" | "appearance">("identity");
   const [school, setSchool] = useState<SchoolData>(initialSchool);
   const [readiness, setReadiness] = useState<SchoolDetailsReadiness>(initialReadiness);
 
@@ -81,80 +93,140 @@ export function SchoolSettingsClient({
     }
   };
 
+  const tabs = [
+    { id: "identity" as const, label: "Identity & Branding", icon: Building2 },
+    { id: "readiness" as const, label: "Readiness & Verification", icon: ShieldCheck },
+    { id: "appearance" as const, label: "Preferences & Theme", icon: Palette },
+  ];
+
   return (
-    <div className="space-y-8">
-      {/* Header Breadcrumbs */}
-      <div>
-        <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
-          <Link href={`/school/${schoolSlug}`} className="transition hover:text-indigo-400">
-            {school.name}
-          </Link>
-          <span>/</span>
-          <span className="text-zinc-200">Settings</span>
-        </div>
-        <div className="mt-1 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">School Profile & Setup</h1>
-            <p className="mt-0.5 text-xs text-zinc-400">
-              Manage core tenant information, verification status, and academic prerequisites.
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
+    <div className="space-y-6">
+      {/* Header Bar */}
+      <div className="flex flex-col justify-between gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center">
+        <div>
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
             <Link
-              href={`/school/${schoolSlug}/academics`}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition hover:border-zinc-700 hover:bg-zinc-800"
+              href={`/school/${schoolSlug}`}
+              className="transition-colors hover:text-emerald-700"
             >
-              Academic Hub &rarr;
+              {school.name} ({school.code})
             </Link>
+            <span>/</span>
+            <span className="text-slate-800">Settings</span>
           </div>
+          <h2 className="mt-1 font-sans text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+            School Profile & Settings
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Manage official institution identity, verification readiness, and system preferences
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+            <Shield className="h-3.5 w-3.5 text-slate-500" />
+            <span>{userRole}</span>
+          </div>
+
+          <Link
+            href={`/school/${schoolSlug}/academics`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:scale-[1.02] hover:bg-emerald-800"
+          >
+            <span>Academic Setup</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </div>
 
-      {/* Readiness Status Card */}
+      {/* Tabs */}
+      <div className="flex scrollbar-none items-center gap-2 overflow-x-auto border-b border-slate-200/80 pb-1">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                isActive
+                  ? "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-xs"
+                  : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Readiness Status Banner */}
       <div
-        className={`rounded-2xl border p-6 ${
+        className={`rounded-2xl border p-5 shadow-xs transition-all ${
           readiness.isReady
-            ? "border-emerald-500/30 bg-emerald-950/20"
-            : "border-amber-500/30 bg-amber-950/20"
+            ? "border-emerald-200 bg-emerald-50/60"
+            : "border-amber-200 bg-amber-50/80"
         }`}
       >
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  readiness.isReady ? "bg-emerald-500" : "animate-pulse bg-amber-500"
-                }`}
-              />
-              <h2 className="text-base font-semibold text-white">
-                {readiness.isReady
-                  ? "School Profile & Details: Complete"
-                  : "School Profile Setup Incomplete"}
-              </h2>
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-start gap-3">
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                readiness.isReady
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-amber-100 text-amber-700"
+              }`}
+            >
+              {readiness.isReady ? (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              )}
             </div>
-            <p className="text-xs text-zinc-300">
-              {readiness.isReady
-                ? "Your school details and administrator identity are verified. Academic setup is unlocked."
-                : readiness.reason ||
-                  "Please complete all required details to unlock academic configuration."}
-            </p>
+            <div>
+              <h3
+                className={`text-sm font-extrabold ${
+                  readiness.isReady ? "text-emerald-950" : "text-amber-950"
+                }`}
+              >
+                {readiness.isReady
+                  ? "School Details & Verification: Verified"
+                  : "School Profile Setup Incomplete"}
+              </h3>
+              <p
+                className={`mt-0.5 text-xs ${
+                  readiness.isReady ? "text-emerald-800" : "text-amber-800"
+                }`}
+              >
+                {readiness.isReady
+                  ? "Your school details and administrator identity are verified. Academic setup is fully unlocked."
+                  : readiness.reason ||
+                    "Please complete all required details to unlock academic configuration."}
+              </p>
+            </div>
           </div>
+
           <span
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${
               readiness.isReady
-                ? "border border-emerald-500/40 bg-emerald-950 text-emerald-400"
-                : "border border-amber-500/40 bg-amber-950 text-amber-400"
+                ? "border border-emerald-300 bg-emerald-100 text-emerald-800"
+                : "border border-amber-300 bg-amber-100 text-amber-800"
             }`}
           >
-            {readiness.isReady ? "Ready for Academics" : "Action Required"}
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                readiness.isReady ? "bg-emerald-600" : "animate-ping bg-amber-600"
+              }`}
+            />
+            <span>{readiness.isReady ? "Ready for Academics" : "Action Required"}</span>
           </span>
         </div>
 
         {/* Missing fields breakdown if incomplete */}
         {!readiness.isReady && readiness.missingFields.length > 0 && (
-          <div className="mt-4 rounded-xl border border-amber-900/40 bg-zinc-950/60 p-4">
-            <p className="text-xs font-semibold text-amber-300">Items requiring attention:</p>
-            <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-zinc-400">
+          <div className="mt-4 rounded-xl border border-amber-200 bg-white p-3.5 text-xs">
+            <p className="font-bold text-amber-950">Items requiring attention before activation:</p>
+            <ul className="mt-1.5 list-inside list-disc space-y-1 text-slate-600">
               {readiness.missingFields.map((field) => (
                 <li key={field}>
                   {field === "schoolName" && "School name must be at least 2 characters."}
@@ -171,136 +243,264 @@ export function SchoolSettingsClient({
         )}
       </div>
 
-      {/* Main Settings Form */}
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <form
-            onSubmit={handleUpdate}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm"
+      {/* Notifications */}
+      {error && (
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-900 shadow-xs">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+            <span>{error}</span>
+          </div>
+          <button
+            onClick={() => setError(null)}
+            className="text-xs font-bold text-rose-700 hover:text-rose-950"
           >
-            <h3 className="text-base font-semibold text-white">Institutional Details</h3>
-            <p className="mt-0.5 text-xs text-zinc-400">
-              Official name and institutional code used throughout reports, sessions, and records.
-            </p>
+            Dismiss
+          </button>
+        </div>
+      )}
 
-            {error && (
-              <div className="mt-4 rounded-xl border border-red-800/80 bg-red-950/40 p-3.5 text-xs text-red-300">
-                {error}
+      {success && (
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-900 shadow-xs">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>{success}</span>
+          </div>
+          <button
+            onClick={() => setSuccess(null)}
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-950"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* TAB 1: Identity & Branding */}
+      {activeTab === "identity" && (
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <form
+              onSubmit={handleUpdate}
+              className="space-y-5 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs"
+            >
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="text-sm font-extrabold text-slate-900">Institutional Identity</h3>
+                <p className="text-xs text-slate-400">
+                  Official name and institutional code used throughout reports, sessions, and
+                  records
+                </p>
               </div>
-            )}
 
-            {success && (
-              <div className="mt-4 rounded-xl border border-emerald-800/80 bg-emerald-950/40 p-3.5 text-xs text-emerald-300">
-                {success}
-              </div>
-            )}
-
-            <div className="mt-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300">School Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={!canEdit || loading}
-                  className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-white placeholder-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-60"
-                  placeholder="e.g. Springfield High School"
-                  required
-                />
+              {/* Logo Preview Row */}
+              <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-emerald-700 font-mono text-lg font-bold text-white shadow-sm shadow-emerald-800/20">
+                  {school.code.slice(0, 3)}
+                </div>
+                <div className="space-y-0.5">
+                  <h4 className="text-xs font-bold text-slate-800">Institution Crest & Identity</h4>
+                  <p className="text-[11px] text-slate-400">
+                    Derived from your unique school registration code ({school.code})
+                  </p>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300">School Code *</label>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">
+                    School Name <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     disabled={!canEdit || loading}
-                    className="mt-1.5 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 font-mono text-sm text-white placeholder-zinc-500 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none disabled:opacity-60"
-                    placeholder="e.g. SPR_01"
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none disabled:opacity-60"
+                    placeholder="e.g. Springfield High School"
                     required
                   />
-                  <p className="mt-1 text-[11px] text-zinc-500">
-                    Unique uppercase code identifying this institution.
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    Official name displayed on student cards, certificates, and headers.
                   </p>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300">URL Slug</label>
-                  <input
-                    type="text"
-                    value={school.slug}
-                    disabled
-                    className="mt-1.5 w-full cursor-not-allowed rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2 font-mono text-sm text-zinc-400"
-                  />
-                  <p className="mt-1 text-[11px] text-zinc-500">Permanent URL route identifier.</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">
+                      School Code <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      disabled={!canEdit || loading}
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 font-mono text-xs font-bold text-slate-900 uppercase placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none disabled:opacity-60"
+                      placeholder="e.g. SPR_01"
+                      required
+                    />
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Unique alphanumeric code identifying your school in the tenant directory.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-slate-700">URL Slug</label>
+                    <input
+                      type="text"
+                      value={school.slug}
+                      disabled
+                      className="w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-xs text-slate-500"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      Permanent web URL route identifier.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {canEdit && (
+                <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+                  <span className="text-[11px] text-slate-400">
+                    Changes are validated and recorded securely
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-5 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800 disabled:opacity-60"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    <span>{loading ? "Saving..." : "Save Configuration"}</span>
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>
+
+          {/* Sidebar Info */}
+          <div className="space-y-4">
+            <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+              <h4 className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+                Tenant Lifecycle Status
+              </h4>
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-center justify-between border-b border-slate-100 py-1">
+                  <span className="text-slate-500">Lifecycle</span>
+                  <span className="font-bold text-slate-800">{school.status}</span>
+                </div>
+                <div className="flex items-center justify-between border-b border-slate-100 py-1">
+                  <span className="text-slate-500">Active State</span>
+                  <span
+                    className={`font-bold ${
+                      school.isActive ? "text-emerald-700" : "text-rose-600"
+                    }`}
+                  >
+                    {school.isActive ? "Active Tenant" : "Inactive"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-500">Designated Admin</span>
+                  <span className="font-bold text-slate-800">
+                    {readiness.admin ? readiness.admin.name : "Not Assigned"}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {canEdit && (
-              <div className="mt-6 flex justify-end border-t border-zinc-800/80 pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500/40 focus:outline-none disabled:opacity-60"
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-xs">
+              <div className="flex items-center gap-2 text-xs font-bold text-emerald-800">
+                <Sparkles className="h-4 w-4 text-emerald-600" />
+                <span>Next Recommended Step</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                Once school profile is ready, configure your academic calendar sessions.
+              </p>
+              <div className="mt-3">
+                <Link
+                  href={`/school/${schoolSlug}/academics/sessions`}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
                 >
-                  {loading ? "Saving..." : "Save Changes"}
-                </button>
-              </div>
-            )}
-          </form>
-        </div>
-
-        {/* Sidebar Info */}
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
-            <h4 className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-              Account Status
-            </h4>
-            <div className="mt-4 space-y-3">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400">Lifecycle</span>
-                <span className="font-semibold text-white">{school.status}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400">Active Status</span>
-                <span
-                  className={
-                    school.isActive
-                      ? "font-semibold text-emerald-400"
-                      : "font-semibold text-red-400"
-                  }
-                >
-                  {school.isActive ? "Active" : "Inactive"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-zinc-400">Administrator</span>
-                <span className="text-zinc-300">
-                  {readiness.admin ? readiness.admin.name : "Not Assigned"}
-                </span>
+                  <span>Go to Academic Sessions</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          <div className="rounded-2xl border border-indigo-900/30 bg-indigo-950/10 p-6">
-            <h4 className="text-xs font-semibold text-indigo-300">Next Recommended Step</h4>
-            <p className="mt-1 text-xs text-zinc-400">
-              Once school profile is ready, configure your academic calendar sessions.
+      {/* TAB 2: Readiness & Verification */}
+      {activeTab === "readiness" && (
+        <div className="space-y-5 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-extrabold text-slate-900">Institutional Readiness Audit</h3>
+            <p className="text-xs text-slate-400">
+              Live validation report assessing institutional setup prerequisites
             </p>
-            <div className="mt-4">
-              <Link
-                href={`/school/${schoolSlug}/academics/sessions`}
-                className="inline-flex items-center text-xs font-semibold text-indigo-400 hover:text-indigo-300"
-              >
-                Go to Academic Sessions &rarr;
-              </Link>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-1 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
+              <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                Administrator Assignment
+              </span>
+              <p className="text-sm font-bold text-slate-900">
+                {readiness.admin ? readiness.admin.name : "Unassigned"}
+              </p>
+              <p className="text-xs text-slate-500">
+                {readiness.admin?.email || "No primary administrative contact attached"}
+              </p>
+            </div>
+
+            <div className="space-y-1 rounded-xl border border-slate-100 bg-slate-50/50 p-4">
+              <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+                Registration Verification
+              </span>
+              <p className="text-sm font-bold text-slate-900">{school.status}</p>
+              <p className="text-xs text-slate-500">
+                {school.isActive
+                  ? "Operational authorization confirmed"
+                  : "Platform verification pending"}
+              </p>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* TAB 3: Preferences & Theme */}
+      {activeTab === "appearance" && (
+        <div className="space-y-5 rounded-2xl border border-slate-100 bg-white p-6 shadow-xs">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-extrabold text-slate-900">System Preferences</h3>
+            <p className="text-xs text-slate-400">
+              CampusPulse UI design system palette and accessibility settings
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-2 block text-xs font-bold text-slate-700">
+                Active Color Theme
+              </label>
+              <div className="grid max-w-lg grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50/60 p-3.5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-700 text-white">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold text-emerald-950">CampusPulse Emerald</p>
+                      <p className="text-[10px] font-semibold text-emerald-700">
+                        Active Design System
+                      </p>
+                    </div>
+                  </div>
+                  <span className="rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                    Default
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

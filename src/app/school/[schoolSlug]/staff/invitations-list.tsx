@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, Clock, CheckCircle2, XCircle } from "lucide-react";
 
 interface InvitationItem {
   id: string;
@@ -67,18 +68,19 @@ export function InvitationsList({ schoolSlug, initialInvitations }: InvitationsL
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-red-900/50 bg-red-950/40 p-3 text-xs text-red-300"
+          className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900"
         >
-          {error}
+          <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
+          <span>{error}</span>
         </div>
       )}
 
       {invitations.length === 0 ? (
-        <p className="py-4 text-sm text-zinc-500">No staff invitations found.</p>
+        <p className="py-4 text-xs text-slate-400">No staff invitations found.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-zinc-300">
-            <thead className="border-b border-zinc-800 text-xs text-zinc-400 uppercase">
+          <table className="w-full text-left text-sm text-slate-700">
+            <thead className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
               <tr>
                 <th className="px-4 py-3">Invited Email</th>
                 <th className="px-4 py-3">Role</th>
@@ -88,29 +90,36 @@ export function InvitationsList({ schoolSlug, initialInvitations }: InvitationsL
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {invitations.map((inv) => (
-                <tr key={inv.id} className="hover:bg-zinc-800/30">
-                  <td className="px-4 py-3 font-medium text-white">{inv.email}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-indigo-300">{inv.role}</td>
+                <tr key={inv.id} className="transition-colors hover:bg-slate-50/70">
+                  <td className="px-4 py-3 font-bold text-slate-900">{inv.email}</td>
+                  <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-700">
+                    <span className="rounded-md bg-slate-100 px-2 py-0.5">{inv.role}</span>
+                  </td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-0.5 text-xs ${
-                        inv.status === "PENDING"
-                          ? "border border-amber-800 bg-amber-950 text-amber-300"
-                          : inv.status === "ACCEPTED"
-                            ? "border border-emerald-800 bg-emerald-950 text-emerald-400"
-                            : "bg-zinc-800 text-zinc-400"
-                      }`}
-                    >
-                      {inv.status}
-                    </span>
+                    {inv.status === "PENDING" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                        <Clock className="h-3 w-3 text-amber-600" />
+                        <span>Pending</span>
+                      </span>
+                    ) : inv.status === "ACCEPTED" ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                        <span>Accepted</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-600">
+                        <XCircle className="h-3 w-3 text-slate-400" />
+                        <span>{inv.status}</span>
+                      </span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500">
-                    {new Date(inv.createdAt).toLocaleString()}
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(inv.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="px-4 py-3 text-xs text-zinc-500">
-                    {new Date(inv.expiresAt).toLocaleString()}
+                  <td className="px-4 py-3 text-slate-500">
+                    {new Date(inv.expiresAt).toLocaleDateString()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {inv.status === "PENDING" && (
@@ -118,7 +127,7 @@ export function InvitationsList({ schoolSlug, initialInvitations }: InvitationsL
                         type="button"
                         onClick={() => handleRevoke(inv.id)}
                         disabled={revokingId === inv.id}
-                        className="rounded border border-red-900/60 bg-red-950/30 px-2.5 py-1 text-xs text-red-400 transition hover:bg-red-900/50 hover:text-red-200 disabled:opacity-50"
+                        className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
                       >
                         {revokingId === inv.id ? "Revoking..." : "Revoke"}
                       </button>

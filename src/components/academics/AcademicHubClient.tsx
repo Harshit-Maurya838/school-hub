@@ -3,6 +3,17 @@
 import Link from "next/link";
 import { AcademicYearData } from "./AcademicSessionsClient";
 import { AcademicSetupReadiness } from "@/lib/school-readiness";
+import {
+  CalendarDays,
+  Layers,
+  Grid,
+  BookOpen,
+  ArrowRight,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Sparkles,
+} from "lucide-react";
 
 interface Props {
   schoolSlug: string;
@@ -116,298 +127,345 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
       ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Active Session Card */}
-        <div className="rounded-2xl border border-zinc-800 bg-gradient-to-br from-zinc-900 to-zinc-950 p-6 shadow-sm">
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-slate-200">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-              Current Session
+            <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+              Active Session
             </span>
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                currentYear ? "animate-pulse bg-emerald-500" : "bg-amber-500"
-              }`}
-            />
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <CalendarDays className="h-4 w-4" />
+            </div>
           </div>
-          <p className="mt-3 text-2xl font-bold tracking-tight text-white">
-            {currentYear ? currentYear.name : "None Set"}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">
-            {currentYear
-              ? `${new Date(currentYear.startDate).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                })} - ${new Date(currentYear.endDate).toLocaleDateString(undefined, {
-                  year: "numeric",
-                  month: "short",
-                })}`
-              : "Institutional calendar"}
-          </p>
-          <div className="mt-4 border-t border-zinc-800/60 pt-3">
+          <div className="my-3">
+            <h3 className="text-xl font-black tracking-tight text-slate-900">
+              {currentYear ? currentYear.name : "None Set"}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-400">
+              {currentYear
+                ? `${new Date(currentYear.startDate).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                  })} - ${new Date(currentYear.endDate).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                  })}`
+                : "Institutional calendar"}
+            </p>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <span className="text-[11px] font-bold text-emerald-700">
+              {currentYear ? "Operational" : "Setup needed"}
+            </span>
             <Link
               href={`${basePath}/sessions`}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
             >
-              Manage Sessions &rarr;
+              <span>Manage</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
         {/* Classes Card */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6 shadow-sm">
-          <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-            Total Classes
-          </span>
-          <p className="mt-3 text-3xl font-extrabold tracking-tight text-white">
-            {stats.classesCount}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">Active educational grades</p>
-          <div className="mt-4 border-t border-zinc-800/60 pt-3">
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-slate-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+              Classes / Standards
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <Layers className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="my-3">
+            <h3 className="text-2xl font-black tracking-tight text-slate-900">
+              {stats.classesCount}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-400">Educational grade levels</p>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <span className="text-[11px] font-semibold text-slate-500">Configured grades</span>
             <Link
               href={`${basePath}/classes`}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
             >
-              Configure Classes &rarr;
+              <span>Manage</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
         {/* Sections Card */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6 shadow-sm">
-          <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-            Total Sections
-          </span>
-          <p className="mt-3 text-3xl font-extrabold tracking-tight text-white">
-            {stats.sectionsCount}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">Classrooms and student divisions</p>
-          <div className="mt-4 border-t border-zinc-800/60 pt-3">
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-slate-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+              Class Sections
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50 text-purple-700">
+              <Grid className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="my-3">
+            <h3 className="text-2xl font-black tracking-tight text-slate-900">
+              {stats.sectionsCount}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-400">Active classroom divisions</p>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <span className="text-[11px] font-semibold text-slate-500">Classrooms defined</span>
             <Link
               href={`${basePath}/sections`}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
             >
-              Configure Sections &rarr;
+              <span>Manage</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
         {/* Subjects Card */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/70 p-6 shadow-sm">
-          <span className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-            Total Subjects
-          </span>
-          <p className="mt-3 text-3xl font-extrabold tracking-tight text-white">
-            {stats.subjectsCount}
-          </p>
-          <p className="mt-1 text-xs text-zinc-400">School curriculum catalog</p>
-          <div className="mt-4 border-t border-zinc-800/60 pt-3">
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-slate-200">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
+              Curriculum Subjects
+            </span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <BookOpen className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="my-3">
+            <h3 className="text-2xl font-black tracking-tight text-slate-900">
+              {stats.subjectsCount}
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-400">Cataloged course subjects</p>
+          </div>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            <span className="text-[11px] font-semibold text-slate-500">Active syllabi</span>
             <Link
               href={`${basePath}/subjects`}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
             >
-              Configure Subjects &rarr;
+              <span>Manage</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Setup Checklist & Overview */}
+      {/* Setup Checklist & Overview Modules */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Academic Setup Readiness Checklist */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 shadow-sm lg:col-span-1">
-          <h3 className="text-base font-semibold text-white">Setup Readiness</h3>
-          <p className="mt-0.5 text-xs text-zinc-400">
-            Verify academic configuration prerequisites.
-          </p>
+        <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-xs lg:col-span-1">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900">Setup Readiness</h3>
+              <p className="text-xs text-slate-400">Academic prerequisite checklist</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-1 text-emerald-700">
+              <Sparkles className="h-4 w-4" />
+            </div>
+          </div>
 
-          <div className="mt-5 space-y-3">
-            {checklist.map((item, index) => (
-              <Link
-                key={index}
-                href={item.actionUrl}
-                className={`group flex items-start justify-between rounded-xl border p-3.5 transition ${
-                  item.status === "BLOCKED"
-                    ? "border-zinc-800/60 bg-zinc-950/20 opacity-80 hover:border-zinc-700"
-                    : "border-zinc-800/80 bg-zinc-950/40 hover:border-zinc-700 hover:bg-zinc-800/40"
-                }`}
-              >
-                <div className="pr-2">
-                  <p
-                    className={`text-xs font-semibold ${
-                      item.status === "BLOCKED"
-                        ? "text-zinc-400 group-hover:text-zinc-300"
-                        : "text-zinc-200 group-hover:text-indigo-400"
-                    }`}
-                  >
-                    {item.title}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-zinc-500">{item.message}</p>
-                </div>
-                <div>
-                  {item.status === "COMPLETE" ? (
-                    <span className="rounded-full border border-emerald-800 bg-emerald-950/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
-                      Complete
-                    </span>
-                  ) : item.status === "PENDING" ? (
-                    <span className="rounded-full border border-amber-800 bg-amber-950/60 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
-                      Pending
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-red-900/40 bg-red-950/40 px-2 py-0.5 text-[10px] font-semibold text-red-400">
-                      Blocked
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
+          <div className="space-y-2.5">
+            {checklist.map((item, index) => {
+              const isComp = item.status === "COMPLETE";
+              const isPend = item.status === "PENDING";
+
+              return (
+                <Link
+                  key={index}
+                  href={item.actionUrl}
+                  className={`group flex items-start justify-between rounded-xl border p-3 transition-all ${
+                    isComp
+                      ? "border-emerald-100 bg-emerald-50/20 hover:border-emerald-200 hover:bg-emerald-50/40"
+                      : isPend
+                        ? "border-amber-100 bg-amber-50/20 hover:border-amber-200 hover:bg-amber-50/40"
+                        : "border-slate-100 bg-slate-50/50 opacity-80 hover:border-slate-200"
+                  }`}
+                >
+                  <div className="space-y-0.5 pr-2">
+                    <p
+                      className={`text-xs font-bold transition-colors ${
+                        isComp
+                          ? "text-emerald-950 group-hover:text-emerald-800"
+                          : isPend
+                            ? "text-amber-950 group-hover:text-amber-800"
+                            : "text-slate-700 group-hover:text-slate-900"
+                      }`}
+                    >
+                      {item.title}
+                    </p>
+                    <p className="text-[11px] leading-tight text-slate-500">{item.message}</p>
+                  </div>
+                  <div>
+                    {isComp ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                        <span>Ready</span>
+                      </span>
+                    ) : isPend ? (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                        <Clock className="h-3 w-3 text-amber-600" />
+                        <span>Pending</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">
+                        <AlertCircle className="h-3 w-3 text-slate-500" />
+                        <span>Blocked</span>
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </div>
 
-        {/* Modules Navigation Cards */}
+        {/* Quick Config Modules */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
           {/* Card 1: Academic Sessions */}
           <Link
             href={`${basePath}/sessions`}
-            className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80 hover:shadow-lg"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="flex items-center justify-between">
-              <span className="rounded-xl border border-indigo-500/20 bg-indigo-950/50 p-2.5 text-indigo-400">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.8"
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-              </span>
-              <span className="text-xs font-medium text-zinc-500 group-hover:text-indigo-400">
-                Manage &rarr;
-              </span>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 font-bold text-emerald-700">
+                  <CalendarDays className="h-5 w-5" />
+                </span>
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 transition-transform group-hover:translate-x-0.5">
+                  <span>Open</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <h4 className="mt-4 text-base font-extrabold text-slate-900 group-hover:text-emerald-900">
+                Academic Sessions
+              </h4>
+              <p className="mt-1 text-xs text-slate-500">
+                Configure school calendar years, designate the active operational session, and
+                prevent date conflicts.
+              </p>
             </div>
-            <h4 className="mt-4 text-base font-semibold text-white group-hover:text-indigo-300">
-              Academic Sessions
-            </h4>
-            <p className="mt-1 text-xs text-zinc-400">
-              Configure school calendar years, designate the active operational session, and prevent
-              conflicts.
-            </p>
+            <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
+              {stats.yearsCount} Total Session(s) Recorded
+            </div>
           </Link>
 
           {/* Card 2: Classes */}
           <Link
             href={`${basePath}/classes`}
-            className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80 hover:shadow-lg"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="flex items-center justify-between">
-              <span className="rounded-xl border border-indigo-500/20 bg-indigo-950/50 p-2.5 text-indigo-400">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.8"
-                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                  />
-                </svg>
-              </span>
-              <span className="text-xs font-medium text-zinc-500 group-hover:text-indigo-400">
-                Manage &rarr;
-              </span>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 font-bold text-blue-700">
+                  <Layers className="h-5 w-5" />
+                </span>
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 transition-transform group-hover:translate-x-0.5">
+                  <span>Open</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <h4 className="mt-4 text-base font-extrabold text-slate-900 group-hover:text-emerald-900">
+                Classes & Standards
+              </h4>
+              <p className="mt-1 text-xs text-slate-500">
+                Define standard grade levels (Nursery, LKG, Grade 1 to 12) with custom numeric
+                sorting.
+              </p>
             </div>
-            <h4 className="mt-4 text-base font-semibold text-white group-hover:text-indigo-300">
-              Classes & Standards
-            </h4>
-            <p className="mt-1 text-xs text-zinc-400">
-              Define standard grade levels (Nursery, LKG, Class 1 to 12) with custom numeric
-              sorting.
-            </p>
+            <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
+              {stats.classesCount} Class(es) Active
+            </div>
           </Link>
 
           {/* Card 3: Sections */}
           <Link
             href={`${basePath}/sections`}
-            className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80 hover:shadow-lg"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="flex items-center justify-between">
-              <span className="rounded-xl border border-indigo-500/20 bg-indigo-950/50 p-2.5 text-indigo-400">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.8"
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
-              </span>
-              <span className="text-xs font-medium text-zinc-500 group-hover:text-indigo-400">
-                Manage &rarr;
-              </span>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-50 font-bold text-purple-700">
+                  <Grid className="h-5 w-5" />
+                </span>
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 transition-transform group-hover:translate-x-0.5">
+                  <span>Open</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <h4 className="mt-4 text-base font-extrabold text-slate-900 group-hover:text-emerald-900">
+                Class Sections
+              </h4>
+              <p className="mt-1 text-xs text-slate-500">
+                Establish divisions (A, B, C) under each class and configure maximum student
+                capacities.
+              </p>
             </div>
-            <h4 className="mt-4 text-base font-semibold text-white group-hover:text-indigo-300">
-              Class Sections
-            </h4>
-            <p className="mt-1 text-xs text-zinc-400">
-              Establish divisions (A, B, C) under each class and configure maximum student
-              capacities.
-            </p>
+            <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
+              {stats.sectionsCount} Classroom Division(s)
+            </div>
           </Link>
 
           {/* Card 4: Subjects */}
           <Link
             href={`${basePath}/subjects`}
-            className="group rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80 hover:shadow-lg"
+            className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
           >
-            <div className="flex items-center justify-between">
-              <span className="rounded-xl border border-indigo-500/20 bg-indigo-950/50 p-2.5 text-indigo-400">
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="1.8"
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-              </span>
-              <span className="text-xs font-medium text-zinc-500 group-hover:text-indigo-400">
-                Manage &rarr;
-              </span>
+            <div>
+              <div className="flex items-center justify-between">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 font-bold text-amber-700">
+                  <BookOpen className="h-5 w-5" />
+                </span>
+                <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 transition-transform group-hover:translate-x-0.5">
+                  <span>Open</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <h4 className="mt-4 text-base font-extrabold text-slate-900 group-hover:text-emerald-900">
+                Curriculum Subjects
+              </h4>
+              <p className="mt-1 text-xs text-slate-500">
+                Maintain school-wide foundational courses or class-specific academic subjects.
+              </p>
             </div>
-            <h4 className="mt-4 text-base font-semibold text-white group-hover:text-indigo-300">
-              Subject Catalog
-            </h4>
-            <p className="mt-1 text-xs text-zinc-400">
-              Maintain school-wide foundational courses or class-specific academic subjects.
-            </p>
+            <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
+              {stats.subjectsCount} Syllabus Subject(s)
+            </div>
           </Link>
         </div>
       </div>
 
       {/* Recent Sessions Overview */}
       {recentYears.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/50 shadow-sm">
-          <div className="flex items-center justify-between border-b border-zinc-800/80 px-6 py-4">
+        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div>
-              <h3 className="text-base font-semibold text-white">Recent Academic Sessions</h3>
-              <p className="text-xs text-zinc-400">Institutional calendar sessions and status.</p>
+              <h3 className="text-sm font-extrabold text-slate-900">Recent Academic Sessions</h3>
+              <p className="text-xs text-slate-400">
+                School calendar sessions and activation status
+              </p>
             </div>
             <Link
               href={`${basePath}/sessions`}
-              className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
             >
-              View All &rarr;
+              <span>View All</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y divide-zinc-800/60">
-            {recentYears.slice(0, 3).map((year) => (
+          <div className="divide-y divide-slate-100">
+            {recentYears.slice(0, 4).map((year) => (
               <div
                 key={year.id}
-                className="flex items-center justify-between px-6 py-3.5 text-sm transition hover:bg-zinc-800/20"
+                className="flex items-center justify-between rounded-xl px-2 py-3.5 text-sm transition hover:bg-slate-50/50"
               >
                 <div>
-                  <div className="font-medium text-white">{year.name}</div>
-                  <div className="text-xs text-zinc-400">
+                  <div className="font-bold text-slate-900">{year.name}</div>
+                  <div className="text-xs text-slate-400">
                     {new Date(year.startDate).toLocaleDateString(undefined, {
                       dateStyle: "medium",
                     })}{" "}
@@ -417,12 +475,13 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
                 </div>
                 <div>
                   {year.isCurrent ? (
-                    <span className="rounded-full border border-emerald-800 bg-emerald-950 px-2.5 py-0.5 text-xs font-semibold text-emerald-400">
-                      Active Session
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-600" />
+                      <span>Active Session</span>
                     </span>
                   ) : (
-                    <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2.5 py-0.5 text-xs text-zinc-400">
-                      Inactive
+                    <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      Archived / Inactive
                     </span>
                   )}
                 </div>

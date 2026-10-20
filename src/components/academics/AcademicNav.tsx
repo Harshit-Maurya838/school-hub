@@ -2,6 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  LayoutGrid,
+  CalendarDays,
+  Layers,
+  Grid,
+  BookOpen,
+  AlertTriangle,
+  Shield,
+} from "lucide-react";
 
 interface AcademicNavProps {
   schoolSlug: string;
@@ -27,68 +36,77 @@ export function AcademicNav({
   isSchoolDetailsReady,
   schoolDetailsReason,
 }: AcademicNavProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() || "";
   const basePath = `/school/${schoolSlug}/academics`;
 
   const navItems = [
-    { label: "Overview", href: basePath, exact: true },
-    { label: "Academic Sessions", href: `${basePath}/sessions` },
-    { label: "Classes", href: `${basePath}/classes` },
-    { label: "Sections", href: `${basePath}/sections` },
-    { label: "Subjects", href: `${basePath}/subjects` },
+    { label: "Overview", href: basePath, exact: true, icon: LayoutGrid },
+    { label: "Academic Sessions", href: `${basePath}/sessions`, icon: CalendarDays },
+    { label: "Classes", href: `${basePath}/classes`, icon: Layers },
+    { label: "Sections", href: `${basePath}/sections`, icon: Grid },
+    { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen },
   ];
 
   return (
-    <header className="mb-8 space-y-4">
+    <header className="mb-6 space-y-4">
       {/* Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+      <div className="flex flex-col justify-between gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center">
         <div>
-          <div className="flex items-center gap-2 text-xs font-medium text-zinc-400">
-            <Link href={`/school/${schoolSlug}`} className="transition hover:text-indigo-400">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <Link
+              href={`/school/${schoolSlug}`}
+              className="transition-colors hover:text-emerald-700"
+            >
               {schoolName} ({schoolCode})
             </Link>
             <span>/</span>
-            <span className="text-zinc-200">Academics</span>
+            <span className="text-slate-800">Academics</span>
           </div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Academic Management</h1>
+          <h2 className="mt-1 font-sans text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+            Academic Setup & Curriculum
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400">
+            Configure academic sessions, grade standards, student sections, and subject syllabi
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Prominent Active Academic Year Indicator */}
           {currentYear ? (
-            <div className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-950/60 px-3.5 py-1 text-xs font-semibold text-emerald-300 shadow-sm shadow-emerald-950">
+            <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-xs">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span>
               </span>
               <span>Active Session: {currentYear.name}</span>
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-950/60 px-3.5 py-1 text-xs font-medium text-amber-300">
-              <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+            <div className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+              <span className="h-2 w-2 rounded-full bg-amber-500"></span>
               <span>No Active Session Set</span>
             </div>
           )}
 
-          <span className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs font-medium text-zinc-300">
-            {userRole}
-          </span>
+          <div className="flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-700">
+            <Shield className="h-3.5 w-3.5 text-slate-500" />
+            <span>{userRole}</span>
+          </div>
         </div>
       </div>
 
       {/* Prerequisite Alert Banner */}
       {isSchoolDetailsReady === false && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/40 bg-amber-950/30 px-4 py-2.5 text-xs text-amber-200">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-amber-400"></span>
-            <span>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-xs text-amber-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
+            <span className="font-medium">
               {schoolDetailsReason ||
                 "School profile details are incomplete. Academic setup is locked until profile is complete."}
             </span>
           </div>
           <Link
             href={`/school/${schoolSlug}/settings`}
-            className="font-semibold text-amber-300 underline hover:text-white"
+            className="flex items-center gap-1 font-bold text-amber-800 underline hover:text-amber-950"
           >
             Complete School Profile &rarr;
           </Link>
@@ -96,21 +114,23 @@ export function AcademicNav({
       )}
 
       {/* Tabs */}
-      <nav className="flex space-x-1 overflow-x-auto border-b border-zinc-800/80 pb-px">
+      <nav className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200/80 pb-2">
         {navItems.map((item) => {
           const isActive = item.exact ? pathname === item.href : pathname?.startsWith(item.href);
+          const Icon = item.icon;
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`inline-flex items-center px-4 py-2 text-sm font-medium transition-all ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 isActive
-                  ? "border-b-2 border-indigo-500 text-white"
-                  : "text-zinc-400 hover:border-b-2 hover:border-zinc-700 hover:text-zinc-200"
+                  ? "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-xs"
+                  : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
               }`}
             >
-              {item.label}
+              <Icon className="h-3.5 w-3.5" />
+              <span>{item.label}</span>
             </Link>
           );
         })}

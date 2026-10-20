@@ -32,10 +32,10 @@ export default async function AcademicClassesPage({ params }: PageProps) {
   // Cross-tenant protection
   if (user.role !== "SUPER_ADMIN" && user.schoolId !== school.id) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-white">
-        <div className="max-w-md rounded-xl border border-red-800 bg-red-950/40 p-6 text-center">
-          <h2 className="mb-2 text-xl font-bold text-red-400">Access Denied</h2>
-          <p className="text-sm text-zinc-300">
+      <div className="flex min-h-[400px] items-center justify-center p-4">
+        <div className="max-w-md rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs">
+          <h2 className="mb-2 text-base font-extrabold text-rose-700">Access Denied</h2>
+          <p className="text-xs text-slate-600">
             You do not have permission to access {school.name}.
           </p>
         </div>
@@ -49,29 +49,27 @@ export default async function AcademicClassesPage({ params }: PageProps) {
   ]);
 
   return (
-    <div className="min-h-screen bg-zinc-950 p-6 font-sans text-zinc-100 sm:p-8">
-      <div className="mx-auto max-w-7xl">
-        <AcademicNav
-          schoolSlug={school.slug}
-          schoolName={school.name}
-          schoolCode={school.code}
-          currentYear={readiness.summary.currentAcademicYear}
-          userRole={user.role}
-          isSchoolDetailsReady={readiness.schoolDetails.isReady}
-          schoolDetailsReason={readiness.schoolDetails.reason}
-        />
+    <div className="space-y-6">
+      <AcademicNav
+        schoolSlug={school.slug}
+        schoolName={school.name}
+        schoolCode={school.code}
+        currentYear={readiness.summary.currentAcademicYear}
+        userRole={user.role}
+        isSchoolDetailsReady={readiness.schoolDetails.isReady}
+        schoolDetailsReason={readiness.schoolDetails.reason}
+      />
 
-        <main>
-          <AcademicClassesClient
-            schoolSlug={school.slug}
-            initialClasses={classes}
-            canCreate={readiness.summary.canCreateClasses}
-            blockedReason={readiness.steps.classes.message}
-            actionUrl={readiness.steps.classes.actionUrl}
-            actionLabel={readiness.steps.classes.actionLabel}
-          />
-        </main>
-      </div>
+      <main>
+        <AcademicClassesClient
+          schoolSlug={school.slug}
+          initialClasses={classes}
+          canCreate={readiness.summary.canCreateClasses}
+          blockedReason={readiness.steps.classes.message}
+          actionUrl={readiness.steps.classes.actionUrl}
+          actionLabel={readiness.steps.classes.actionLabel}
+        />
+      </main>
     </div>
   );
 }

@@ -1,8 +1,27 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import {
+  Users,
+  IndianRupee,
+  CalendarCheck2,
+  ArrowRight,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAcademicSetupReadiness } from "@/lib/school-readiness";
+import { StatCard } from "@/components/common/StatCard";
+import {
+  EnrollmentDistributionChart,
+  ClassEnrollmentData,
+} from "@/components/dashboard/EnrollmentDistributionChart";
+import {
+  DashboardActivityCard,
+  ReminderItem,
+  BirthdayItem,
+} from "@/components/dashboard/DashboardActivityCard";
+import { DashboardClassList, ClassSummaryItem } from "@/components/dashboard/DashboardClassList";
 
 interface SchoolPageProps {
   params: Promise<{
@@ -33,13 +52,13 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     notFound();
   }
 
-  // Cross-tenant protection: non-SUPER_ADMIN cannot access another school
+  // Cross-tenant protection
   if (user.role !== "SUPER_ADMIN" && user.schoolId !== school.id) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-white">
-        <div className="max-w-md rounded-xl border border-red-800 bg-red-950/40 p-6 text-center">
-          <h2 className="mb-2 text-xl font-bold text-red-400">Access Denied</h2>
-          <p className="text-sm text-zinc-300">
+      <div className="flex min-h-[60vh] items-center justify-center p-4">
+        <div className="max-w-md rounded-2xl border border-red-200/40 bg-red-50 p-6 text-center shadow-lg">
+          <h2 className="mb-2 text-xl font-bold text-red-700">Access Denied</h2>
+          <p className="text-xs text-red-600">
             You do not have permission to access {school.name}. Tenant boundary violation detected.
           </p>
         </div>
@@ -47,109 +66,261 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     );
   }
 
-  const readiness = await getAcademicSetupReadiness(school.id, school.slug);
+  // Fetch real data concurrently
+  const [totalStudents, boysCount, girlsCount, classesData, readiness, studentsForBirthdays] =
+    await Promise.all([
+      prisma.student.count({
+        where: { schoolId: school.id, deletedAt: null, isActive: true },
+      }),
+      prisma.student.count({
+        where: { schoolId: school.id, deletedAt: null, isActive: true, gender: "MALE" },
+      }),
+      prisma.student.count({
+        where: { schoolId: school.id, deletedAt: null, isActive: true, gender: "FEMALE" },
+      }),
+      prisma.class.findMany({
+        where: { schoolId: school.id },
+        select: {
+          id: true,
+          name: true,
+          numericOrder: true,
+          sections: {
+            select: {
+              id: true,
+              name: true,
+              _count: {
+                select: { enrollments: true },
+              },
+            },
+          },
+          _count: {
+            select: {
+              sections: true,
+              subjects: true,
+            },
+          },
+        },
+        orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
+      }),
+      getAcademicSetupReadiness(school.id, school.slug),
+      prisma.student.findMany({
+        where: { schoolId: school.id, deletedAt: null, isActive: true },
+        select: {
+          id: true,
+          name: true,
+          dob: true,
+          enrollments: {
+            where: { status: "ACTIVE" },
+            take: 1,
+            select: {
+              section: {
+                select: {
+                  name: true,
+                  class: { select: { name: true } },
+                },
+              },
+            },
+          },
+        },
+        take: 60,
+      }),
+    ]);
+
+  // Aggregate classes and enrollment numbers
+  const classSummaryList: ClassSummaryItem[] = classesData.map((cls) => {
+    const studentsInClass = cls.sections.reduce(
+      (sum, sec) => sum + (sec._count?.enrollments || 0),
+      0
+    );
+    return {
+      id: cls.id,
+      name: cls.name,
+      sectionsCount: cls._count.sections,
+      subjectsCount: cls._count.subjects,
+      studentsCount: studentsInClass,
+    };
+  });
+
+  const chartData: ClassEnrollmentData[] = classSummaryList.map((cls) => ({
+    className: cls.name,
+    enrolledStudents: cls.studentsCount,
+    sectionsCount: cls.sectionsCount,
+  }));
+
+  // Build real reminders list from readiness steps
+  const reminders: ReminderItem[] = [];
+
+  if (!readiness.schoolDetails.isReady) {
+    reminders.push({
+      id: "school-profile",
+      title: "School Profile Setup Required",
+      description:
+        readiness.schoolDetails.reason ||
+        "Complete official school details and admin verification.",
+      priority: "high",
+      actionUrl: `/school/${school.slug}/settings`,
+      actionLabel: "Complete Profile",
+    });
+  }
+
+  if (!readiness.summary.currentAcademicYear) {
+    reminders.push({
+      id: "academic-year",
+      title: "Active Academic Year Missing",
+      description: "Configure and set an active academic calendar session.",
+      priority: "high",
+      actionUrl: `/school/${school.slug}/academics/sessions`,
+      actionLabel: "Configure Year",
+    });
+  }
+
+  if (readiness.summary.counts.classes === 0) {
+    reminders.push({
+      id: "classes",
+      title: "Create Class Cohorts",
+      description: "Define standard classes (e.g. Nursery, Class 1-10).",
+      priority: "normal",
+      actionUrl: `/school/${school.slug}/academics/classes`,
+      actionLabel: "Add Classes",
+    });
+  } else if (readiness.summary.counts.sections === 0) {
+    reminders.push({
+      id: "sections",
+      title: "Create Section Divisions",
+      description: "Add sections with seating capacity for student enrollment.",
+      priority: "normal",
+      actionUrl: `/school/${school.slug}/academics/sections`,
+      actionLabel: "Add Sections",
+    });
+  }
+
+  // Filter real student birthdays in current month
+  const currentMonth = new Date().getMonth();
+  const birthdays: BirthdayItem[] = studentsForBirthdays
+    .filter((st) => {
+      const bMonth = new Date(st.dob).getMonth();
+      return bMonth === currentMonth;
+    })
+    .slice(0, 5)
+    .map((st) => {
+      const d = new Date(st.dob);
+      const dobFormatted = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const sec = st.enrollments[0]?.section;
+      const classInfo = sec ? `${sec.class.name} (${sec.name})` : undefined;
+      return {
+        id: st.id,
+        name: st.name,
+        dobFormatted,
+        className: classInfo,
+      };
+    });
+
+  const sessionName = readiness.summary.currentAcademicYear?.name || "No Active Session";
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 p-8 font-sans text-zinc-100">
-      <header className="mb-8 flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">{school.name}</h1>
-          <p className="text-sm text-zinc-400">School Code: {school.code}</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Link
-            href={`/school/${school.slug}/settings`}
-            className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
-          >
-            Settings & Profile
-          </Link>
-          <span className="rounded-full border border-indigo-800 bg-indigo-950 px-3 py-1 text-xs font-medium text-indigo-400">
-            {user.role}
-          </span>
-          <span className="text-sm text-zinc-300">{user.email}</span>
-        </div>
-      </header>
-
+    <div className="animate-in fade-in space-y-6 duration-200">
       {/* Prominent Actionable Readiness Banner */}
       {!readiness.schoolDetails.isReady ? (
-        <div className="mb-8 rounded-2xl border border-amber-500/40 bg-amber-950/20 p-5 shadow-sm">
+        <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-5 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold text-amber-300">
-                Action Required: School Profile Incomplete
-              </h2>
-              <p className="text-xs text-zinc-300">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <h2 className="text-sm font-bold text-amber-900">
+                  Action Required: School Profile Incomplete
+                </h2>
+              </div>
+              <p className="text-xs text-amber-800">
                 {readiness.schoolDetails.reason ||
                   "Complete your school profile before configuring the academic year and student rosters."}
               </p>
             </div>
             <Link
               href={`/school/${school.slug}/settings`}
-              className="inline-flex items-center rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-amber-700"
             >
-              Complete School Profile &rarr;
+              <span>Complete Profile</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
       ) : !readiness.summary.currentAcademicYear ? (
-        <div className="mb-8 rounded-2xl border border-indigo-500/40 bg-indigo-950/20 p-5 shadow-sm">
+        <div className="rounded-2xl border border-emerald-300 bg-emerald-50/80 p-5 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold text-indigo-300">
-                Next Setup Step: Configure Academic Calendar
-              </h2>
-              <p className="text-xs text-zinc-300">
-                Set up and activate an academic year before creating classes and divisions.
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                <h2 className="text-sm font-bold text-emerald-900">
+                  Next Setup Step: Configure Academic Calendar
+                </h2>
+              </div>
+              <p className="text-xs text-emerald-800">
+                Set up and activate an academic year before creating classes and admitting students.
               </p>
             </div>
             <Link
               href={`/school/${school.slug}/academics/sessions`}
-              className="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-500"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-800"
             >
-              Configure Academic Year &rarr;
+              <span>Configure Academic Year</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
       ) : null}
 
-      <main className="grid grid-cols-1 gap-6 md:grid-cols-4">
-        <a
-          href={`/school/${school.slug}/academics`}
-          className="group block rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white group-hover:text-indigo-300">
-              Academics
-            </h2>
-            <span className="text-xs text-zinc-500 group-hover:text-indigo-400">&rarr;</span>
-          </div>
-          <p className="mt-2 text-sm text-zinc-400">
-            Classes, sections, subjects, and academic year schedules.
-          </p>
-        </a>
-        <Link
-          href={`/school/${school.slug}/students`}
-          className="group block rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white group-hover:text-indigo-300">
-              Students
-            </h2>
-            <span className="text-xs text-zinc-500 group-hover:text-indigo-400">&rarr;</span>
-          </div>
-          <p className="mt-2 text-sm text-zinc-400">
-            Manage admissions, student directories, and records.
-          </p>
+      {/* Top Metric Cards (3 Columns) */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {/* 1. Total Students */}
+        <Link href={`/school/${school.slug}/students`} className="block">
+          <StatCard
+            title="Total Students"
+            value={totalStudents}
+            subtitle={`${boysCount} Boys • ${girlsCount} Girls enrolled`}
+            icon={Users}
+            variant="emerald"
+            badgeText={`Session ${sessionName}`}
+            badgeColor="bg-emerald-100 text-emerald-800"
+          />
         </Link>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-white">Attendance</h2>
-          <p className="text-sm text-zinc-400">Daily attendance tracking and reporting.</p>
+
+        {/* 2. Fees Collected (Identified Placeholder as Fee engine is not implemented) */}
+        <StatCard
+          title="Fees Collected"
+          value="Not Configured"
+          subtitle="Financial ledger & billing module awaiting backend integration"
+          icon={IndianRupee}
+          variant="default"
+          badgeText="Module Pending"
+          badgeColor="bg-slate-100 text-slate-500"
+        />
+
+        {/* 3. Daily Attendance (Preview UI Reference) */}
+        <Link href={`/school/${school.slug}/attendance`} className="block">
+          <StatCard
+            title="Daily Attendance"
+            value="Register Ready"
+            subtitle="Physical notebook register preview ready for class rosters"
+            icon={CalendarCheck2}
+            variant="rte"
+            badgeText="UI Reference"
+            badgeColor="bg-emerald-100 text-emerald-800"
+          />
+        </Link>
+      </div>
+
+      {/* Middle Section (2 Columns: Left 2/3, Right 1/3) */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <EnrollmentDistributionChart data={chartData} />
         </div>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-white">Financials</h2>
-          <p className="text-sm text-zinc-400">Fee structures, invoices, and payment receipts.</p>
+        <div className="lg:col-span-1">
+          <DashboardActivityCard reminders={reminders} birthdays={birthdays} />
         </div>
-      </main>
+      </div>
+
+      {/* Bottom Section - "Your Classes" */}
+      <DashboardClassList schoolSlug={school.slug} classes={classSummaryList} />
     </div>
   );
 }

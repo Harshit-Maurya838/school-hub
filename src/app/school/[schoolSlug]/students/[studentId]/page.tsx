@@ -87,7 +87,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 p-6 font-sans text-zinc-100 md:p-8">
+    <div className="space-y-6">
       <StudentNav
         schoolSlug={school.slug}
         schoolName={school.name}
@@ -96,7 +96,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
         currentYear={currentYear}
       />
 
-      <main className="mx-auto w-full max-w-6xl flex-1">
+      <div className="mx-auto w-full max-w-6xl">
         <StudentProfileClient
           schoolSlug={school.slug}
           initialStudent={student as unknown as StudentDetail}
@@ -104,7 +104,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           availableSections={availableSections}
           availableYears={availableYears}
         />
-      </main>
+      </div>
     </div>
   );
 }

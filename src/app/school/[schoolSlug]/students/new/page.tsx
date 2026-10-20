@@ -96,7 +96,7 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950 p-6 font-sans text-zinc-100 md:p-8">
+    <div className="space-y-6">
       <StudentNav
         schoolSlug={school.slug}
         schoolName={school.name}
@@ -105,15 +105,7 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
         currentYear={currentYear}
       />
 
-      <main className="mx-auto w-full max-w-5xl flex-1">
-        <div className="mb-6">
-          <h2 className="text-xl font-bold text-white">New Student Admission</h2>
-          <p className="text-xs text-zinc-400">
-            Admit a student, link guardian records, and allocate to a class and section for the
-            active session.
-          </p>
-        </div>
-
+      <div className="mx-auto w-full max-w-5xl">
         <StudentAdmissionClient
           schoolSlug={school.slug}
           currentYear={currentYear}
@@ -121,7 +113,7 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
           sections={sections}
           readinessError={readinessError}
         />
-      </main>
+      </div>
     </div>
   );
 }

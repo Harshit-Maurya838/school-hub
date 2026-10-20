@@ -5,11 +5,46 @@
   --foreground: #171717;
 }
 
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+  --color-brand-700: #047857;
+  --color-brand-800: #065f46;
+  --color-brand-900: #064e3b;
+  --color-brand-950: #022c22;
+  --color-brand-teal: #0f766e;
+  --color-brand-softMint: #e6f4ea;
+  --color-brand-mintBg: #f0fdf4;
+
+  --color-shalaboy-light: #e0f2fe;
+  --color-shalaboy: #0284c7;
+  --color-shalaboy-dark: #0369a1;
+
+  --color-shalagirl-light: #fce7f3;
+  --color-shalagirl: #db2777;
+  --color-shalagirl-dark: #be185d;
+
+  --color-shalaalert-light: #fef3c7;
+  --color-shalaalert: #d97706;
+  --color-shalaalert-dark: #b45309;
+
+  --color-shalarte-light: #d1fae5;
+  --color-shalarte: #059669;
+  --color-shalarte-dark: #047857;
+
+  --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --shadow-card-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-emerald-glow: 0 10px 25px -5px rgba(5, 150, 105, 0.3);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,4 +58,59 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Notebook register 3D spine and card styling */
+.register-notebook {
+  position: relative;
+  background: #fffdf7;
+  border-radius: 12px;
+  box-shadow:
+    0 4px 20px -2px rgba(0, 0, 0, 0.08),
+    0 2px 6px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.register-notebook:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 12px 28px -4px rgba(6, 78, 59, 0.16),
+    0 4px 10px -2px rgba(0, 0, 0, 0.06);
+}
+
+.register-spine {
+  background: linear-gradient(135deg, #064e3b 0%, #065f46 50%, #047857 100%);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+}
+
+.spiral-ring {
+  background: linear-gradient(90deg, #94a3b8, #e2e8f0, #64748b);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+/* Glassmorphism subtle surfaces */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }

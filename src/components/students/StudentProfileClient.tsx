@@ -1,7 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Phone,
+  Mail,
+  MapPin,
+  Briefcase,
+  Layers,
+  Edit2,
+  Plus,
+  UserPlus,
+  RotateCcw,
+  Archive,
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle2,
+  X,
+} from "lucide-react";
+import { Badge } from "@/components/common/Badge";
 
 export interface StudentDetail {
   id: string;
@@ -145,22 +163,23 @@ export function StudentProfileClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: editName.trim(),
-          admissionNumber: editAdmissionNumber.trim(),
-          dob: editDob,
+          admissionNumber: editAdmissionNumber.trim().toUpperCase(),
+          dob: new Date(editDob).toISOString(),
           gender: editGender,
-          apaarId: editApaarId.trim() || null,
+          apaarId: editApaarId.trim() || undefined,
           isActive: editIsActive,
         }),
       });
 
       const json = await res.json();
       if (!res.ok) {
-        throw new Error(json.error?.message || "Failed to update profile");
+        throw new Error(json.error?.message || "Failed to update student profile");
       }
 
       setStudent(json.data.student);
-      setSuccess("Student profile updated successfully");
+      setSuccess("Profile details updated successfully");
       setIsEditOpen(false);
+      router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error updating student";
       setError(message);
@@ -185,9 +204,9 @@ export function StudentProfileClient({
         throw new Error(json.error?.message || "Failed to archive student");
       }
 
-      setStudent(json.data.student);
       setIsArchiveModalOpen(false);
-      setSuccess("Student archived safely. Historical records preserved.");
+      setStudent(json.data.student);
+      setSuccess("Student archived successfully");
       router.refresh();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Error archiving student";
@@ -306,7 +325,7 @@ export function StudentProfileClient({
         setStudent(updatedJson.data.student);
       }
 
-      setSuccess("Guardian linked to student successfully");
+      setSuccess("Guardian linked successfully");
       setIsAddGuardianOpen(false);
       setGuardianName("");
       setGuardianPhone("");
@@ -315,60 +334,99 @@ export function StudentProfileClient({
       setGuardianAddress("");
       setGuardianIsPrimary(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Error adding guardian";
+      const message = err instanceof Error ? err.message : "Error linking guardian";
       setError(message);
     } finally {
       setLoading(false);
     }
   };
 
+  const initials = student.name
+    ? student.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "ST";
+
   return (
-    <div className="space-y-8">
-      {/* Feedback Alerts */}
+    <div className="space-y-6">
+      {/* Back Link & Notifications */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link
+          href={`/school/${schoolSlug}/students`}
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition-colors hover:text-emerald-700"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span>Back to Student Directory</span>
+        </Link>
+      </div>
+
       {error && (
-        <div className="rounded-xl border border-red-800/80 bg-red-950/40 p-4 text-xs text-red-300">
-          <p className="font-semibold">Operation Notice</p>
-          <p className="mt-1">{error}</p>
+        <div className="flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+          <div>
+            <p className="font-bold">Error</p>
+            <p className="mt-0.5">{error}</p>
+          </div>
         </div>
       )}
 
       {success && (
-        <div className="rounded-xl border border-emerald-800/80 bg-emerald-950/40 p-4 text-xs text-emerald-300">
-          <p className="font-semibold">Success</p>
-          <p className="mt-1">{success}</p>
+        <div className="flex items-start gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs text-emerald-800">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+          <div>
+            <p className="font-bold">Success</p>
+            <p className="mt-0.5">{success}</p>
+          </div>
         </div>
       )}
 
-      {/* Header Profile Summary */}
-      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 backdrop-blur-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Hero Profile Banner */}
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
           <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-950 text-xl font-bold text-indigo-400">
-              {student.name.charAt(0)}
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-emerald-700 to-teal-500 font-sans text-xl font-extrabold text-white shadow-md shadow-emerald-700/20">
+              {initials}
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white">{student.name}</h1>
+              <div className="flex flex-wrap items-center gap-2.5">
+                <h1 className="text-2xl font-black tracking-tight text-slate-900">
+                  {student.name}
+                </h1>
+                <Badge variant={student.gender === "MALE" ? "boy" : "girl"} size="sm">
+                  {student.gender === "MALE" ? "Boy" : "Girl"}
+                </Badge>
                 {isArchived ? (
-                  <span className="rounded-full border border-amber-500/30 bg-amber-950/60 px-2.5 py-0.5 text-[10px] font-semibold text-amber-300">
+                  <Badge variant="alert" size="sm">
                     Archived
-                  </span>
+                  </Badge>
                 ) : student.isActive ? (
-                  <span className="rounded-full border border-emerald-500/30 bg-emerald-950/60 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
-                    Active
-                  </span>
+                  <Badge variant="emerald" size="sm">
+                    Active Roster
+                  </Badge>
                 ) : (
-                  <span className="rounded-full border border-zinc-700 bg-zinc-800 px-2.5 py-0.5 text-[10px] font-semibold text-zinc-400">
+                  <Badge variant="default" size="sm">
                     Inactive
-                  </span>
+                  </Badge>
                 )}
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
-                <span className="font-mono text-zinc-300">
-                  Admission #: {student.admissionNumber}
+              <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                <span className="rounded bg-emerald-50 px-2 py-0.5 font-mono font-bold text-emerald-800">
+                  SR #{student.admissionNumber}
                 </span>
-                {student.apaarId && <span>&bull; APAAR: {student.apaarId}</span>}
-                <span>&bull; Admitted: {new Date(student.createdAt).toLocaleDateString()}</span>
+                {student.apaarId && (
+                  <span className="font-mono text-slate-600">APAAR: {student.apaarId}</span>
+                )}
+                <span>
+                  Admitted:{" "}
+                  {new Date(student.createdAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
               </div>
             </div>
           </div>
@@ -376,32 +434,36 @@ export function StudentProfileClient({
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               onClick={() => setIsEditOpen(true)}
-              className="rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-700"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
             >
-              Edit Details
+              <Edit2 className="h-3.5 w-3.5 text-slate-500" />
+              <span>Edit Details</span>
             </button>
 
             <button
               onClick={() => setIsEnrollModalOpen(true)}
-              className="rounded-xl bg-indigo-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800"
             >
-              + Enroll in Session
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>+ Enroll in Session</span>
             </button>
 
             {isArchived ? (
               <button
                 onClick={handleRestore}
                 disabled={loading}
-                className="rounded-xl border border-emerald-800/80 bg-emerald-950/40 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900/60"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
               >
-                Restore Student
+                <RotateCcw className="h-3.5 w-3.5 text-emerald-700" />
+                <span>Restore Student</span>
               </button>
             ) : (
               <button
                 onClick={() => setIsArchiveModalOpen(true)}
-                className="rounded-xl border border-zinc-800 px-3.5 py-2 text-xs text-zinc-400 transition hover:border-red-800/80 hover:bg-red-950/40 hover:text-red-300"
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
               >
-                Archive
+                <Archive className="h-3.5 w-3.5" />
+                <span>Archive</span>
               </button>
             )}
           </div>
@@ -412,36 +474,40 @@ export function StudentProfileClient({
         {/* Left Column: Personal Information & Guardians */}
         <div className="space-y-6 lg:col-span-1">
           {/* Personal Details */}
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm">
-            <h2 className="border-b border-zinc-800 pb-2 text-sm font-bold text-white">
-              Personal Information
-            </h2>
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <h3 className="border-b border-slate-100 pb-2 text-sm font-bold text-slate-900">
+              Personal Profile
+            </h3>
             <dl className="mt-4 space-y-3 text-xs">
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Date of Birth</dt>
-                <dd className="font-medium text-white">
-                  {new Date(student.dob).toLocaleDateString(undefined, {
+              <div className="flex items-center justify-between">
+                <dt className="text-slate-400">Date of Birth</dt>
+                <dd className="font-bold text-slate-800">
+                  {new Date(student.dob).toLocaleDateString("en-IN", {
                     year: "numeric",
-                    month: "long",
+                    month: "short",
                     day: "numeric",
                   })}
                 </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Gender</dt>
-                <dd className="font-medium text-white">{student.gender}</dd>
+              <div className="flex items-center justify-between">
+                <dt className="text-slate-400">Gender</dt>
+                <dd className="font-bold text-slate-800">{student.gender}</dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Admission Number</dt>
-                <dd className="font-mono font-medium text-white">{student.admissionNumber}</dd>
+              <div className="flex items-center justify-between">
+                <dt className="text-slate-400">Admission Number</dt>
+                <dd className="rounded bg-emerald-50 px-2 py-0.5 font-mono font-bold text-emerald-800">
+                  {student.admissionNumber}
+                </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">APAAR ID</dt>
-                <dd className="font-medium text-white">{student.apaarId || "Not registered"}</dd>
+              <div className="flex items-center justify-between">
+                <dt className="text-slate-400">APAAR ID</dt>
+                <dd className="font-mono font-medium text-slate-800">
+                  {student.apaarId || "Not registered"}
+                </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-zinc-400">Record Status</dt>
-                <dd className="font-medium text-white">
+              <div className="flex items-center justify-between">
+                <dt className="text-slate-400">Status</dt>
+                <dd className="font-bold text-slate-800">
                   {isArchived ? "Archived" : student.isActive ? "Active" : "Inactive"}
                 </dd>
               </div>
@@ -449,14 +515,14 @@ export function StudentProfileClient({
           </section>
 
           {/* Guardians Section */}
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5 backdrop-blur-sm">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-              <h2 className="text-sm font-bold text-white">
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="text-sm font-bold text-slate-900">
                 Guardians ({student.guardians.length})
-              </h2>
+              </h3>
               <button
                 onClick={() => setIsAddGuardianOpen(true)}
-                className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+                className="cursor-pointer text-xs font-bold text-emerald-700 hover:text-emerald-800"
               >
                 + Add Guardian
               </button>
@@ -464,35 +530,51 @@ export function StudentProfileClient({
 
             <div className="mt-4 space-y-3">
               {student.guardians.length === 0 ? (
-                <p className="py-4 text-center text-xs text-zinc-500 italic">
+                <p className="py-4 text-center text-xs text-slate-400 italic">
                   No guardians linked.
                 </p>
               ) : (
                 student.guardians.map((link) => (
                   <div
                     key={link.id}
-                    className="rounded-xl border border-zinc-800/80 bg-zinc-950/70 p-3 text-xs"
+                    className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5 text-xs"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="font-semibold text-white">
+                      <div className="font-bold text-slate-900">
                         {link.guardian.name}
-                        <span className="ml-1 text-[11px] font-normal text-zinc-400">
+                        <span className="ml-1 text-[11px] font-semibold text-slate-500">
                           ({link.relationship})
                         </span>
                       </div>
                       {link.isPrimary && (
-                        <span className="rounded-md border border-indigo-500/30 bg-indigo-950/60 px-2 py-0.5 text-[10px] font-medium text-indigo-300">
+                        <span className="rounded-md border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
                           Primary
                         </span>
                       )}
                     </div>
-                    <div className="mt-2 space-y-1 text-zinc-400">
-                      <div>Phone: {link.guardian.phone}</div>
-                      {link.guardian.email && <div>Email: {link.guardian.email}</div>}
-                      {link.guardian.occupation && (
-                        <div>Occupation: {link.guardian.occupation}</div>
+                    <div className="space-y-1 text-slate-600">
+                      <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                        <Phone className="h-3 w-3 text-slate-400" />
+                        <span>{link.guardian.phone}</span>
+                      </div>
+                      {link.guardian.email && (
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <Mail className="h-3 w-3 text-slate-400" />
+                          <span>{link.guardian.email}</span>
+                        </div>
                       )}
-                      {link.guardian.address && <div>Address: {link.guardian.address}</div>}
+                      {link.guardian.occupation && (
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <Briefcase className="h-3 w-3 text-slate-400" />
+                          <span>{link.guardian.occupation}</span>
+                        </div>
+                      )}
+                      {link.guardian.address && (
+                        <div className="flex items-center gap-1.5 text-[11px]">
+                          <MapPin className="h-3 w-3 text-slate-400" />
+                          <span>{link.guardian.address}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))
@@ -501,64 +583,71 @@ export function StudentProfileClient({
           </section>
         </div>
 
-        {/* Right Column: Academic Enrollment Timeline & History */}
+        {/* Right Column: Academic Enrollment History */}
         <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 backdrop-blur-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-zinc-800 pb-3">
+          <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-3">
               <div>
-                <h2 className="text-base font-bold text-white">Enrollment History</h2>
-                <p className="text-xs text-zinc-400">
-                  Year-specific class allocations and historical enrollment records.
+                <h3 className="text-base font-bold text-slate-900">Enrollment & Session History</h3>
+                <p className="text-xs text-slate-400">
+                  Year-specific class allocations and historical enrollment allocations.
                 </p>
               </div>
               <button
                 onClick={() => setIsEnrollModalOpen(true)}
-                className="rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-700"
+                className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100"
               >
-                + Allocate New Session
+                <Plus className="h-3.5 w-3.5" />
+                <span>Allocate Session</span>
               </button>
             </div>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-5 space-y-3.5">
               {student.enrollments.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
-                  <p className="text-xs text-zinc-400">
+                <div className="space-y-2 rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+                  <Layers className="mx-auto h-10 w-10 text-slate-300" />
+                  <p className="text-xs font-bold text-slate-700">
                     No academic enrollments recorded for this student.
                   </p>
                   <button
                     onClick={() => setIsEnrollModalOpen(true)}
-                    className="mt-3 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white"
+                    className="mt-2 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800"
                   >
-                    Enroll in Current Academic Year
+                    Enroll in Current Session
                   </button>
                 </div>
               ) : (
                 student.enrollments.map((enrollment) => (
                   <div
                     key={enrollment.id}
-                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-950 p-4 transition hover:border-zinc-700"
+                    className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 transition hover:border-emerald-300"
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-white">
+                        <span className="text-sm font-bold text-slate-900">
                           {enrollment.section.class.name} &mdash; Section {enrollment.section.name}
                         </span>
                         {enrollment.academicYear.isCurrent && (
-                          <span className="rounded-full border border-emerald-500/30 bg-emerald-950/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
-                            Current Session
+                          <span className="rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                            Active Session
                           </span>
                         )}
-                        <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+                        <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-bold text-slate-600">
                           {enrollment.status}
                         </span>
                       </div>
-                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-400">
+                      <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
                         <span>Session: {enrollment.academicYear.name}</span>
                         {enrollment.rollNumber && (
-                          <span>&bull; Roll #: {enrollment.rollNumber}</span>
+                          <span className="font-mono">&bull; Roll #: {enrollment.rollNumber}</span>
                         )}
                         <span>
-                          &bull; Enrolled: {new Date(enrollment.createdAt).toLocaleDateString()}
+                          &bull; Enrolled:{" "}
+                          {new Date(enrollment.createdAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
                         </span>
                       </div>
                     </div>
@@ -572,30 +661,36 @@ export function StudentProfileClient({
 
       {/* Edit Student Modal */}
       {isEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
           <form
             onSubmit={handleUpdateProfile}
-            className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-lg space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl"
           >
-            <h3 className="text-lg font-bold text-white">Edit Student Details</h3>
-            <p className="text-xs text-zinc-400">
-              Update administrative record fields for {student.name}.
-            </p>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Edit Student Details</h3>
+              <button
+                type="button"
+                onClick={() => setIsEditOpen(false)}
+                className="cursor-pointer rounded-lg p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">Full Name</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Full Name</label>
                 <input
                   type="text"
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Admission Number
                 </label>
                 <input
@@ -603,13 +698,13 @@ export function StudentProfileClient({
                   required
                   value={editAdmissionNumber}
                   onChange={(e) => setEditAdmissionNumber(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 font-mono text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-xs text-slate-800 uppercase focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                  <label className="mb-1 block text-xs font-bold text-slate-700">
                     Date of Birth
                   </label>
                   <input
@@ -617,15 +712,15 @@ export function StudentProfileClient({
                     required
                     value={editDob}
                     onChange={(e) => setEditDob(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-zinc-300">Gender</label>
+                  <label className="mb-1 block text-xs font-bold text-slate-700">Gender</label>
                   <select
                     value={editGender}
                     onChange={(e) => setEditGender(e.target.value)}
-                    className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                   >
                     <option value="MALE">Male</option>
                     <option value="FEMALE">Female</option>
@@ -635,14 +730,14 @@ export function StudentProfileClient({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   APAAR ID (Optional)
                 </label>
                 <input
                   type="text"
                   value={editApaarId}
                   onChange={(e) => setEditApaarId(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
@@ -652,26 +747,26 @@ export function StudentProfileClient({
                   id="activeToggle"
                   checked={editIsActive}
                   onChange={(e) => setEditIsActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <label htmlFor="activeToggle" className="text-xs font-medium text-zinc-300">
+                <label htmlFor="activeToggle" className="text-xs font-bold text-slate-700">
                   Student is active and currently attending
                 </label>
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => setIsEditOpen(false)}
-                className="rounded-xl border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300"
+                className="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                className="cursor-pointer rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
               >
                 {loading ? "Saving..." : "Save Changes"}
               </button>
@@ -682,24 +777,32 @@ export function StudentProfileClient({
 
       {/* Enroll in Session Modal */}
       {isEnrollModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
           <form
             onSubmit={handleEnroll}
-            className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-md space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl"
           >
-            <h3 className="text-lg font-bold text-white">Enroll in Academic Session</h3>
-            <p className="text-xs text-zinc-400">Allocate {student.name} to a class and section.</p>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Enroll in Academic Session</h3>
+              <button
+                type="button"
+                onClick={() => setIsEnrollModalOpen(false)}
+                className="cursor-pointer rounded-lg p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Academic Session
                 </label>
                 <select
                   required
                   value={enrollYearId}
                   onChange={(e) => setEnrollYearId(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 >
                   <option value="">Select Session...</option>
                   {availableYears.map((y) => (
@@ -711,7 +814,7 @@ export function StudentProfileClient({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Grade Level / Class
                 </label>
                 <select
@@ -721,7 +824,7 @@ export function StudentProfileClient({
                     setEnrollClassId(e.target.value);
                     setEnrollSectionId("");
                   }}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 >
                   <option value="">Select Class...</option>
                   {availableClasses.map((c) => (
@@ -733,13 +836,13 @@ export function StudentProfileClient({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">Section</label>
+                <label className="mb-1 block text-xs font-bold text-slate-700">Section</label>
                 <select
                   required
                   disabled={!enrollClassId}
                   value={enrollSectionId}
                   onChange={(e) => setEnrollSectionId(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white disabled:opacity-50"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none disabled:opacity-50"
                 >
                   <option value="">Select Section...</option>
                   {dependentEnrollSections.map((s) => (
@@ -751,7 +854,7 @@ export function StudentProfileClient({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Roll Number (Optional)
                 </label>
                 <input
@@ -759,23 +862,23 @@ export function StudentProfileClient({
                   placeholder="e.g. 05"
                   value={enrollRollNumber}
                   onChange={(e) => setEnrollRollNumber(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 font-mono text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => setIsEnrollModalOpen(false)}
-                className="rounded-xl border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300"
+                className="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                className="cursor-pointer rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
               >
                 {loading ? "Allocating..." : "Confirm Enrollment"}
               </button>
@@ -786,19 +889,25 @@ export function StudentProfileClient({
 
       {/* Add Guardian Modal */}
       {isAddGuardianOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
           <form
             onSubmit={handleAddGuardian}
-            className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl"
+            className="w-full max-w-md space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl"
           >
-            <h3 className="text-lg font-bold text-white">Link New Guardian</h3>
-            <p className="text-xs text-zinc-400">
-              Add parent or guardian details for {student.name}.
-            </p>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900">Link New Guardian</h3>
+              <button
+                type="button"
+                onClick={() => setIsAddGuardianOpen(false)}
+                className="cursor-pointer rounded-lg p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-            <div className="mt-5 space-y-3">
+            <div className="space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Guardian Name *
                 </label>
                 <input
@@ -807,12 +916,12 @@ export function StudentProfileClient({
                   placeholder="e.g. Sunita Sharma"
                   value={guardianName}
                   onChange={(e) => setGuardianName(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Phone Number *
                 </label>
                 <input
@@ -821,18 +930,18 @@ export function StudentProfileClient({
                   placeholder="e.g. +91 9876543210"
                   value={guardianPhone}
                   onChange={(e) => setGuardianPhone(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 font-mono text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Relationship *
                 </label>
                 <select
                   value={guardianRelationship}
                   onChange={(e) => setGuardianRelationship(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 >
                   <option value="FATHER">Father</option>
                   <option value="MOTHER">Mother</option>
@@ -842,26 +951,26 @@ export function StudentProfileClient({
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Email (Optional)
                 </label>
                 <input
                   type="email"
                   value={guardianEmail}
                   onChange={(e) => setGuardianEmail(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold text-zinc-300">
+                <label className="mb-1 block text-xs font-bold text-slate-700">
                   Occupation (Optional)
                 </label>
                 <input
                   type="text"
                   value={guardianOccupation}
                   onChange={(e) => setGuardianOccupation(e.target.value)}
-                  className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
@@ -871,29 +980,26 @@ export function StudentProfileClient({
                   id="primaryGuardianToggle"
                   checked={guardianIsPrimary}
                   onChange={(e) => setGuardianIsPrimary(e.target.checked)}
-                  className="h-4 w-4 rounded border-zinc-700 bg-zinc-800 text-indigo-600 focus:ring-indigo-500"
+                  className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
-                <label
-                  htmlFor="primaryGuardianToggle"
-                  className="text-xs font-medium text-zinc-300"
-                >
+                <label htmlFor="primaryGuardianToggle" className="text-xs font-bold text-slate-700">
                   Set as primary contact for student
                 </label>
               </div>
             </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => setIsAddGuardianOpen(false)}
-                className="rounded-xl border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300"
+                className="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                className="cursor-pointer rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 disabled:opacity-50"
               >
                 {loading ? "Linking..." : "Link Guardian"}
               </button>
@@ -904,23 +1010,23 @@ export function StudentProfileClient({
 
       {/* Archive Confirmation Modal */}
       {isArchiveModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">Archive Student Record</h3>
-            <p className="mt-2 text-xs text-zinc-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <h3 className="text-base font-bold text-slate-900">Archive Student Record</h3>
+            <p className="text-xs leading-relaxed text-slate-600">
               Are you sure you want to archive{" "}
-              <strong className="text-white">{student.name}</strong> (Admission #{" "}
+              <strong className="text-slate-900">{student.name}</strong> (Admission #{" "}
               {student.admissionNumber})?
             </p>
 
-            <div className="mt-3 rounded-xl border border-zinc-800 bg-zinc-950 p-3 text-[11px] text-zinc-400">
-              <span className="font-semibold text-zinc-300">Safety Guarantee:</span> All historical
-              enrollment records, section allocations, and guardian associations remain safe in the
-              database and will NOT be deleted.
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <span className="font-bold text-slate-800">Safety Guarantee:</span> Historical
+              enrollment records and guardian associations remain safe in the database and will NOT
+              be deleted.
             </div>
 
-            <div className="mt-4">
-              <label className="mb-1 block text-xs font-medium text-zinc-300">
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-700">
                 Reason for Archival (Optional)
               </label>
               <textarea
@@ -928,15 +1034,15 @@ export function StudentProfileClient({
                 placeholder="e.g. Student transferred to another school..."
                 value={archiveReason}
                 onChange={(e) => setArchiveReason(e.target.value)}
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-xs text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none"
               />
             </div>
 
-            <div className="mt-6 flex items-center justify-end gap-3">
+            <div className="flex items-center justify-end gap-2.5 border-t border-slate-100 pt-3">
               <button
                 type="button"
                 onClick={() => setIsArchiveModalOpen(false)}
-                className="rounded-xl border border-zinc-800 px-4 py-2 text-xs font-semibold text-zinc-300"
+                className="cursor-pointer rounded-xl bg-slate-100 px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-200"
               >
                 Cancel
               </button>
@@ -944,7 +1050,7 @@ export function StudentProfileClient({
                 type="button"
                 disabled={loading}
                 onClick={handleArchive}
-                className="inline-flex items-center rounded-xl bg-amber-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50"
+                className="cursor-pointer rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
               >
                 {loading ? "Archiving..." : "Confirm Archival"}
               </button>
@@ -955,3 +1061,5 @@ export function StudentProfileClient({
     </div>
   );
 }
+
+export default StudentProfileClient;

@@ -2,6 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  BookOpen,
+  Plus,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  ArrowRight,
+  Filter,
+  Globe,
+} from "lucide-react";
 
 export interface SubjectData {
   id: string;
@@ -20,8 +33,6 @@ export interface ClassOption {
   id: string;
   name: string;
 }
-
-import Link from "next/link";
 
 interface Props {
   schoolSlug: string;
@@ -201,21 +212,26 @@ export function AcademicSubjectsClient({
     <div className="space-y-6">
       {/* Prerequisite Required Banner */}
       {!canCreate && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-950/20 p-5 shadow-sm">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-amber-300">
-                Setup Prerequisite Required: Subject Creation Blocked
-              </h3>
-              <p className="text-xs text-zinc-300">
-                {blockedReason || "Set up and activate an academic year before creating subjects."}
-              </p>
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-900">
+                  Setup Prerequisite Required: Subject Creation Blocked
+                </h3>
+                <p className="text-xs text-amber-700">
+                  {blockedReason ||
+                    "Set up and activate an academic year before creating subjects."}
+                </p>
+              </div>
             </div>
             <Link
               href={actionUrl}
-              className="inline-flex items-center rounded-xl bg-amber-500 px-4 py-2 text-xs font-semibold text-zinc-950 transition hover:bg-amber-400"
+              className="inline-flex items-center gap-1 rounded-xl bg-amber-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-amber-700"
             >
-              {actionLabel} &rarr;
+              <span>{actionLabel}</span>
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -223,38 +239,29 @@ export function AcademicSubjectsClient({
 
       {/* Notifications */}
       {error && (
-        <div className="flex items-center justify-between rounded-xl border border-red-800 bg-red-950/40 p-4 text-sm text-red-200">
+        <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-xs text-rose-900 shadow-xs">
           <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-xs text-red-400 hover:text-white">
+          <button
+            onClick={() => setError(null)}
+            className="text-xs font-bold text-rose-700 hover:text-rose-950"
+          >
             Dismiss
           </button>
         </div>
       )}
 
       {success && (
-        <div className="flex items-center justify-between rounded-xl border border-emerald-800 bg-emerald-950/40 p-4 text-sm text-emerald-200">
+        <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-xs text-emerald-900 shadow-xs">
           <div className="flex items-center gap-2">
-            <svg className="h-5 w-5 text-emerald-400" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
             <span>{success}</span>
           </div>
           <button
             onClick={() => setSuccess(null)}
-            className="text-xs text-emerald-400 hover:text-white"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-950"
           >
             Dismiss
           </button>
@@ -262,28 +269,26 @@ export function AcademicSubjectsClient({
       )}
 
       {/* Filter and Actions Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
-            Scope Filter:
-          </label>
-          <div className="inline-flex rounded-xl border border-zinc-800 bg-zinc-900 p-1 text-xs">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Filter className="h-4 w-4 text-slate-400" />
+          <div className="inline-flex rounded-xl border border-slate-200/80 bg-slate-100 p-1 text-xs">
             <button
               onClick={() => setScopeFilter("ALL")}
-              className={`rounded-lg px-3 py-1 font-medium transition ${
+              className={`rounded-lg px-3 py-1 font-bold transition ${
                 scopeFilter === "ALL"
-                  ? "bg-indigo-600 text-white"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-emerald-700 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               All ({subjects.length})
             </button>
             <button
               onClick={() => setScopeFilter("SCHOOL_WIDE")}
-              className={`rounded-lg px-3 py-1 font-medium transition ${
+              className={`rounded-lg px-3 py-1 font-bold transition ${
                 scopeFilter === "SCHOOL_WIDE"
-                  ? "bg-indigo-600 text-white"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-emerald-700 text-white shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               School-Wide ({schoolWideCount})
@@ -294,17 +299,17 @@ export function AcademicSubjectsClient({
                 onChange={(e) => {
                   if (e.target.value) setScopeFilter(e.target.value);
                 }}
-                className={`rounded-lg bg-transparent px-2.5 py-1 text-xs font-medium focus:outline-none ${
+                className={`rounded-lg border-0 px-2.5 py-1 text-xs font-bold transition focus:outline-none ${
                   scopeFilter !== "ALL" && scopeFilter !== "SCHOOL_WIDE"
-                    ? "bg-indigo-600 text-white"
-                    : "text-zinc-400 hover:text-zinc-200"
+                    ? "bg-emerald-700 text-white shadow-xs"
+                    : "bg-transparent text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <option value="" disabled className="bg-zinc-900 text-zinc-400">
+                <option value="" disabled className="bg-white text-slate-700">
                   By Class ({classSpecificCount})...
                 </option>
                 {classes.map((c) => (
-                  <option key={c.id} value={c.id} className="bg-zinc-900 text-white">
+                  <option key={c.id} value={c.id} className="bg-white text-slate-900">
                     {c.name}
                   </option>
                 ))}
@@ -317,100 +322,101 @@ export function AcademicSubjectsClient({
           onClick={openCreateModal}
           disabled={!canCreate}
           title={!canCreate ? blockedReason : undefined}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <Plus className="h-4 w-4" />
           <span>Create Subject</span>
         </button>
       </div>
 
       {/* Subjects Table */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/60 shadow-md">
-        <div className="border-b border-zinc-800/80 px-6 py-4">
-          <h3 className="text-base font-semibold text-white">
-            Curriculum Subjects ({filteredSubjects.length})
-          </h3>
-          <p className="text-xs text-zinc-400">
-            Administrative catalog of school-wide and class-specific courses.
-          </p>
+      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs">
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900">
+              Curriculum Subjects ({filteredSubjects.length})
+            </h3>
+            <p className="text-xs text-slate-400">
+              Administrative catalog of school-wide foundational and class-specific courses
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-500">
+            {subjects.length} Total
+          </span>
         </div>
 
         {filteredSubjects.length === 0 ? (
           <div className="p-12 text-center">
-            <svg
-              className="mx-auto h-12 w-12 text-zinc-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.5"
-                d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-              />
-            </svg>
-            <h3 className="mt-3 text-sm font-semibold text-zinc-200">No subjects found</h3>
-            <p className="mt-1 text-xs text-zinc-500">
+            <BookOpen className="mx-auto h-10 w-10 text-slate-300" />
+            <h3 className="mt-3 text-sm font-bold text-slate-800">No subjects found</h3>
+            <p className="mt-1 text-xs text-slate-500">
               Create subjects such as Mathematics, English, General Science, etc.
             </p>
-            <button
-              onClick={openCreateModal}
-              className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500"
-            >
-              Add Subject
-            </button>
+            {canCreate && (
+              <button
+                onClick={openCreateModal}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-emerald-800"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Add Subject</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-zinc-300">
-              <thead className="border-b border-zinc-800 bg-zinc-950/40 text-xs text-zinc-400 uppercase">
+            <table className="w-full text-left text-sm text-slate-700">
+              <thead className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
                 <tr>
-                  <th className="px-6 py-3.5">Subject Name</th>
-                  <th className="px-6 py-3.5">Code</th>
-                  <th className="px-6 py-3.5">Scope / Level</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
+                  <th className="px-5 py-3.5">Subject Name</th>
+                  <th className="px-5 py-3.5">Code</th>
+                  <th className="px-5 py-3.5">Scope / Level</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/60">
+              <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredSubjects.map((sub) => (
-                  <tr key={sub.id} className="transition hover:bg-zinc-800/30">
-                    <td className="px-6 py-4 font-semibold text-white">{sub.name}</td>
-                    <td className="px-6 py-4 font-mono text-xs text-indigo-400">
+                  <tr key={sub.id} className="transition-colors hover:bg-slate-50/70">
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 font-mono text-xs font-extrabold text-emerald-800">
+                          {sub.code || sub.name.slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <span className="block font-extrabold text-slate-900">{sub.name}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 font-mono text-xs font-bold text-slate-600">
                       {sub.code || "—"}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-3.5">
                       {sub.class ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-800 bg-emerald-950/60 px-2.5 py-0.5 text-xs font-medium text-emerald-300">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
-                          Class: {sub.class.name}
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600"></span>
+                          <span>Class: {sub.class.name}</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-800 bg-indigo-950/60 px-2.5 py-0.5 text-xs font-medium text-indigo-300">
-                          <span className="h-1.5 w-1.5 rounded-full bg-indigo-400"></span>
-                          🌐 School-Wide (All Classes)
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-800">
+                          <Globe className="h-3.5 w-3.5 text-blue-600" />
+                          <span>School-Wide (Universal)</span>
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="px-5 py-3.5 text-right">
+                      <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => openEditModal(sub)}
-                          className="rounded-lg border border-zinc-700 bg-zinc-800/80 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:bg-zinc-700 hover:text-white"
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                          title="Edit"
                         >
-                          Edit
+                          <Pencil className="h-3.5 w-3.5" />
                         </button>
                         <button
                           onClick={() => setDeletingSubject(sub)}
-                          className="rounded-lg border border-red-900/40 bg-red-950/30 px-2.5 py-1 text-xs font-medium text-red-400 hover:bg-red-900/60"
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                          title="Delete"
                         >
-                          Delete
+                          <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </td>
@@ -424,22 +430,22 @@ export function AcademicSubjectsClient({
 
       {/* Create Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-lg font-semibold text-white">Create New Subject</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-extrabold text-slate-900">Create New Subject</h3>
               <button
                 onClick={() => setIsCreateOpen(false)}
-                className="text-zinc-400 hover:text-white"
+                className="rounded-lg p-1 text-slate-400 hover:text-slate-700"
               >
-                &times;
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-300">
-                  Subject Name <span className="text-red-400">*</span>
+                <label className="block text-xs font-bold text-slate-700">
+                  Subject Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -447,46 +453,46 @@ export function AcademicSubjectsClient({
                   placeholder="e.g. Mathematics, English, Physics"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-white placeholder-zinc-500 focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300">
-                  Subject Code <span className="text-zinc-500">(Optional)</span>
+                <label className="block text-xs font-bold text-slate-700">
+                  Subject Code <span className="font-normal text-slate-400">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   placeholder="e.g. MATH101, ENG"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-white uppercase placeholder-zinc-500 focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 uppercase placeholder-slate-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
-              <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-                <div className="flex items-center gap-3">
+              <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="isClassSpecific"
                     checked={isClassSpecific}
                     onChange={(e) => setIsClassSpecific(e.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
                   />
-                  <label htmlFor="isClassSpecific" className="text-xs font-medium text-zinc-200">
-                    Specific to a single class / grade only
+                  <label htmlFor="isClassSpecific" className="text-xs font-bold text-slate-700">
+                    Specific to a single class / standard only
                   </label>
                 </div>
 
                 {isClassSpecific && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-400">
-                      Select Class <span className="text-red-400">*</span>
+                    <label className="mb-1 block text-xs font-bold text-slate-600">
+                      Select Class <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedClassId}
                       onChange={(e) => setSelectedClassId(e.target.value)}
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3.5 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                     >
                       {classes.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -498,24 +504,24 @@ export function AcademicSubjectsClient({
                 )}
 
                 {!isClassSpecific && (
-                  <p className="text-[11px] text-zinc-500">
-                    🌐 This subject will be school-wide and applicable across classes.
+                  <p className="text-[11px] text-slate-500">
+                    🌐 This subject will be school-wide and applicable across all classes.
                   </p>
                 )}
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 border-t border-zinc-800 pt-3">
+              <div className="mt-6 flex justify-end gap-2.5 border-t border-slate-100 pt-4">
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800 disabled:opacity-50"
                 >
                   {loading ? "Creating..." : "Create Subject"}
                 </button>
@@ -527,70 +533,67 @@ export function AcademicSubjectsClient({
 
       {/* Edit Modal */}
       {editingSubject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-            <div className="mb-4 flex items-center justify-between border-b border-zinc-800 pb-3">
-              <h3 className="text-lg font-semibold text-white">Edit Subject</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-extrabold text-slate-900">Edit Subject</h3>
               <button
                 onClick={() => setEditingSubject(null)}
-                className="text-zinc-400 hover:text-white"
+                className="rounded-lg p-1 text-slate-400 hover:text-slate-700"
               >
-                &times;
+                <X className="h-4 w-4" />
               </button>
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-zinc-300">
-                  Subject Name <span className="text-red-400">*</span>
+                <label className="block text-xs font-bold text-slate-700">
+                  Subject Name <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-zinc-300">
-                  Subject Code <span className="text-zinc-500">(Optional)</span>
+                <label className="block text-xs font-bold text-slate-700">
+                  Subject Code <span className="font-normal text-slate-400">(Optional)</span>
                 </label>
                 <input
                   type="text"
                   value={code}
                   onChange={(e) => setCode(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-950 px-3.5 py-2 text-sm text-white uppercase focus:border-indigo-500 focus:outline-none"
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 uppercase focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                 />
               </div>
 
-              <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-                <div className="flex items-center gap-3">
+              <div className="space-y-3 rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     id="editIsClassSpecific"
                     checked={isClassSpecific}
                     onChange={(e) => setIsClassSpecific(e.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-500"
                   />
-                  <label
-                    htmlFor="editIsClassSpecific"
-                    className="text-xs font-medium text-zinc-200"
-                  >
+                  <label htmlFor="editIsClassSpecific" className="text-xs font-bold text-slate-700">
                     Specific to a single class / grade only
                   </label>
                 </div>
 
                 {isClassSpecific && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-zinc-400">
-                      Select Class <span className="text-red-400">*</span>
+                    <label className="mb-1 block text-xs font-bold text-slate-600">
+                      Select Class <span className="text-rose-500">*</span>
                     </label>
                     <select
                       value={selectedClassId}
                       onChange={(e) => setSelectedClassId(e.target.value)}
-                      className="w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3.5 py-2 text-sm text-white focus:border-indigo-500 focus:outline-none"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 focus:outline-none"
                     >
                       {classes.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -602,18 +605,18 @@ export function AcademicSubjectsClient({
                 )}
               </div>
 
-              <div className="mt-6 flex justify-end gap-3 border-t border-zinc-800 pt-3">
+              <div className="mt-6 flex justify-end gap-2.5 border-t border-slate-100 pt-4">
                 <button
                   type="button"
                   onClick={() => setEditingSubject(null)}
-                  className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-500 disabled:opacity-50"
+                  className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800 disabled:opacity-50"
                 >
                   {loading ? "Saving..." : "Save Changes"}
                 </button>
@@ -625,19 +628,19 @@ export function AcademicSubjectsClient({
 
       {/* Delete Confirmation Modal */}
       {deletingSubject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">Delete Subject</h3>
-            <p className="mt-2 text-sm text-zinc-400">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
+            <h3 className="text-base font-extrabold text-slate-900">Delete Subject</h3>
+            <p className="mt-2 text-xs text-slate-600">
               Are you sure you want to delete{" "}
-              <strong className="text-white">&apos;{deletingSubject.name}&apos;</strong>?
+              <strong className="text-slate-900">&apos;{deletingSubject.name}&apos;</strong>?
             </p>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex justify-end gap-2.5">
               <button
                 type="button"
                 onClick={() => setDeletingSubject(null)}
-                className="rounded-xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -645,7 +648,7 @@ export function AcademicSubjectsClient({
                 type="button"
                 disabled={loading}
                 onClick={handleDelete}
-                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+                className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
               >
                 {loading ? "Deleting..." : "Confirm Delete"}
               </button>
