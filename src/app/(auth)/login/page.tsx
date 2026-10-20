@@ -2,6 +2,7 @@
 
 import React, { useState, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 function LoginForm() {
   const router = useRouter();
@@ -270,6 +271,16 @@ function LoginForm() {
               "Sign in"
             )}
           </button>
+
+          <div className="border-t border-zinc-800/80 pt-4 text-center text-xs text-zinc-400">
+            Want to register your school?{" "}
+            <Link
+              href="/register-school"
+              className="font-semibold text-indigo-400 hover:text-indigo-300"
+            >
+              Sign up here
+            </Link>
+          </div>
         </form>
       </div>
     </div>

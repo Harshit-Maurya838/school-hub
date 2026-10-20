@@ -38,6 +38,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     {
       message: "Application submitted. Please check your contact email to verify your address.",
       registration: result.registration,
+      verificationUrl: result.verificationUrl,
     },
     undefined,
     201

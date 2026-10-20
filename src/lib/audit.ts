@@ -69,6 +69,23 @@ function sanitizeAuditDetails(
 export async function logAuditEvent(params: CreateAuditLogParams): Promise<void> {
   const sanitizedDetails = sanitizeAuditDetails(params.details);
 
+  // The database constraint audit_logs_context_check requires (schoolId IS NOT NULL OR userId IS NOT NULL).
+  // For pre-provisioning public actions (such as registration submission or verification), log to structured audit logger.
+  if (!params.schoolId && !params.userId) {
+    logger.info(
+      {
+        action: params.action,
+        entityType: params.entityType,
+        entityId: params.entityId,
+        details: sanitizedDetails,
+        ipAddress: params.ipAddress,
+        userAgent: params.userAgent,
+      },
+      `Public audit event recorded: ${params.action}`
+    );
+    return;
+  }
+
   try {
     await prisma.auditLog.create({
       data: {

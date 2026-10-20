@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import React, { useState, useTransition } from "react";
 
 export default function RegisterSchoolPage() {
@@ -13,6 +14,7 @@ export default function RegisterSchoolPage() {
   const [submitted, setSubmitted] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [verificationUrl, setVerificationUrl] = useState<string>("");
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -55,7 +57,7 @@ export default function RegisterSchoolPage() {
           );
           return;
         }
-
+        setVerificationUrl(data.data.verificationUrl);
         setSubmitted(true);
       } catch {
         setErrorMessage("Network error occurred. Please try again.");
@@ -99,6 +101,14 @@ export default function RegisterSchoolPage() {
               <li>
                 Upon approval, your school workspace and initial admin credentials will be
                 provisioned.
+              </li>
+              <li>
+                <Link
+                  href={verificationUrl}
+                  className="text-sm font-medium text-emerald-400 hover:text-emerald-300"
+                >
+                  {verificationUrl}
+                </Link>
               </li>
             </ol>
           </div>

@@ -19,13 +19,21 @@ export default async function Home() {
           Enterprise multi-tenant education platform with role-based access control, strict tenant
           boundary isolation, and comprehensive audit trails.
         </p>
-        <div className="flex items-center justify-center gap-4 pt-4">
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
           <Link
             href={destination}
             className="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
           >
             {user ? "Go to Dashboard" : "Sign In to Portal"}
           </Link>
+          {!user && (
+            <Link
+              href="/register-school"
+              className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-6 py-3 text-sm font-semibold text-zinc-200 shadow-sm transition hover:bg-zinc-800 hover:text-white"
+            >
+              Register Your School
+            </Link>
+          )}
         </div>
       </div>
     </div>
