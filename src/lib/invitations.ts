@@ -258,7 +258,7 @@ export async function acceptInvitation(params: AcceptInvitationParams) {
 
   const tokenHash = hashToken(params.rawToken);
 
-  return await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const invitation = await tx.invitation.findUnique({
       where: { tokenHash },
       include: {

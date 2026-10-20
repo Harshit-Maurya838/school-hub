@@ -14,11 +14,11 @@ const inviteStaffSchema = z.object({
     .transform((val) => val.trim().toLowerCase())
     .pipe(z.string().email("Invalid email address")),
   role: z.enum(["TEACHER", "ACCOUNTANT", "PARENT", "STUDENT"], {
-    errorMap: () => ({ message: "Role must be TEACHER, ACCOUNTANT, PARENT, or STUDENT" }),
+    message: "Role must be TEACHER, ACCOUNTANT, PARENT, or STUDENT",
   }),
   guardianId: z.string().optional(),
   studentId: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 type Context = RouteContext<{ schoolSlug: string }>;
