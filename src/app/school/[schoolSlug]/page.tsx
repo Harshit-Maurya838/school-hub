@@ -127,12 +127,20 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
             Classes, sections, subjects, and academic year schedules.
           </p>
         </a>
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-white">Students</h2>
-          <p className="text-sm text-zinc-400">
+        <Link
+          href={`/school/${school.slug}/students`}
+          className="group block rounded-xl border border-zinc-800 bg-zinc-900 p-6 transition hover:border-indigo-500/50 hover:bg-zinc-900/80"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white group-hover:text-indigo-300">
+              Students
+            </h2>
+            <span className="text-xs text-zinc-500 group-hover:text-indigo-400">&rarr;</span>
+          </div>
+          <p className="mt-2 text-sm text-zinc-400">
             Manage admissions, student directories, and records.
           </p>
-        </div>
+        </Link>
         <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
           <h2 className="mb-2 text-lg font-semibold text-white">Attendance</h2>
           <p className="text-sm text-zinc-400">Daily attendance tracking and reporting.</p>

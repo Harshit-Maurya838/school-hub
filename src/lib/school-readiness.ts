@@ -599,3 +599,119 @@ export async function assertCanMutateSubject(
     }
   }
 }
+
+/**
+ * Server-side guard: Asserts prerequisites for student admission:
+ * 1. School details complete & active.
+ * 2. Active current academic year configured.
+ */
+export async function assertCanAdmitStudent(
+  schoolId: string
+): Promise<{ id: string; name: string; startDate: Date; endDate: Date }> {
+  await assertSchoolDetailsComplete(schoolId);
+
+  const currentYear = await prisma.academicYear.findFirst({
+    where: { schoolId, isCurrent: true },
+    select: { id: true, name: true, startDate: true, endDate: true },
+  });
+
+  if (!currentYear) {
+    throw new PreconditionFailedError(
+      "A current academic year is required for student enrollment. Please configure an active academic session.",
+      {
+        prerequisite: "CURRENT_ACADEMIC_YEAR_REQUIRED",
+        actionUrl: "sessions",
+      }
+    );
+  }
+
+  return currentYear;
+}
+
+/**
+ * Server-side guard: Validates class and section ownership and association:
+ * 1. Class exists and belongs to this school tenant (rejects cross-tenant class).
+ * 2. Section exists and belongs to this school tenant (rejects cross-tenant section).
+ * 3. Section belongs to the specified class (rejects mismatch).
+ */
+export async function assertClassAndSectionForSchool(
+  schoolId: string,
+  classId: string,
+  sectionId: string
+): Promise<{
+  classRecord: { id: string; name: string };
+  sectionRecord: { id: string; name: string; capacity: number | null; classId: string };
+}> {
+  if (!classId || typeof classId !== "string" || classId.trim() === "") {
+    throw new PreconditionFailedError("Class is required for student enrollment.", {
+      prerequisite: "CLASS_REQUIRED",
+    });
+  }
+
+  if (!sectionId || typeof sectionId !== "string" || sectionId.trim() === "") {
+    throw new PreconditionFailedError("Section is required for student enrollment.", {
+      prerequisite: "SECTION_REQUIRED",
+    });
+  }
+
+  const cleanClassId = classId.trim();
+  const cleanSectionId = sectionId.trim();
+
+  // 1. Verify Class
+  const classRecord = await prisma.class.findFirst({
+    where: { id: cleanClassId, schoolId },
+    select: { id: true, name: true },
+  });
+
+  if (!classRecord) {
+    const foreignClass = await prisma.class.findUnique({
+      where: { id: cleanClassId },
+      select: { id: true },
+    });
+
+    if (foreignClass) {
+      throw new PreconditionFailedError(
+        "Selected class does not belong to this school. Cross-tenant class assignment rejected.",
+        { prerequisite: "CROSS_TENANT_CLASS_REJECTED" }
+      );
+    }
+
+    throw new PreconditionFailedError("Selected class does not exist in this school.", {
+      prerequisite: "CLASS_NOT_FOUND",
+    });
+  }
+
+  // 2. Verify Section
+  const sectionRecord = await prisma.section.findFirst({
+    where: { id: cleanSectionId, schoolId },
+    select: { id: true, name: true, capacity: true, classId: true },
+  });
+
+  if (!sectionRecord) {
+    const foreignSection = await prisma.section.findUnique({
+      where: { id: cleanSectionId },
+      select: { id: true },
+    });
+
+    if (foreignSection) {
+      throw new PreconditionFailedError(
+        "Selected section does not belong to this school. Cross-tenant section assignment rejected.",
+        { prerequisite: "CROSS_TENANT_SECTION_REJECTED" }
+      );
+    }
+
+    throw new PreconditionFailedError("Selected section does not exist in this school.", {
+      prerequisite: "SECTION_NOT_FOUND",
+    });
+  }
+
+  // 3. Verify section belongs to class
+  if (sectionRecord.classId !== classRecord.id) {
+    throw new PreconditionFailedError(
+      `Selected section '${sectionRecord.name}' does not belong to class '${classRecord.name}'.`,
+      { prerequisite: "SECTION_CLASS_MISMATCH" }
+    );
+  }
+
+  return { classRecord, sectionRecord };
+}

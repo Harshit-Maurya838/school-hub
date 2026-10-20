@@ -42,8 +42,12 @@ export class NotFoundError extends AppError {
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string = "Resource conflict", details?: unknown) {
-    super(message, 409, "CONFLICT", details);
+  constructor(message: string = "Resource conflict", details?: unknown, code?: string) {
+    const detailCode =
+      typeof details === "object" && details !== null && "code" in details
+        ? String((details as Record<string, unknown>).code)
+        : undefined;
+    super(message, 409, code || detailCode || "CONFLICT", details);
   }
 }
 

@@ -1,36 +1,19 @@
 import { NextRequest } from "next/server";
-import { z } from "zod";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { requireAuth, requireRole, assertSchoolAccess } from "@/lib/rbac";
+import { requireAuth, assertSchoolAccess } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError, BadRequestError, ConflictError } from "@/lib/errors";
-import { Gender, GuardianRelationship } from "@/generated/prisma/enums";
-
-const createStudentSchema = z.object({
-  name: z.string().min(2, "Student name must be at least 2 characters"),
-  admissionNumber: z.string().min(1, "Admission number is required"),
-  dob: z.string().refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date of birth" }),
-  gender: z.enum(["MALE", "FEMALE", "OTHER"]),
-  apaarId: z.string().optional(),
-  guardian: z
-    .object({
-      name: z.string().min(2, "Guardian name is required"),
-      phone: z.string().min(7, "Valid phone number is required"),
-      email: z.string().email("Invalid guardian email").optional().nullable(),
-      relationship: z.enum(["FATHER", "MOTHER", "GUARDIAN", "OTHER"]).default("GUARDIAN"),
-      occupation: z.string().optional(),
-      address: z.string().optional(),
-    })
-    .optional(),
-});
+import { NotFoundError, BadRequestError } from "@/lib/errors";
+import {
+  admitStudent,
+  admitStudentSchema,
+  listStudents,
+  resolveStudentSchoolAndAuthorize,
+} from "@/lib/students";
 
 type Context = RouteContext<{ schoolSlug: string }>;
 
 export const POST = apiHandler(async (req: NextRequest, context?: Context) => {
-  const user = await requireAuth(req);
-  requireRole(user, ["SUPER_ADMIN", "SCHOOL_ADMIN"]);
-
   const params = await context?.params;
   const schoolSlug = params?.schoolSlug;
 
@@ -38,104 +21,22 @@ export const POST = apiHandler(async (req: NextRequest, context?: Context) => {
     throw new BadRequestError("Missing schoolSlug in route");
   }
 
-  const school = await prisma.school.findUnique({
-    where: { slug: schoolSlug },
-    select: { id: true, isActive: true },
-  });
-
-  if (!school) {
-    throw new NotFoundError("School not found");
-  }
-
-  assertSchoolAccess(user, school.id);
+  // Enforces authentication, tenant verification, and SCHOOL_ADMIN / SUPER_ADMIN role
+  const { school, user } = await resolveStudentSchoolAndAuthorize(req, schoolSlug, "write");
 
   const body = await req.json().catch(() => ({}));
-  const validated = createStudentSchema.parse(body);
+  const validated = admitStudentSchema.parse(body);
 
-  // Check unique admissionNumber in this school
-  const existingAdmission = await prisma.student.findUnique({
-    where: {
-      schoolId_admissionNumber: {
-        schoolId: school.id,
-        admissionNumber: validated.admissionNumber.trim(),
-      },
-    },
+  const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip");
+  const userAgent = req.headers.get("user-agent");
+
+  const student = await admitStudent(school.id, validated, {
+    userId: user.id,
+    ipAddress,
+    userAgent,
   });
 
-  if (existingAdmission) {
-    throw new ConflictError(
-      `Admission number '${validated.admissionNumber}' already exists in this school`
-    );
-  }
-
-  const student = await prisma.$transaction(async (tx) => {
-    const newStudent = await tx.student.create({
-      data: {
-        schoolId: school.id,
-        name: validated.name.trim(),
-        admissionNumber: validated.admissionNumber.trim(),
-        dob: new Date(validated.dob),
-        gender: validated.gender as Gender,
-        apaarId: validated.apaarId?.trim() || null,
-        isActive: true,
-      },
-    });
-
-    if (validated.guardian) {
-      const gInput = validated.guardian;
-      const normalizedPhone = gInput.phone.trim();
-      const normalizedEmail = gInput.email?.toLowerCase().trim() || null;
-
-      // Find or create guardian record by schoolId and phone
-      let guardian = await tx.guardian.findUnique({
-        where: {
-          schoolId_phone: {
-            schoolId: school.id,
-            phone: normalizedPhone,
-          },
-        },
-      });
-
-      if (!guardian) {
-        guardian = await tx.guardian.create({
-          data: {
-            schoolId: school.id,
-            name: gInput.name.trim(),
-            phone: normalizedPhone,
-            email: normalizedEmail,
-            occupation: gInput.occupation?.trim() || null,
-            address: gInput.address?.trim() || null,
-          },
-        });
-      }
-
-      // Link student and guardian
-      await tx.studentGuardian.create({
-        data: {
-          schoolId: school.id,
-          studentId: newStudent.id,
-          guardianId: guardian.id,
-          relationship: gInput.relationship as GuardianRelationship,
-          isPrimary: true,
-        },
-      });
-    }
-
-    return newStudent;
-  });
-
-  const fullStudent = await prisma.student.findUnique({
-    where: { id: student.id },
-    include: {
-      guardians: {
-        include: {
-          guardian: true,
-        },
-      },
-    },
-  });
-
-  return successResponse({ student: fullStudent }, undefined, 201);
+  return successResponse({ student }, undefined, 201);
 });
 
 export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
@@ -211,22 +112,51 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
     return successResponse({ students: student ? [student] : [] });
   }
 
-  // Staff and Admin scope
-  requireRole(user, ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER", "ACCOUNTANT"]);
+  // Staff and Admin scope: supports search, filtering, and database-level pagination
+  await resolveStudentSchoolAndAuthorize(req, schoolSlug, "read");
 
-  const students = await prisma.student.findMany({
-    where: { schoolId: school.id, deletedAt: null },
-    orderBy: { name: "asc" },
-    include: {
-      guardians: {
-        include: {
-          guardian: {
-            select: { id: true, name: true, phone: true, email: true, userId: true },
-          },
-        },
-      },
-    },
+  const { searchParams } = new URL(req.url);
+  const search = searchParams.get("search") || undefined;
+  const academicYearId = searchParams.get("academicYearId") || undefined;
+  const classId = searchParams.get("classId") || undefined;
+  const sectionId = searchParams.get("sectionId") || undefined;
+  const statusParam = searchParams.get("status");
+  const status =
+    statusParam === "ACTIVE" ||
+    statusParam === "INACTIVE" ||
+    statusParam === "ARCHIVED" ||
+    statusParam === "ALL"
+      ? statusParam
+      : undefined;
+
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
+  const sortByParam = searchParams.get("sortBy");
+  const sortBy =
+    sortByParam === "name" || sortByParam === "admissionNumber" || sortByParam === "createdAt"
+      ? sortByParam
+      : "createdAt";
+  const sortOrderParam = searchParams.get("sortOrder");
+  const sortOrder = sortOrderParam === "asc" ? "asc" : "desc";
+
+  const result = await listStudents({
+    schoolId: school.id,
+    search,
+    academicYearId,
+    classId,
+    sectionId,
+    status,
+    page: isNaN(page) ? 1 : page,
+    limit: isNaN(limit) ? 10 : limit,
+    sortBy,
+    sortOrder,
   });
 
-  return successResponse({ students });
+  return successResponse(
+    {
+      students: result.students,
+      pagination: result.pagination,
+    },
+    result.pagination
+  );
 });
