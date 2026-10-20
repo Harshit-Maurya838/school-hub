@@ -13,7 +13,10 @@ import {
   Settings,
   Menu,
   Shield,
+  CalendarCheck2,
+  CreditCard,
 } from "lucide-react";
+import { getRoleDisplayName, getRoleTheme, canManageSettings } from "@/lib/role-ui";
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -74,13 +77,16 @@ export function Header({
     }
   };
 
+  const roleName = getRoleDisplayName(userRole);
+  const roleTheme = getRoleTheme(userRole);
+
   const initials = userName
     ? userName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
     : "SM";
 
   return (
@@ -184,6 +190,18 @@ export function Header({
             )}
           </div>
 
+          {/* Platform Console Shortcut for SUPER_ADMIN */}
+          {userRole === "SUPER_ADMIN" && (
+            <Link
+              href="/platform"
+              className="hidden items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-700 shadow-xs transition-colors hover:border-purple-300 hover:bg-purple-100 sm:inline-flex"
+              title="Switch to Platform Administration Console"
+            >
+              <Shield className="h-3.5 w-3.5 text-purple-600" />
+              <span>Platform Console</span>
+            </Link>
+          )}
+
           {/* User Profile Pill */}
           <div className="relative">
             <button
@@ -191,15 +209,19 @@ export function Header({
               className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pr-2.5 pl-1.5 shadow-xs transition-colors hover:bg-slate-50"
               type="button"
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-emerald-700 to-teal-500 text-xs font-bold text-white shadow-xs">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr ${roleTheme.avatarBg} text-xs font-bold text-white shadow-xs`}
+              >
                 {initials}
               </div>
               <div className="hidden flex-col text-left leading-none sm:flex">
                 <span className="max-w-[120px] truncate text-xs font-bold text-slate-800">
                   {userName}
                 </span>
-                <span className="mt-0.5 max-w-[120px] truncate text-[10px] font-medium text-emerald-600">
-                  {userRole}
+                <span
+                  className={`mt-0.5 max-w-[120px] truncate text-[10px] font-bold ${roleTheme.badgeText}`}
+                >
+                  {roleName}
                 </span>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
@@ -211,21 +233,58 @@ export function Header({
                 <div className="border-b border-slate-100 p-3">
                   <p className="truncate text-xs font-bold text-slate-900">{userName}</p>
                   <p className="truncate text-[11px] text-slate-400">{userEmail}</p>
-                  <div className="mt-1.5 inline-flex items-center gap-1 rounded-full border border-indigo-100 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700">
+                  <div
+                    className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
+                  >
                     <Shield className="h-3 w-3" />
-                    <span>{userRole}</span>
+                    <span>{roleName}</span>
                   </div>
                 </div>
 
                 <div className="py-1">
-                  <Link
-                    href={`/school/${schoolSlug}/settings`}
-                    onClick={() => setShowProfileMenu(false)}
-                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
-                  >
-                    <Settings className="h-4 w-4 text-slate-400" />
-                    <span>School Settings</span>
-                  </Link>
+                  {userRole === "SUPER_ADMIN" && (
+                    <Link
+                      href="/platform"
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-purple-700 transition-colors hover:bg-purple-50"
+                    >
+                      <Shield className="h-4 w-4 text-purple-600" />
+                      <span>Platform Console</span>
+                    </Link>
+                  )}
+
+                  {canManageSettings(userRole) && (
+                    <Link
+                      href={`/school/${schoolSlug}/settings`}
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                    >
+                      <Settings className="h-4 w-4 text-slate-400" />
+                      <span>School Settings</span>
+                    </Link>
+                  )}
+
+                  {userRole === "TEACHER" && (
+                    <Link
+                      href={`/school/${schoolSlug}/attendance`}
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-50"
+                    >
+                      <CalendarCheck2 className="h-4 w-4 text-blue-600" />
+                      <span>Take Attendance</span>
+                    </Link>
+                  )}
+
+                  {userRole === "ACCOUNTANT" && (
+                    <Link
+                      href={`/school/${schoolSlug}/fees`}
+                      onClick={() => setShowProfileMenu(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-50"
+                    >
+                      <CreditCard className="h-4 w-4 text-amber-600" />
+                      <span>Fees Management</span>
+                    </Link>
+                  )}
 
                   <button
                     onClick={() => {

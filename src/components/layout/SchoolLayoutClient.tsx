@@ -40,6 +40,7 @@ export function SchoolLayoutClient({
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         session={currentSession}
+        userRole={userRole}
       />
 
       {/* 2. Main Content Shell */}
@@ -71,6 +72,7 @@ export function SchoolLayoutClient({
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         schoolSlug={schoolSlug}
+        userRole={userRole}
       />
     </div>
   );

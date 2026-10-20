@@ -97,6 +97,7 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
         }}
         initialStudents={initialListResult.students as unknown as StudentListItem[]}
         initialPagination={initialListResult.pagination}
+        userRole={user.role}
       />
     </div>
   );

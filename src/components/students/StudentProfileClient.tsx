@@ -18,8 +18,10 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
+  Eye,
 } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
+import { canManageStudents, getRoleDisplayName, getRoleTheme } from "@/lib/role-ui";
 
 export interface StudentDetail {
   id: string;
@@ -92,6 +94,7 @@ interface Props {
   availableClasses: ClassOption[];
   availableSections: SectionOption[];
   availableYears: AcademicYearOption[];
+  userRole?: string;
 }
 
 export function StudentProfileClient({
@@ -100,9 +103,13 @@ export function StudentProfileClient({
   availableClasses,
   availableSections,
   availableYears,
+  userRole = "SCHOOL_ADMIN",
 }: Props) {
   const router = useRouter();
   const [student, setStudent] = useState<StudentDetail>(initialStudent);
+  const canManage = canManageStudents(userRole);
+  const roleName = getRoleDisplayName(userRole);
+  const roleTheme = getRoleTheme(userRole);
 
   // Modals state
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -431,42 +438,51 @@ export function StudentProfileClient({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              onClick={() => setIsEditOpen(true)}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
-            >
-              <Edit2 className="h-3.5 w-3.5 text-slate-500" />
-              <span>Edit Details</span>
-            </button>
-
-            <button
-              onClick={() => setIsEnrollModalOpen(true)}
-              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800"
-            >
-              <UserPlus className="h-3.5 w-3.5" />
-              <span>+ Enroll in Session</span>
-            </button>
-
-            {isArchived ? (
+          {canManage ? (
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
-                onClick={handleRestore}
-                disabled={loading}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+                onClick={() => setIsEditOpen(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs transition-colors hover:bg-slate-50"
               >
-                <RotateCcw className="h-3.5 w-3.5 text-emerald-700" />
-                <span>Restore Student</span>
+                <Edit2 className="h-3.5 w-3.5 text-slate-500" />
+                <span>Edit Details</span>
               </button>
-            ) : (
+
               <button
-                onClick={() => setIsArchiveModalOpen(true)}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                onClick={() => setIsEnrollModalOpen(true)}
+                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800"
               >
-                <Archive className="h-3.5 w-3.5" />
-                <span>Archive</span>
+                <UserPlus className="h-3.5 w-3.5" />
+                <span>+ Enroll in Session</span>
               </button>
-            )}
-          </div>
+
+              {isArchived ? (
+                <button
+                  onClick={handleRestore}
+                  disabled={loading}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-emerald-800 transition-colors hover:bg-emerald-100"
+                >
+                  <RotateCcw className="h-3.5 w-3.5 text-emerald-700" />
+                  <span>Restore Student</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsArchiveModalOpen(true)}
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-bold text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700"
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                  <span>Archive</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-bold ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
+            >
+              <Eye className="h-3.5 w-3.5" />
+              <span>Read-Only Profile View ({roleName})</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -520,12 +536,14 @@ export function StudentProfileClient({
               <h3 className="text-sm font-bold text-slate-900">
                 Guardians ({student.guardians.length})
               </h3>
-              <button
-                onClick={() => setIsAddGuardianOpen(true)}
-                className="cursor-pointer text-xs font-bold text-emerald-700 hover:text-emerald-800"
-              >
-                + Add Guardian
-              </button>
+              {canManage && (
+                <button
+                  onClick={() => setIsAddGuardianOpen(true)}
+                  className="cursor-pointer text-xs font-bold text-emerald-700 hover:text-emerald-800"
+                >
+                  + Add Guardian
+                </button>
+              )}
             </div>
 
             <div className="mt-4 space-y-3">
@@ -593,13 +611,15 @@ export function StudentProfileClient({
                   Year-specific class allocations and historical enrollment allocations.
                 </p>
               </div>
-              <button
-                onClick={() => setIsEnrollModalOpen(true)}
-                className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Allocate Session</span>
-              </button>
+              {canManage && (
+                <button
+                  onClick={() => setIsEnrollModalOpen(true)}
+                  className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Allocate Session</span>
+                </button>
+              )}
             </div>
 
             <div className="mt-5 space-y-3.5">
@@ -609,12 +629,14 @@ export function StudentProfileClient({
                   <p className="text-xs font-bold text-slate-700">
                     No academic enrollments recorded for this student.
                   </p>
-                  <button
-                    onClick={() => setIsEnrollModalOpen(true)}
-                    className="mt-2 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800"
-                  >
-                    Enroll in Current Session
-                  </button>
+                  {canManage && (
+                    <button
+                      onClick={() => setIsEnrollModalOpen(true)}
+                      className="mt-2 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800"
+                    >
+                      Enroll in Current Session
+                    </button>
+                  )}
                 </div>
               ) : (
                 student.enrollments.map((enrollment) => (

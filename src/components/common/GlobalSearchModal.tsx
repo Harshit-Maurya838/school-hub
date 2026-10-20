@@ -12,15 +12,23 @@ import {
   X,
   UserPlus,
   CalendarDays,
+  Shield,
+  CreditCard,
 } from "lucide-react";
 
 export interface GlobalSearchModalProps {
   isOpen: boolean;
   onClose: () => void;
   schoolSlug: string;
+  userRole?: string;
 }
 
-export function GlobalSearchModal({ isOpen, onClose, schoolSlug }: GlobalSearchModalProps) {
+export function GlobalSearchModal({
+  isOpen,
+  onClose,
+  schoolSlug,
+  userRole = "SCHOOL_ADMIN",
+}: GlobalSearchModalProps) {
   const router = useRouter();
   const [query, setQuery] = useState("");
 
@@ -36,56 +44,94 @@ export function GlobalSearchModal({ isOpen, onClose, schoolSlug }: GlobalSearchM
 
   if (!isOpen) return null;
 
-  const quickLinks = [
+  const isSuperAdmin = userRole === "SUPER_ADMIN";
+  const isTeacher = userRole === "TEACHER";
+  const isAccountant = userRole === "ACCOUNTANT";
+
+  const allQuickLinks = [
+    ...(isSuperAdmin
+      ? [
+          {
+            label: "Platform Admin Console",
+            href: "/platform",
+            icon: Shield,
+            badge: "Platform",
+            roles: ["SUPER_ADMIN"],
+          },
+        ]
+      : []),
     {
       label: "Dashboard Overview",
       href: `/school/${schoolSlug}`,
       icon: BookOpen,
       badge: "Overview",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER", "ACCOUNTANT"],
     },
     {
-      label: "Student Directory",
+      label: isTeacher
+        ? "Student Class Roster"
+        : isAccountant
+          ? "Student Billing Roll"
+          : "Student Directory",
       href: `/school/${schoolSlug}/students`,
       icon: Users,
       badge: "Students",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER", "ACCOUNTANT"],
     },
     {
       label: "New Student Admission",
       href: `/school/${schoolSlug}/students/new`,
       icon: UserPlus,
       badge: "Admission",
-    },
-    {
-      label: "Academic Overview & Setup",
-      href: `/school/${schoolSlug}/academics`,
-      icon: BookOpen,
-      badge: "Academics",
-    },
-    {
-      label: "Academic Sessions / Calendar",
-      href: `/school/${schoolSlug}/academics/sessions`,
-      icon: CalendarDays,
-      badge: "Sessions",
-    },
-    {
-      label: "Classes & Sections",
-      href: `/school/${schoolSlug}/academics/classes`,
-      icon: BookOpen,
-      badge: "Classes",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
     },
     {
       label: "Daily Attendance Register",
       href: `/school/${schoolSlug}/attendance`,
       icon: CalendarCheck2,
       badge: "Attendance",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
+    },
+    {
+      label: "Fees Management Desk",
+      href: `/school/${schoolSlug}/fees`,
+      icon: CreditCard,
+      badge: "Finance",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"],
+    },
+    {
+      label: isTeacher ? "Curriculum & Grade Levels" : "Academic Setup & Overview",
+      href: `/school/${schoolSlug}/academics`,
+      icon: BookOpen,
+      badge: "Academics",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
+    },
+    {
+      label: "Academic Sessions / Calendar",
+      href: `/school/${schoolSlug}/academics/sessions`,
+      icon: CalendarDays,
+      badge: "Sessions",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+    },
+    {
+      label: "Classes & Sections",
+      href: `/school/${schoolSlug}/academics/classes`,
+      icon: BookOpen,
+      badge: "Classes",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
     },
     {
       label: "School Settings & Profile",
       href: `/school/${schoolSlug}/settings`,
       icon: Settings,
       badge: "Settings",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
     },
   ];
+
+  const quickLinks = allQuickLinks.filter((item) =>
+    item.roles.includes(userRole)
+  );
 
   const filteredLinks = query.trim()
     ? quickLinks.filter(

@@ -7,6 +7,7 @@ import { Search, Plus, Users, Phone, Eye, Archive, RotateCcw, AlertCircle } from
 import { Badge } from "@/components/common/Badge";
 import { Modal } from "@/components/common/Modal";
 import { StudentAnalyticsCards } from "./StudentAnalyticsCards";
+import { canManageStudents, getRoleDisplayName } from "@/lib/role-ui";
 
 export interface StudentListItem {
   id: string;
@@ -67,6 +68,7 @@ interface Props {
   filterOptions: FilterOptions;
   initialStudents?: StudentListItem[];
   initialPagination?: PaginationData;
+  userRole?: string;
 }
 
 export function StudentDirectoryClient({
@@ -74,9 +76,11 @@ export function StudentDirectoryClient({
   filterOptions,
   initialStudents = [],
   initialPagination = { page: 1, limit: 10, total: 0, totalPages: 0, hasMore: false },
+  userRole = "SCHOOL_ADMIN",
 }: Props) {
   const isInitialMount = useRef(true);
   const searchParams = useSearchParams();
+  const canManage = canManageStudents(userRole);
 
   // State
   const [students, setStudents] = useState<StudentListItem[]>(initialStudents);
@@ -370,6 +374,15 @@ export function StudentDirectoryClient({
           </div>
         </div>
 
+        {!canManage && (
+          <div className="flex items-center gap-2 rounded-xl border border-blue-200/70 bg-blue-50/70 px-3.5 py-2.5 text-xs text-blue-900">
+            <Users className="h-4 w-4 shrink-0 text-blue-600" />
+            <span>
+              <strong>{getRoleDisplayName(userRole)} View:</strong> You have read-only access to browse students and view contact details. Admissions and archive modifications require a School Administrator.
+            </span>
+          </div>
+        )}
+
         {error && (
           <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600" />
@@ -538,24 +551,28 @@ export function StudentDirectoryClient({
                             <span>View</span>
                           </Link>
 
-                          {isArchived ? (
-                            <button
-                              onClick={() => handleRestore(st.id)}
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50"
-                              title="Restore student"
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" />
-                              <span>Restore</span>
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setArchivingStudent(st)}
-                              className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50"
-                              title="Archive student"
-                            >
-                              <Archive className="h-3.5 w-3.5" />
-                              <span>Archive</span>
-                            </button>
+                          {canManage && (
+                            <>
+                              {isArchived ? (
+                                <button
+                                  onClick={() => handleRestore(st.id)}
+                                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-emerald-700 transition-colors hover:bg-emerald-50"
+                                  title="Restore student"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                  <span>Restore</span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => setArchivingStudent(st)}
+                                  className="inline-flex cursor-pointer items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50"
+                                  title="Archive student"
+                                >
+                                  <Archive className="h-3.5 w-3.5" />
+                                  <span>Archive</span>
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>

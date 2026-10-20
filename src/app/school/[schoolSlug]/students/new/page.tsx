@@ -1,4 +1,6 @@
 import { redirect, notFound } from "next/navigation";
+import Link from "next/link";
+import { Shield } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { StudentNav } from "@/components/students/StudentNav";
@@ -36,10 +38,10 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
   // Cross-tenant protection
   if (user.role !== "SUPER_ADMIN" && user.schoolId !== school.id) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-white">
-        <div className="max-w-md rounded-xl border border-red-800 bg-red-950/40 p-6 text-center">
-          <h2 className="mb-2 text-xl font-bold text-red-400">Access Denied</h2>
-          <p className="text-sm text-zinc-300">
+      <div className="flex min-h-[60vh] items-center justify-center p-4">
+        <div className="max-w-md w-full rounded-2xl border border-red-200/40 bg-red-50 p-6 text-center shadow-lg">
+          <h2 className="mb-2 text-xl font-bold text-red-700">Access Denied</h2>
+          <p className="text-xs text-red-600">
             You do not have permission to access {school.name}. Tenant boundary violation detected.
           </p>
         </div>
@@ -50,12 +52,26 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
   // Authorization check: Only SCHOOL_ADMIN or SUPER_ADMIN can perform admissions
   if (user.role !== "SUPER_ADMIN" && user.role !== "SCHOOL_ADMIN") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4 text-white">
-        <div className="max-w-md rounded-xl border border-zinc-800 bg-zinc-900 p-6 text-center">
-          <h2 className="mb-2 text-xl font-bold text-white">Permission Required</h2>
-          <p className="text-sm text-zinc-400">
-            Only school administrators can admit and enroll new students.
-          </p>
+      <div className="flex min-h-[60vh] items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <Shield className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Administrator Access Required</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              New student admissions and enrollment registration are restricted to School Administrators.{" "}
+              {user.role === "TEACHER"
+                ? "Teachers have read-only access to browse class rosters."
+                : "Accountants have read-only access to student billing rolls."}
+            </p>
+          </div>
+          <Link
+            href={`/school/${school.slug}/students`}
+            className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+          >
+            Return to Student Directory
+          </Link>
         </div>
       </div>
     );

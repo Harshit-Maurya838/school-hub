@@ -103,6 +103,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
           availableClasses={availableClasses}
           availableSections={availableSections}
           availableYears={availableYears}
+          userRole={user.role}
         />
       </div>
     </div>

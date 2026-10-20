@@ -150,47 +150,71 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
   // Build real reminders list from readiness steps
   const reminders: ReminderItem[] = [];
 
-  if (!readiness.schoolDetails.isReady) {
-    reminders.push({
-      id: "school-profile",
-      title: "School Profile Setup Required",
-      description:
-        readiness.schoolDetails.reason ||
-        "Complete official school details and admin verification.",
-      priority: "high",
-      actionUrl: `/school/${school.slug}/settings`,
-      actionLabel: "Complete Profile",
-    });
-  }
+  const isTeacher = user.role === "TEACHER";
+  const isAccountant = user.role === "ACCOUNTANT";
+  const isAdmin = user.role === "SUPER_ADMIN" || user.role === "SCHOOL_ADMIN";
 
-  if (!readiness.summary.currentAcademicYear) {
-    reminders.push({
-      id: "academic-year",
-      title: "Active Academic Year Missing",
-      description: "Configure and set an active academic calendar session.",
-      priority: "high",
-      actionUrl: `/school/${school.slug}/academics/sessions`,
-      actionLabel: "Configure Year",
-    });
-  }
+  if (isAdmin) {
+    if (!readiness.schoolDetails.isReady) {
+      reminders.push({
+        id: "school-profile",
+        title: "School Profile Setup Required",
+        description:
+          readiness.schoolDetails.reason ||
+          "Complete official school details and admin verification.",
+        priority: "high",
+        actionUrl: `/school/${school.slug}/settings`,
+        actionLabel: "Complete Profile",
+      });
+    }
 
-  if (readiness.summary.counts.classes === 0) {
+    if (!readiness.summary.currentAcademicYear) {
+      reminders.push({
+        id: "academic-year",
+        title: "Active Academic Year Missing",
+        description: "Configure and set an active academic calendar session.",
+        priority: "high",
+        actionUrl: `/school/${school.slug}/academics/sessions`,
+        actionLabel: "Configure Year",
+      });
+    }
+
+    if (readiness.summary.counts.classes === 0) {
+      reminders.push({
+        id: "classes",
+        title: "Create Class Cohorts",
+        description: "Define standard classes (e.g. Nursery, Class 1-10).",
+        priority: "normal",
+        actionUrl: `/school/${school.slug}/academics/classes`,
+        actionLabel: "Add Classes",
+      });
+    } else if (readiness.summary.counts.sections === 0) {
+      reminders.push({
+        id: "sections",
+        title: "Create Section Divisions",
+        description: "Add sections with seating capacity for student enrollment.",
+        priority: "normal",
+        actionUrl: `/school/${school.slug}/academics/sections`,
+        actionLabel: "Add Sections",
+      });
+    }
+  } else if (isTeacher) {
     reminders.push({
-      id: "classes",
-      title: "Create Class Cohorts",
-      description: "Define standard classes (e.g. Nursery, Class 1-10).",
-      priority: "normal",
-      actionUrl: `/school/${school.slug}/academics/classes`,
-      actionLabel: "Add Classes",
+      id: "teacher-attendance",
+      title: "Daily Attendance Verification",
+      description: "Mark or verify daily student attendance register for your assigned classes.",
+      priority: "high",
+      actionUrl: `/school/${school.slug}/attendance`,
+      actionLabel: "Open Register",
     });
-  } else if (readiness.summary.counts.sections === 0) {
+  } else if (isAccountant) {
     reminders.push({
-      id: "sections",
-      title: "Create Section Divisions",
-      description: "Add sections with seating capacity for student enrollment.",
-      priority: "normal",
-      actionUrl: `/school/${school.slug}/academics/sections`,
-      actionLabel: "Add Sections",
+      id: "accountant-fees",
+      title: "Student Fee Roll Review",
+      description: "Review active enrolled student rosters and prepare term fee demand schedules.",
+      priority: "high",
+      actionUrl: `/school/${school.slug}/fees`,
+      actionLabel: "Open Fees",
     });
   }
 
@@ -219,8 +243,80 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
 
   return (
     <div className="animate-in fade-in space-y-6 duration-200">
-      {/* Prominent Actionable Readiness Banner */}
-      {!readiness.schoolDetails.isReady ? (
+      {/* 1. Role-specific Welcome / Action Banner */}
+      {user.role === "SUPER_ADMIN" ? (
+        <div className="rounded-2xl border border-purple-200 bg-purple-50/80 p-5 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-purple-700" />
+                <h2 className="text-sm font-bold text-purple-950">
+                  Platform Admin Mode • Viewing {school.name}
+                </h2>
+              </div>
+              <p className="text-xs text-purple-800">
+                You are operating with Super Administrator platform credentials. You can inspect
+                and manage all tenant records.
+              </p>
+            </div>
+            <Link
+              href="/platform"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-purple-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-purple-800"
+            >
+              <span>Platform Console</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      ) : isTeacher ? (
+        <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-5 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <CalendarCheck2 className="h-4 w-4 text-blue-700" />
+                <h2 className="text-sm font-bold text-blue-950">
+                  Teacher Desk • Welcome back, {user.name}
+                </h2>
+              </div>
+              <p className="text-xs text-blue-800">
+                Manage today&apos;s physical attendance register, view student rosters, and check
+                upcoming birthdays.
+              </p>
+            </div>
+            <Link
+              href={`/school/${school.slug}/attendance`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-blue-800"
+            >
+              <span>Take Daily Attendance</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      ) : isAccountant ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <IndianRupee className="h-4 w-4 text-amber-700" />
+                <h2 className="text-sm font-bold text-amber-950">
+                  Accounts & Finance Desk • Welcome, {user.name}
+                </h2>
+              </div>
+              <p className="text-xs text-amber-800">
+                Cross-reference student admission rosters, parent contacts, and fee ledger
+                structures.
+              </p>
+            </div>
+            <Link
+              href={`/school/${school.slug}/fees`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-amber-800"
+            >
+              <span>Open Fees Desk</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      ) : !readiness.schoolDetails.isReady ? (
         <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-5 shadow-xs">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1">
@@ -274,7 +370,7 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
         {/* 1. Total Students */}
         <Link href={`/school/${school.slug}/students`} className="block">
           <StatCard
-            title="Total Students"
+            title={isAccountant ? "Students on Roll" : "Total Students"}
             value={totalStudents}
             subtitle={`${boysCount} Boys • ${girlsCount} Girls enrolled`}
             icon={Users}
@@ -284,18 +380,32 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
           />
         </Link>
 
-        {/* 2. Fees Collected (Identified Placeholder as Fee engine is not implemented) */}
-        <StatCard
-          title="Fees Collected"
-          value="Not Configured"
-          subtitle="Financial ledger & billing module awaiting backend integration"
-          icon={IndianRupee}
-          variant="default"
-          badgeText="Module Pending"
-          badgeColor="bg-slate-100 text-slate-500"
-        />
+        {/* 2. Middle Card: Fees or Curriculum depending on role */}
+        {isTeacher ? (
+          <Link href={`/school/${school.slug}/academics`} className="block">
+            <StatCard
+              title="Curriculum Classes"
+              value={classSummaryList.length}
+              subtitle="Active grade levels and section divisions"
+              icon={IndianRupee}
+              variant="default"
+              badgeText="Curriculum"
+              badgeColor="bg-blue-100 text-blue-800"
+            />
+          </Link>
+        ) : (
+          <StatCard
+            title="Fees Collected"
+            value="Not Configured"
+            subtitle="Financial ledger & billing module awaiting backend integration"
+            icon={IndianRupee}
+            variant="default"
+            badgeText={isAccountant ? "In Roadmap" : "Module Pending"}
+            badgeColor={isAccountant ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"}
+          />
+        )}
 
-        {/* 3. Daily Attendance (Preview UI Reference) */}
+        {/* 3. Daily Attendance or Student Records */}
         <Link href={`/school/${school.slug}/attendance`} className="block">
           <StatCard
             title="Daily Attendance"
@@ -303,8 +413,8 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
             subtitle="Physical notebook register preview ready for class rosters"
             icon={CalendarCheck2}
             variant="rte"
-            badgeText="UI Reference"
-            badgeColor="bg-emerald-100 text-emerald-800"
+            badgeText={isTeacher ? "Your Primary Action" : "UI Reference"}
+            badgeColor={isTeacher ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"}
           />
         </Link>
       </div>

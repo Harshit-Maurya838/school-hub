@@ -1,4 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { CalendarDays } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AcademicNav } from "@/components/academics/AcademicNav";
@@ -38,6 +40,31 @@ export default async function AcademicSessionsPage({ params }: PageProps) {
           <p className="text-xs text-slate-600">
             You do not have permission to access {school.name}.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Role protection: Only School Admins configure academic calendar sessions
+  if (user.role !== "SUPER_ADMIN" && user.role !== "SCHOOL_ADMIN") {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <CalendarDays className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Administrator Access Required</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Academic calendar sessions and roll-over configuration are restricted to School Administrators.
+            </p>
+          </div>
+          <Link
+            href={`/school/${school.slug}/academics`}
+            className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+          >
+            Return to Curriculum Overview
+          </Link>
         </div>
       </div>
     );
