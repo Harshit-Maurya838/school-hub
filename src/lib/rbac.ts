@@ -226,3 +226,35 @@ export async function assertStudentOwnAccess(
     throw new ForbiddenError("Access denied: student can only access their own record");
   }
 }
+
+/**
+ * Resource-level check for Teachers:
+ * School Administrators & Super Admins can access any teacher in the school.
+ * Teachers can only access their own profile and assignments.
+ */
+export async function assertTeacherAccess(
+  user: AuthenticatedUser,
+  teacherProfileIdOrUserId: string
+): Promise<void> {
+  if (user.role === "SUPER_ADMIN" || user.role === "SCHOOL_ADMIN") {
+    return;
+  }
+
+  if (user.role !== "TEACHER") {
+    throw new ForbiddenError("Only the teacher or school administrators can access this record");
+  }
+
+  const profile = await prisma.teacherProfile.findFirst({
+    where: {
+      schoolId: user.schoolId ?? undefined,
+      OR: [{ id: teacherProfileIdOrUserId }, { userId: teacherProfileIdOrUserId }],
+    },
+    select: { userId: true },
+  });
+
+  if (!profile || profile.userId !== user.id) {
+    if (teacherProfileIdOrUserId !== user.id) {
+      throw new ForbiddenError("Access denied: teacher can only access their own profile");
+    }
+  }
+}

@@ -12,6 +12,9 @@ async function seed() {
       "audit_logs",
       "invitations",
       "school_registrations",
+      "subject_teacher_assignments",
+      "class_teacher_assignments",
+      "teacher_profiles",
       "enrollments",
       "student_guardians",
       "students",
@@ -84,6 +87,45 @@ async function seed() {
     },
   });
 
+  const teacherProfile = await prisma.teacherProfile.create({
+    data: {
+      schoolId: school.id,
+      userId: teacher.id,
+      employeeId: "TCH-001",
+      qualification: "M.Sc. Mathematics, B.Ed.",
+      specialization: "Pure Mathematics & Statistics",
+      department: "Mathematics",
+      designation: "Senior Mathematics Faculty",
+      joiningDate: new Date("2022-08-15"),
+      status: "ACTIVE",
+    },
+  });
+
+  const teacher2 = await prisma.user.create({
+    data: {
+      name: "Sarah Jenkins",
+      email: "teacher2@greenwood.local",
+      passwordHash,
+      role: "TEACHER",
+      schoolId: school.id,
+      isActive: true,
+    },
+  });
+
+  const teacher2Profile = await prisma.teacherProfile.create({
+    data: {
+      schoolId: school.id,
+      userId: teacher2.id,
+      employeeId: "TCH-002",
+      qualification: "M.Sc. Physics, Ph.D.",
+      specialization: "Quantum Mechanics & Optics",
+      department: "Science",
+      designation: "Head of Science Department",
+      joiningDate: new Date("2021-06-01"),
+      status: "ACTIVE",
+    },
+  });
+
   const accountant = await prisma.user.create({
     data: {
       name: "Rachel Green",
@@ -96,7 +138,7 @@ async function seed() {
   });
 
   console.log(`   ✅ School Admin: ${schoolAdmin.email}`);
-  console.log(`   ✅ Teacher:      ${teacher.email}`);
+  console.log(`   ✅ Teachers:     ${teacher.email} (${teacherProfile.employeeId}), ${teacher2.email} (${teacher2Profile.employeeId})`);
   console.log(`   ✅ Accountant:   ${accountant.email}`);
 
   // Academic Year
@@ -158,13 +200,23 @@ async function seed() {
   console.log("   ✅ Sections created across Grade 10, 9, and 8");
 
   // Subjects
+  const math10 = await prisma.subject.create({
+    data: { schoolId: school.id, classId: grade10.id, name: "Mathematics", code: "MATH-10" },
+  });
+  const physics10 = await prisma.subject.create({
+    data: { schoolId: school.id, classId: grade10.id, name: "Advanced Physics", code: "PHY-10" },
+  });
+  const chem10 = await prisma.subject.create({
+    data: { schoolId: school.id, classId: grade10.id, name: "Organic Chemistry", code: "CHEM-10" },
+  });
+  await prisma.subject.create({
+    data: { schoolId: school.id, classId: grade9.id, name: "English Literature", code: "ENG-09" },
+  });
+  await prisma.subject.create({
+    data: { schoolId: school.id, classId: grade9.id, name: "Computer Science", code: "CS-09" },
+  });
   await prisma.subject.createMany({
     data: [
-      { schoolId: school.id, classId: grade10.id, name: "Mathematics", code: "MATH-10" },
-      { schoolId: school.id, classId: grade10.id, name: "Advanced Physics", code: "PHY-10" },
-      { schoolId: school.id, classId: grade10.id, name: "Organic Chemistry", code: "CHEM-10" },
-      { schoolId: school.id, classId: grade9.id, name: "English Literature", code: "ENG-09" },
-      { schoolId: school.id, classId: grade9.id, name: "Computer Science", code: "CS-09" },
       { schoolId: school.id, classId: grade8.id, name: "General Science", code: "SCI-08" },
       { schoolId: school.id, classId: grade8.id, name: "World History", code: "HIST-08" },
     ],
@@ -375,6 +427,72 @@ async function seed() {
   }
   console.log(`   ✅ Admitted & Enrolled ${mockStudents.length} Students with Guardians`);
 
+  // Teaching Assignments
+  await prisma.classTeacherAssignment.create({
+    data: {
+      schoolId: school.id,
+      academicYearId: academicYear.id,
+      classId: grade10.id,
+      sectionId: g10SecA.id,
+      teacherProfileId: teacherProfile.id,
+      status: "ACTIVE",
+      startDate: new Date("2026-06-01"),
+      notes: "Grade 10 Section A Class Teacher & Mentor",
+    },
+  });
+
+  await prisma.classTeacherAssignment.create({
+    data: {
+      schoolId: school.id,
+      academicYearId: academicYear.id,
+      classId: grade9.id,
+      sectionId: g9SecA.id,
+      teacherProfileId: teacher2Profile.id,
+      status: "ACTIVE",
+      startDate: new Date("2026-06-01"),
+      notes: "Grade 9 Section A Class Teacher & Mentor",
+    },
+  });
+
+  await prisma.subjectTeacherAssignment.createMany({
+    data: [
+      {
+        schoolId: school.id,
+        academicYearId: academicYear.id,
+        classId: grade10.id,
+        sectionId: g10SecA.id,
+        subjectId: math10.id,
+        teacherProfileId: teacherProfile.id,
+        periodsPerWeek: 5,
+        status: "ACTIVE",
+        startDate: new Date("2026-06-01"),
+      },
+      {
+        schoolId: school.id,
+        academicYearId: academicYear.id,
+        classId: grade10.id,
+        sectionId: g10SecA.id,
+        subjectId: physics10.id,
+        teacherProfileId: teacher2Profile.id,
+        periodsPerWeek: 4,
+        status: "ACTIVE",
+        startDate: new Date("2026-06-01"),
+      },
+      {
+        schoolId: school.id,
+        academicYearId: academicYear.id,
+        classId: grade10.id,
+        sectionId: g10SecA.id,
+        subjectId: chem10.id,
+        teacherProfileId: teacher2Profile.id,
+        periodsPerWeek: 4,
+        status: "ACTIVE",
+        startDate: new Date("2026-06-01"),
+      },
+    ],
+  });
+  console.log("   ✅ Teaching Assignments allocated (Class Teachers & Subject Faculty)");
+
   console.log("\n========================================================");
   console.log("🌱 4. Creating Unconfigured School (Apex Academy)...");
   console.log("========================================================");
@@ -443,7 +561,8 @@ async function seed() {
   console.log("");
   console.log("2. 🏫 Greenwood High Academy (Fully Configured School):");
   console.log("   - School Admin:  admin@greenwood.local      (Password: Password@123)");
-  console.log("   - Teacher:       teacher@greenwood.local    (Password: Password@123)");
+  console.log("   - Teacher 1:     teacher@greenwood.local    (Password: Password@123)");
+  console.log("   - Teacher 2:     teacher2@greenwood.local   (Password: Password@123)");
   console.log("   - Accountant:    accountant@greenwood.local (Password: Password@123)");
   console.log("   Workspace URL:   http://localhost:3000/school/greenwood-high");
   console.log("");

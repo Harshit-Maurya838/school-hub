@@ -76,14 +76,16 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
 
   const isTeacher = user.role === "TEACHER";
 
-  const [sections, classes, readiness] = await Promise.all([
-    listSections(school.id),
+  const readiness = await getAcademicSetupReadiness(school.id, school.slug);
+  const currentAcademicYear = readiness.summary.currentAcademicYear;
+
+  const [sections, classes] = await Promise.all([
+    listSections(school.id, classIdParam, currentAcademicYear?.id),
     prisma.class.findMany({
       where: { schoolId: school.id },
       select: { id: true, name: true },
       orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
     }),
-    getAcademicSetupReadiness(school.id, school.slug),
   ]);
 
   return (
@@ -103,8 +105,11 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
           schoolSlug={school.slug}
           initialSections={sections}
           classes={classes}
+          currentAcademicYearId={currentAcademicYear?.id || null}
+          currentAcademicYearName={currentAcademicYear?.name || null}
           preselectedClassId={classIdParam}
           canCreate={isTeacher ? false : readiness.summary.canCreateSections}
+          canAssignTeachers={!isTeacher}
           blockedReason={
             isTeacher
               ? "Teachers have read-only curriculum access. Class sections and student capacities are configured by School Administrators."

@@ -651,7 +651,11 @@ export async function deleteClass(schoolId: string, classId: string, userId?: st
 // Phase D: Section Management
 // ============================================================================
 
-export async function listSections(schoolId: string, classId?: string) {
+export async function listSections(
+  schoolId: string,
+  classId?: string,
+  academicYearId?: string
+) {
   const whereClause: {
     schoolId: string;
     classId?: string;
@@ -661,18 +665,59 @@ export async function listSections(schoolId: string, classId?: string) {
     whereClause.classId = classId.trim();
   }
 
-  return await prisma.section.findMany({
+  const sections = await prisma.section.findMany({
     where: whereClause,
     orderBy: [{ class: { numericOrder: "asc" } }, { class: { name: "asc" } }, { name: "asc" }],
     include: {
       class: {
         select: { id: true, name: true, numericOrder: true },
       },
+      classTeacherAssignments: {
+        where: {
+          status: "ACTIVE",
+          ...(academicYearId ? { academicYearId } : {}),
+        },
+        include: {
+          teacher: {
+            include: { user: true },
+          },
+        },
+        take: 1,
+      },
       _count: {
-        select: { enrollments: true },
+        select: {
+          enrollments: true,
+          subjectTeacherAssignments: {
+            where: {
+              status: "ACTIVE",
+              ...(academicYearId ? { academicYearId } : {}),
+            },
+          },
+        },
       },
     },
   });
+
+  return sections.map((sec) => ({
+    id: sec.id,
+    name: sec.name,
+    capacity: sec.capacity,
+    classId: sec.classId,
+    createdAt: sec.createdAt,
+    updatedAt: sec.updatedAt,
+    class: sec.class,
+    _count: {
+      enrollments: sec._count.enrollments,
+      subjectAssignments: sec._count.subjectTeacherAssignments,
+    },
+    classTeacher: sec.classTeacherAssignments[0]
+      ? {
+          id: sec.classTeacherAssignments[0].teacher.id,
+          name: sec.classTeacherAssignments[0].teacher.user.name,
+          employeeId: sec.classTeacherAssignments[0].teacher.employeeId,
+        }
+      : null,
+  }));
 }
 
 export async function createSection(

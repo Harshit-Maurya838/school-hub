@@ -63,6 +63,20 @@ enum RegistrationStatus {
   REJECTED
 }
 
+enum EmploymentStatus {
+  ACTIVE
+  ON_LEAVE
+  TERMINATED
+  RESIGNED
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  REPLACED
+  COMPLETED
+  CANCELLED
+}
+
 model School {
   id               String               @id @default(cuid())
   name             String
@@ -84,6 +98,9 @@ model School {
   enrollments      Enrollment[]
   invitations      Invitation[]
   registrations    SchoolRegistration[]
+  teacherProfiles  TeacherProfile[]
+  classTeacherAssignments   ClassTeacherAssignment[]
+  subjectTeacherAssignments SubjectTeacherAssignment[]
 
   @@map("schools")
 }
@@ -105,6 +122,7 @@ model User {
   auditLogs             AuditLog[]
   guardians             Guardian[]
   student               Student?
+  teacherProfile        TeacherProfile?
   createdInvitations    Invitation[]         @relation("CreatedInvitations")
   reviewedRegistrations SchoolRegistration[] @relation("ReviewedRegistrations")
 
@@ -149,6 +167,8 @@ model AcademicYear {
 
   school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
+  classTeacherAssignments   ClassTeacherAssignment[]
+  subjectTeacherAssignments SubjectTeacherAssignment[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -166,6 +186,8 @@ model Class {
   school       School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   sections     Section[]
   subjects     Subject[]
+  classTeacherAssignments   ClassTeacherAssignment[]
+  subjectTeacherAssignments SubjectTeacherAssignment[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -184,6 +206,8 @@ model Section {
   school      School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   class       Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
   enrollments Enrollment[]
+  classTeacherAssignments   ClassTeacherAssignment[]
+  subjectTeacherAssignments SubjectTeacherAssignment[]
 
   @@unique([classId, name])
   @@index([schoolId])
@@ -202,6 +226,7 @@ model Subject {
 
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   class     Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
+  teacherAssignments SubjectTeacherAssignment[]
 
   @@index([schoolId])
   @@index([classId])
@@ -358,4 +383,87 @@ model SchoolRegistration {
   @@index([adminEmail])
   @@map("school_registrations")
 }
+
+model TeacherProfile {
+  id                  String                     @id @default(cuid())
+  schoolId            String
+  userId              String                     @unique
+  employeeId          String?
+  qualification       String?
+  specialization      String?
+  designation         String?
+  department          String?
+  joiningDate         DateTime?
+  status              EmploymentStatus           @default(ACTIVE)
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
+
+  school              School                     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  classAssignments    ClassTeacherAssignment[]
+  subjectAssignments  SubjectTeacherAssignment[]
+
+  @@unique([schoolId, employeeId])
+  @@index([schoolId])
+  @@index([schoolId, status])
+  @@map("teacher_profiles")
+}
+
+model ClassTeacherAssignment {
+  id               String           @id @default(cuid())
+  schoolId         String
+  academicYearId   String
+  classId          String
+  sectionId        String
+  teacherProfileId String
+  isPrimary        Boolean          @default(true)
+  status           AssignmentStatus @default(ACTIVE)
+  startDate        DateTime         @default(now())
+  endDate          DateTime?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  school           School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class            Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section          Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  teacher          TeacherProfile   @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([academicYearId, sectionId, status])
+  @@index([teacherProfileId, academicYearId])
+  @@map("class_teacher_assignments")
+}
+
+model SubjectTeacherAssignment {
+  id               String           @id @default(cuid())
+  schoolId         String
+  academicYearId   String
+  classId          String
+  sectionId        String
+  subjectId        String
+  teacherProfileId String
+  status           AssignmentStatus @default(ACTIVE)
+  startDate        DateTime         @default(now())
+  endDate          DateTime?
+  periodsPerWeek   Int?
+  notes            String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  school           School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear     AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  class            Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  section          Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject          Subject          @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher          TeacherProfile   @relation(fields: [teacherProfileId], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([academicYearId, sectionId, subjectId])
+  @@index([teacherProfileId, academicYearId])
+  @@index([academicYearId, status])
+  @@map("subject_teacher_assignments")
+}
+
 
