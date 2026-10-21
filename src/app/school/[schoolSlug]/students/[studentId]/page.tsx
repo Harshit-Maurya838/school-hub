@@ -50,11 +50,40 @@ export default async function StudentDetailPage({ params }: PageProps) {
     );
   }
 
-  // Resource-level check for PARENT or STUDENT roles
+  // Resource-level check for PARENT, STUDENT, or TEACHER roles
   if (user.role === "PARENT") {
     await assertParentStudentAccess(user, studentId);
   } else if (user.role === "STUDENT") {
     await assertStudentOwnAccess(user, studentId);
+  } else if (user.role === "TEACHER") {
+    const { canAccessStudent } = await import("@/lib/rbac");
+    const allowed = await canAccessStudent(user, studentId);
+    if (!allowed) {
+      const { Shield } = await import("lucide-react");
+      const Link = (await import("next/link")).default;
+      return (
+        <div className="flex min-h-[50vh] items-center justify-center p-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+              <Shield className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Student Access Restricted</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                You are only permitted to access profiles of students enrolled in your assigned
+                classes and sections.
+              </p>
+            </div>
+            <Link
+              href={`/school/${school.slug}/students`}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+            >
+              Return to Student Directory
+            </Link>
+          </div>
+        </div>
+      );
+    }
   }
 
   // Fetch student, available classes, sections, and years
@@ -86,6 +115,15 @@ export default async function StudentDetailPage({ params }: PageProps) {
     notFound();
   }
 
+  const processedStudent =
+    user.role === "ACCOUNTANT"
+      ? (() => {
+          const sanitized = { ...student };
+          delete (sanitized as Record<string, unknown>).apaarId;
+          return sanitized;
+        })()
+      : student;
+
   return (
     <div className="space-y-6">
       <StudentNav
@@ -99,7 +137,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
       <div className="mx-auto w-full max-w-6xl">
         <StudentProfileClient
           schoolSlug={school.slug}
-          initialStudent={student as unknown as StudentDetail}
+          initialStudent={processedStudent as unknown as StudentDetail}
           availableClasses={availableClasses}
           availableSections={availableSections}
           availableYears={availableYears}

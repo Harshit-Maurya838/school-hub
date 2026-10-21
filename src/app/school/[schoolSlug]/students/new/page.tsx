@@ -39,7 +39,7 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
   if (user.role !== "SUPER_ADMIN" && user.schoolId !== school.id) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="max-w-md w-full rounded-2xl border border-red-200/40 bg-red-50 p-6 text-center shadow-lg">
+        <div className="w-full max-w-md rounded-2xl border border-red-200/40 bg-red-50 p-6 text-center shadow-lg">
           <h2 className="mb-2 text-xl font-bold text-red-700">Access Denied</h2>
           <p className="text-xs text-red-600">
             You do not have permission to access {school.name}. Tenant boundary violation detected.
@@ -60,7 +60,8 @@ export default async function NewStudentAdmissionPage({ params }: PageProps) {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Administrator Access Required</h2>
             <p className="mt-1 text-xs text-slate-500">
-              New student admissions and enrollment registration are restricted to School Administrators.{" "}
+              New student admissions and enrollment registration are restricted to School
+              Administrators.{" "}
               {user.role === "TEACHER"
                 ? "Teachers have read-only access to browse class rosters."
                 : "Accountants have read-only access to student billing rolls."}

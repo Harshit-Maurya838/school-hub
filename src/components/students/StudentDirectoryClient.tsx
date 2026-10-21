@@ -378,7 +378,9 @@ export function StudentDirectoryClient({
           <div className="flex items-center gap-2 rounded-xl border border-blue-200/70 bg-blue-50/70 px-3.5 py-2.5 text-xs text-blue-900">
             <Users className="h-4 w-4 shrink-0 text-blue-600" />
             <span>
-              <strong>{getRoleDisplayName(userRole)} View:</strong> You have read-only access to browse students and view contact details. Admissions and archive modifications require a School Administrator.
+              <strong>{getRoleDisplayName(userRole)} View:</strong> You have read-only access to
+              browse students and view contact details. Admissions and archive modifications require
+              a School Administrator.
             </span>
           </div>
         )}

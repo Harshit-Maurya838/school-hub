@@ -56,7 +56,8 @@ export default async function AcademicSessionsPage({ params }: PageProps) {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Administrator Access Required</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Academic calendar sessions and roll-over configuration are restricted to School Administrators.
+              Academic calendar sessions and roll-over configuration are restricted to School
+              Administrators.
             </p>
           </div>
           <Link

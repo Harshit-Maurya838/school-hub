@@ -5,14 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getTeacherDirectory } from "@/lib/teachers";
 import { InviteStaffButton } from "./invite-staff-button";
 import { InvitationsList } from "./invitations-list";
-import {
-  Users,
-  Shield,
-  GraduationCap,
-  BookOpen,
-  UserCheck,
-  ChevronRight,
-} from "lucide-react";
+import { Users, Shield, GraduationCap, BookOpen, UserCheck, ChevronRight } from "lucide-react";
 
 interface StaffPageProps {
   params: Promise<{
@@ -66,7 +59,8 @@ export default async function SchoolStaffPage({ params }: StaffPageProps) {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Administrator Access Required</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Staff directory, role assignments, and team member invitations are restricted to School Administrators.
+              Staff directory, role assignments, and team member invitations are restricted to
+              School Administrators.
             </p>
           </div>
           <Link
@@ -271,17 +265,14 @@ export default async function SchoolStaffPage({ params }: StaffPageProps) {
                   const isTeacher = member.role === "TEACHER";
 
                   return (
-                    <tr
-                      key={member.id}
-                      className="group transition-colors hover:bg-slate-50/70"
-                    >
+                    <tr key={member.id} className="group transition-colors hover:bg-slate-50/70">
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 text-xs font-black text-emerald-800">
                             {member.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
+                            <p className="font-bold text-slate-900 transition-colors group-hover:text-emerald-700">
                               {member.name}
                             </p>
                             <p className="font-mono text-[11px] text-slate-400">{member.email}</p>
@@ -303,7 +294,7 @@ export default async function SchoolStaffPage({ params }: StaffPageProps) {
                             {member.role}
                           </span>
                           {teacherInfo?.designation && (
-                            <p className="text-[11px] text-slate-500 font-semibold">
+                            <p className="text-[11px] font-semibold text-slate-500">
                               {teacherInfo.designation}
                             </p>
                           )}
@@ -343,14 +334,13 @@ export default async function SchoolStaffPage({ params }: StaffPageProps) {
                           <span
                             className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-extrabold ${
                               teacherInfo.workloadStatus === "HIGH"
-                                ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                ? "border border-amber-200 bg-amber-100 text-amber-800"
                                 : teacherInfo.workloadStatus === "NORMAL"
-                                  ? "bg-blue-50 text-blue-800 border border-blue-200"
+                                  ? "border border-blue-200 bg-blue-50 text-blue-800"
                                   : "bg-slate-100 text-slate-600"
                             }`}
                           >
-                            {teacherInfo.sectionsCount} Sections (
-                            {teacherInfo.workloadStatus})
+                            {teacherInfo.sectionsCount} Sections ({teacherInfo.workloadStatus})
                           </span>
                         ) : (
                           <span className="text-slate-300">—</span>

@@ -1,7 +1,10 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AttendanceClient } from "@/components/attendance/AttendanceClient";
+import { getTeacherActiveAssignments } from "@/lib/rbac";
+import { Shield, BookOpen } from "lucide-react";
 
 interface AttendancePageProps {
   params: Promise<{
@@ -37,8 +40,35 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
         <div className="max-w-md rounded-2xl border border-rose-200 bg-white p-6 text-center shadow-xs">
           <h2 className="mb-2 text-base font-extrabold text-rose-700">Access Denied</h2>
           <p className="text-xs text-slate-600">
-            You do not have permission to view attendance for this school.
+            You do not have permission to view attendance for this school. Tenant boundary violation
+            detected.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Deny Accountant from accessing student attendance registers
+  if (user.role === "ACCOUNTANT") {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+            <Shield className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Attendance Access Restricted</h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Student daily attendance registers and classroom logs are restricted to Academic
+              Faculty and School Administrators. Please use the Fees Management Desk.
+            </p>
+          </div>
+          <Link
+            href={`/school/${school.slug}/fees`}
+            className="inline-flex w-full items-center justify-center rounded-xl bg-amber-700 py-2.5 text-xs font-bold text-white transition-colors hover:bg-amber-800"
+          >
+            Open Fees Management Desk
+          </Link>
         </div>
       </div>
     );
@@ -48,6 +78,47 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
   const activeYear = await prisma.academicYear.findFirst({
     where: { schoolId: school.id, isCurrent: true },
   });
+
+  // For TEACHER role: Resolve active teaching assignments
+  let permittedSectionIds: Set<string> | null = null;
+  let classTeacherSectionIds: Set<string> | null = null;
+
+  if (user.role === "TEACHER") {
+    const teacherAssignments = await getTeacherActiveAssignments(
+      school.id,
+      user.id,
+      activeYear?.id
+    );
+
+    if (!teacherAssignments || teacherAssignments.allPermittedSectionIds.length === 0) {
+      return (
+        <div className="flex min-h-[50vh] items-center justify-center p-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-lg">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+              <BookOpen className="h-6 w-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">No Assigned Classes</h2>
+              <p className="mt-1 text-xs text-slate-500">
+                You do not have any active class-teacher or subject-teacher assignments for session{" "}
+                {activeYear?.name || "current"}. Contact your School Administrator to allocate class
+                responsibilities.
+              </p>
+            </div>
+            <Link
+              href={`/school/${school.slug}`}
+              className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white transition-colors hover:bg-slate-800"
+            >
+              Return to Dashboard
+            </Link>
+          </div>
+        </div>
+      );
+    }
+
+    permittedSectionIds = new Set(teacherAssignments.allPermittedSectionIds);
+    classTeacherSectionIds = new Set(teacherAssignments.classTeacherSectionIds);
+  }
 
   // Fetch classes with section and enrolled student details
   const classes = await prisma.class.findMany({
@@ -79,12 +150,34 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
     orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
   });
 
-  const formattedClasses = classes.map((c) => {
+  // Filter sections and classes according to permitted assignments if user is TEACHER
+  const filteredClasses = classes
+    .map((c) => {
+      const allowedSections = permittedSectionIds
+        ? c.sections.filter((s) => permittedSectionIds!.has(s.id))
+        : c.sections;
+
+      return {
+        ...c,
+        sections: allowedSections,
+      };
+    })
+    .filter((c) => c.sections.length > 0);
+
+  const formattedClasses = filteredClasses.map((c) => {
     const allEnrollments = c.sections.flatMap((s) => s.enrollments);
+    const sectionNames =
+      c.sections
+        .map((s) => {
+          const isClassTeacher = classTeacherSectionIds?.has(s.id);
+          return isClassTeacher ? `${s.name} (Class Teacher)` : s.name;
+        })
+        .join(", ") || "All";
+
     return {
       id: c.id,
       name: c.name,
-      section: c.sections.map((s) => s.name).join(", ") || "All",
+      section: sectionNames,
       sectionsCount: c.sections.length,
       studentCount: allEnrollments.length,
       students: allEnrollments.map((e) => ({

@@ -59,7 +59,8 @@ export default async function TeacherProfilePage({ params }: Props) {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Access Restricted</h2>
             <p className="mt-1 text-xs text-slate-500">
-              You are only permitted to access your own faculty profile and assigned teaching courses.
+              You are only permitted to access your own faculty profile and assigned teaching
+              courses.
             </p>
           </div>
           <Link

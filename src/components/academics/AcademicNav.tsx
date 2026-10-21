@@ -46,15 +46,23 @@ export function AcademicNav({
 
   const allNavItems = [
     { label: "Overview", href: basePath, exact: true, icon: LayoutGrid, teacher: true },
-    { label: "Academic Sessions", href: `${basePath}/sessions`, icon: CalendarDays, teacher: false },
-    { label: isTeacher ? "Curriculum Classes" : "Classes", href: `${basePath}/classes`, icon: Layers, teacher: true },
+    {
+      label: "Academic Sessions",
+      href: `${basePath}/sessions`,
+      icon: CalendarDays,
+      teacher: false,
+    },
+    {
+      label: isTeacher ? "Curriculum Classes" : "Classes",
+      href: `${basePath}/classes`,
+      icon: Layers,
+      teacher: true,
+    },
     { label: "Sections", href: `${basePath}/sections`, icon: Grid, teacher: true },
     { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen, teacher: true },
   ];
 
-  const navItems = isTeacher
-    ? allNavItems.filter((item) => item.teacher)
-    : allNavItems;
+  const navItems = isTeacher ? allNavItems.filter((item) => item.teacher) : allNavItems;
 
   return (
     <header className="mb-6 space-y-4">
@@ -112,7 +120,9 @@ export function AcademicNav({
         <div className="flex items-center gap-2.5 rounded-2xl border border-blue-200/80 bg-blue-50/80 p-3.5 text-xs text-blue-900 shadow-xs">
           <GraduationCap className="h-4 w-4 shrink-0 text-blue-600" />
           <span>
-            <strong>Teacher Curriculum View:</strong> You can browse grade levels, class rosters, and subject courses. Structural modifications and session roll-over are managed by School Administrators.
+            <strong>Teacher Curriculum View:</strong> You can browse grade levels, class rosters,
+            and subject courses. Structural modifications and session roll-over are managed by
+            School Administrators.
           </span>
         </div>
       )}

@@ -82,11 +82,11 @@ export function Header({
 
   const initials = userName
     ? userName
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase()
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
     : "SM";
 
   return (

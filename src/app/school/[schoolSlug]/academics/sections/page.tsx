@@ -60,7 +60,8 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
           <div>
             <h2 className="text-lg font-bold text-slate-900">Academic Access Restricted</h2>
             <p className="mt-1 text-xs text-slate-500">
-              Academic curriculum configuration and grade divisions are restricted to Academic Staff and Administrators. Please use the Fees Management Desk.
+              Academic curriculum configuration and grade divisions are restricted to Academic Staff
+              and Administrators. Please use the Fees Management Desk.
             </p>
           </div>
           <Link

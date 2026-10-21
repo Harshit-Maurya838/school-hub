@@ -1,4 +1,4 @@
-// Role Based Access Control
+// Role Based Access Control & Assignment-Scoped Authorization Engine
 import { Role } from "@/generated/prisma/enums";
 import { AuthenticatedUser, getAuthenticatedUser } from "./auth";
 import { ForbiddenError, UnauthorizedError } from "./errors";
@@ -6,13 +6,13 @@ import { prisma } from "./prisma";
 import { NextRequest } from "next/server";
 
 export type Permission =
-  // Platform permissions
+  // Legacy Platform permissions
   | "platform:manage"
   | "platform:view"
   | "school:create"
   | "registration:manage"
   | "registration:view"
-  // School administration permissions
+  // Legacy School administration permissions
   | "school:manage"
   | "school:view"
   | "staff:manage"
@@ -20,7 +20,7 @@ export type Permission =
   | "invitation:create"
   | "invitation:view"
   | "invitation:revoke"
-  // Student & Guardian permissions
+  // Legacy Student & Guardian permissions
   | "student:create"
   | "student:update"
   | "student:delete"
@@ -28,23 +28,48 @@ export type Permission =
   | "student:view:own"
   | "guardian:manage"
   | "guardian:view"
-  // Academic permissions
+  // Legacy Academic permissions
   | "academic:manage"
   | "academic:view"
   | "attendance:manage"
   | "attendance:view"
   | "grades:manage"
   | "grades:view"
-  // Financial permissions
+  // Legacy Financial permissions
   | "fees:manage"
   | "fees:view"
-  // Audit logs
-  | "audit:view";
+  // Legacy Audit logs
+  | "audit:view"
+  // Modern Explicit Permissions (Phase 2 Canonical Vocabulary)
+  | "school.profile.read"
+  | "school.profile.update"
+  | "students.read"
+  | "students.admit"
+  | "students.update"
+  | "students.archive"
+  | "academics.read"
+  | "academics.configure"
+  | "teachers.read"
+  | "teachers.manage"
+  | "teaching_assignments.manage"
+  | "attendance.read"
+  | "attendance.mark"
+  | "attendance.correct"
+  | "attendance.approve"
+  | "exams.read"
+  | "marks.enter"
+  | "marks.review"
+  | "results.publish"
+  | "fees.read"
+  | "fees.collect"
+  | "fees.configure"
+  | "reports.read"
+  | "audit.read";
 
 /**
  * Explicit mapping of roles to permitted actions.
  * Access is denied by default unless explicitly granted here.
- * Notice: We do NOT use an automatic role hierarchy where higher roles automatically inherit everything.
+ * Backward compatible with existing tests while incorporating the Phase 2 canonical vocabulary.
  */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   SUPER_ADMIN: [
@@ -56,6 +81,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "audit:view",
     "registration:manage",
     "registration:view",
+    "school.profile.read",
+    "audit.read",
+    "reports.read",
   ],
   SCHOOL_ADMIN: [
     "school:manage",
@@ -80,8 +108,45 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "fees:manage",
     "fees:view",
     "audit:view",
+    // Canonical Phase 2 permissions
+    "school.profile.read",
+    "school.profile.update",
+    "students.read",
+    "students.admit",
+    "students.update",
+    "students.archive",
+    "academics.read",
+    "academics.configure",
+    "teachers.read",
+    "teachers.manage",
+    "teaching_assignments.manage",
+    "attendance.read",
+    "attendance.mark",
+    "attendance.correct",
+    "attendance.approve",
+    "exams.read",
+    "marks.enter",
+    "marks.review",
+    "results.publish",
+    "fees.read",
+    "fees.collect",
+    "fees.configure",
+    "reports.read",
+    "audit.read",
   ],
-  ACCOUNTANT: ["fees:manage", "fees:view", "student:view:all", "school:view"],
+  ACCOUNTANT: [
+    "fees:manage",
+    "fees:view",
+    "student:view:all",
+    "school:view",
+    // Canonical Phase 2 permissions
+    "school.profile.read",
+    "fees.read",
+    "fees.collect",
+    "fees.configure",
+    "students.read",
+    "reports.read",
+  ],
   TEACHER: [
     "academic:view",
     "attendance:manage",
@@ -90,9 +155,37 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
     "grades:view",
     "student:view:all",
     "school:view",
+    // Canonical Phase 2 permissions
+    "school.profile.read",
+    "academics.read",
+    "teachers.read",
+    "attendance.read",
+    "attendance.mark",
+    "attendance.correct",
+    "exams.read",
+    "marks.enter",
+    "students.read",
   ],
-  PARENT: ["student:view:own", "attendance:view", "grades:view", "fees:view"],
-  STUDENT: ["student:view:own", "academic:view", "attendance:view", "grades:view"],
+  PARENT: [
+    "student:view:own",
+    "attendance:view",
+    "grades:view",
+    "fees:view",
+    // Canonical Phase 2 permissions
+    "students.read",
+    "attendance.read",
+    "fees.read",
+  ],
+  STUDENT: [
+    "student:view:own",
+    "academic:view",
+    "attendance:view",
+    "grades:view",
+    // Canonical Phase 2 permissions
+    "students.read",
+    "academics.read",
+    "attendance.read",
+  ],
 };
 
 /**
@@ -154,6 +247,14 @@ export function assertSchoolAccess(user: AuthenticatedUser, targetSchoolId: stri
 }
 
 /**
+ * Helper to check whether user can access a school without throwing.
+ */
+export function canAccessSchool(user: AuthenticatedUser, targetSchoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return Boolean(user.schoolId && user.schoolId === targetSchoolId);
+}
+
+/**
  * Resource-level check for Parents:
  * Verifies that the parent user is an authorized guardian of the target student.
  */
@@ -169,7 +270,6 @@ export async function assertParentStudentAccess(
     throw new ForbiddenError("Only linked parents or school administrators can access this record");
   }
 
-  // Look up Guardian linked to user
   const guardian = await prisma.guardian.findFirst({
     where: {
       userId: user.id,
@@ -212,7 +312,6 @@ export async function assertStudentOwnAccess(
     throw new ForbiddenError("Only the student or school administrators can access this record");
   }
 
-  // Verify student identity matches authenticated user
   const student = await prisma.student.findFirst({
     where: {
       id: studentId,
@@ -256,5 +355,402 @@ export async function assertTeacherAccess(
     if (teacherProfileIdOrUserId !== user.id) {
       throw new ForbiddenError("Access denied: teacher can only access their own profile");
     }
+  }
+}
+
+// ============================================================================
+// Phase 4: Assignment-Scoped Authorization Services & Centralized Checks
+// ============================================================================
+
+export interface TeacherAssignmentContext {
+  teacherProfileId: string;
+  isActive: boolean;
+  employmentStatus: string;
+  academicYearId: string;
+  academicYearName: string;
+  isClassTeacher: boolean;
+  classTeacherSectionIds: string[];
+  classTeacherSections: Array<{
+    classId: string;
+    className: string;
+    sectionId: string;
+    sectionName: string;
+  }>;
+  isSubjectTeacher: boolean;
+  subjectSectionIds: string[];
+  subjectAssignments: Array<{
+    classId: string;
+    className: string;
+    sectionId: string;
+    sectionName: string;
+    subjectId: string;
+    subjectName: string;
+  }>;
+  /** Union of class teacher section IDs and subject section IDs */
+  allPermittedSectionIds: string[];
+}
+
+/**
+ * Resolves a teacher's active assignments in the current or specified academic year.
+ * Strict rules:
+ * - Teacher must be active in User and active in TeacherProfile (status === 'ACTIVE').
+ * - Only ACTIVE assignments for the applicable academic year are included.
+ * - REPLACED, COMPLETED, or CANCELLED assignments are strictly excluded.
+ */
+export async function getTeacherActiveAssignments(
+  schoolId: string,
+  userId: string,
+  academicYearId?: string
+): Promise<TeacherAssignmentContext | null> {
+  const profile = await prisma.teacherProfile.findFirst({
+    where: { schoolId, userId },
+    include: { user: true },
+  });
+
+  if (!profile || !profile.user.isActive || profile.user.deletedAt !== null) {
+    return null;
+  }
+
+  // Teacher must be in ACTIVE employment status (not TERMINATED, RESIGNED, ON_LEAVE)
+  if (profile.status !== "ACTIVE") {
+    return null;
+  }
+
+  // Resolve target academic year
+  let targetYear: { id: string; name: string } | null = null;
+  if (academicYearId) {
+    targetYear = await prisma.academicYear.findFirst({
+      where: { id: academicYearId, schoolId },
+      select: { id: true, name: true },
+    });
+  }
+  if (!targetYear) {
+    targetYear = await prisma.academicYear.findFirst({
+      where: { schoolId, isCurrent: true },
+      select: { id: true, name: true },
+    });
+  }
+
+  if (!targetYear) {
+    return null;
+  }
+
+  const [classAssignments, subjectAssignments] = await Promise.all([
+    prisma.classTeacherAssignment.findMany({
+      where: {
+        schoolId,
+        teacherProfileId: profile.id,
+        academicYearId: targetYear.id,
+        status: "ACTIVE",
+      },
+      include: { class: true, section: true },
+    }),
+    prisma.subjectTeacherAssignment.findMany({
+      where: {
+        schoolId,
+        teacherProfileId: profile.id,
+        academicYearId: targetYear.id,
+        status: "ACTIVE",
+      },
+      include: { class: true, section: true, subject: true },
+    }),
+  ]);
+
+  const classTeacherSectionIds = classAssignments.map((ca) => ca.sectionId);
+  const subjectSectionIds = subjectAssignments.map((sa) => sa.sectionId);
+  const allPermittedSectionIds = Array.from(
+    new Set([...classTeacherSectionIds, ...subjectSectionIds])
+  );
+
+  return {
+    teacherProfileId: profile.id,
+    isActive: profile.user.isActive && profile.status === "ACTIVE",
+    employmentStatus: profile.status,
+    academicYearId: targetYear.id,
+    academicYearName: targetYear.name,
+    isClassTeacher: classAssignments.length > 0,
+    classTeacherSectionIds,
+    classTeacherSections: classAssignments.map((ca) => ({
+      classId: ca.classId,
+      className: ca.class.name,
+      sectionId: ca.sectionId,
+      sectionName: ca.section.name,
+    })),
+    isSubjectTeacher: subjectAssignments.length > 0,
+    subjectSectionIds,
+    subjectAssignments: subjectAssignments.map((sa) => ({
+      classId: sa.classId,
+      className: sa.class.name,
+      sectionId: sa.sectionId,
+      sectionName: sa.section.name,
+      subjectId: sa.subjectId,
+      subjectName: sa.subject.name,
+    })),
+    allPermittedSectionIds,
+  };
+}
+
+/**
+ * Checks whether the user can access a specific section.
+ * - SCHOOL_ADMIN / SUPER_ADMIN: can access any section in the school.
+ * - TEACHER: can only access sections where they have an active assignment (class or subject).
+ */
+export async function canAccessSection(
+  user: AuthenticatedUser,
+  sectionId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+
+  if (user.role === "SCHOOL_ADMIN") {
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, schoolId: user.schoolId ?? undefined },
+      select: { id: true },
+    });
+    return section !== null;
+  }
+
+  if (user.role === "TEACHER" && user.schoolId) {
+    const assignments = await getTeacherActiveAssignments(user.schoolId, user.id, academicYearId);
+    if (!assignments) return false;
+    return assignments.allPermittedSectionIds.includes(sectionId);
+  }
+
+  return false;
+}
+
+/**
+ * Phase 5 Attendance Policy:
+ * 1. The class teacher marks daily attendance for their assigned section.
+ * 2. Subject teachers do not automatically receive daily attendance edit permissions.
+ * 3. School Admin retains oversight.
+ */
+export async function canMarkAttendance(
+  user: AuthenticatedUser,
+  sectionId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+
+  if (user.role === "SCHOOL_ADMIN") {
+    const section = await prisma.section.findFirst({
+      where: { id: sectionId, schoolId: user.schoolId ?? undefined },
+      select: { id: true },
+    });
+    return section !== null;
+  }
+
+  if (user.role === "TEACHER" && user.schoolId) {
+    const assignments = await getTeacherActiveAssignments(user.schoolId, user.id, academicYearId);
+    if (!assignments) return false;
+    // Strict Policy: Only the actively assigned Class Teacher can mark daily attendance!
+    return assignments.classTeacherSectionIds.includes(sectionId);
+  }
+
+  return false;
+}
+
+/**
+ * Attendance corrections follow the same rule: only active Class Teacher or School Admin.
+ */
+export async function canCorrectAttendance(
+  user: AuthenticatedUser,
+  sectionId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  return canMarkAttendance(user, sectionId, academicYearId);
+}
+
+/**
+ * Checks whether the user can access a specific subject in a section.
+ * Subject teachers are scoped strictly to their assigned subject-section combinations.
+ */
+export async function canAccessSubject(
+  user: AuthenticatedUser,
+  subjectId: string,
+  sectionId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+
+  if (user.role === "SCHOOL_ADMIN") {
+    const subject = await prisma.subject.findFirst({
+      where: { id: subjectId, schoolId: user.schoolId ?? undefined },
+      select: { id: true },
+    });
+    return subject !== null;
+  }
+
+  if (user.role === "TEACHER" && user.schoolId) {
+    const assignments = await getTeacherActiveAssignments(user.schoolId, user.id, academicYearId);
+    if (!assignments) return false;
+    return assignments.subjectAssignments.some(
+      (sa) => sa.subjectId === subjectId && sa.sectionId === sectionId
+    );
+  }
+
+  return false;
+}
+
+/**
+ * Checks whether the user can enter or modify marks for a subject in a section.
+ */
+export async function canEnterMarks(
+  user: AuthenticatedUser,
+  subjectId: string,
+  sectionId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  return canAccessSubject(user, subjectId, sectionId, academicYearId);
+}
+
+/**
+ * Checks whether the user can manage teaching assignments for a school.
+ * Only SCHOOL_ADMIN of that school (or SUPER_ADMIN) is permitted.
+ */
+export function canManageTeachingAssignments(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return user.role === "SCHOOL_ADMIN" && user.schoolId === schoolId;
+}
+
+/**
+ * Checks whether the user can access a student's records:
+ * - SCHOOL_ADMIN / ACCOUNTANT: permitted for all students within their school.
+ * - TEACHER: permitted ONLY if student is actively enrolled in one of the teacher's actively assigned sections.
+ * - PARENT: permitted if linked guardian.
+ * - STUDENT: permitted if own record.
+ */
+export async function canAccessStudent(
+  user: AuthenticatedUser,
+  studentId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+
+  if (user.role === "SCHOOL_ADMIN" || user.role === "ACCOUNTANT") {
+    const student = await prisma.student.findFirst({
+      where: { id: studentId, schoolId: user.schoolId ?? undefined },
+      select: { id: true },
+    });
+    return student !== null;
+  }
+
+  if (user.role === "TEACHER" && user.schoolId) {
+    const assignments = await getTeacherActiveAssignments(user.schoolId, user.id, academicYearId);
+    if (!assignments || assignments.allPermittedSectionIds.length === 0) {
+      return false;
+    }
+
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        studentId,
+        schoolId: user.schoolId,
+        academicYearId: assignments.academicYearId,
+        status: "ACTIVE",
+        sectionId: { in: assignments.allPermittedSectionIds },
+      },
+      select: { id: true },
+    });
+    return enrollment !== null;
+  }
+
+  if (user.role === "PARENT") {
+    try {
+      await assertParentStudentAccess(user, studentId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  if (user.role === "STUDENT") {
+    try {
+      await assertStudentOwnAccess(user, studentId);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Helper to check module access with tenant verification.
+ */
+export function canAccessSchoolModule(
+  user: AuthenticatedUser,
+  permission: Permission,
+  targetSchoolId?: string
+): boolean {
+  if (targetSchoolId && user.role !== "SUPER_ADMIN" && user.schoolId !== targetSchoolId) {
+    return false;
+  }
+  return hasPermission(user.role, permission);
+}
+
+/**
+ * Redacts sensitive fields from student objects for non-administrative roles such as ACCOUNTANT.
+ * Strips apaarId and non-essential personal identifiers.
+ */
+export function sanitizeStudentForAccountant<T extends object>(student: T): T {
+  const sanitized = { ...student };
+  if ("apaarId" in sanitized) {
+    delete (sanitized as { apaarId?: unknown }).apaarId;
+  }
+  return sanitized;
+}
+
+// ============================================================================
+// Assertion Wrappers (throwing 403 Forbidden on failure)
+// ============================================================================
+
+export async function assertSectionAccess(
+  user: AuthenticatedUser,
+  sectionId: string,
+  academicYearId?: string
+): Promise<void> {
+  const allowed = await canAccessSection(user, sectionId, academicYearId);
+  if (!allowed) {
+    throw new ForbiddenError(
+      `Access denied: You are not authorized to access section '${sectionId}'`
+    );
+  }
+}
+
+export async function assertAttendanceMarkingAccess(
+  user: AuthenticatedUser,
+  sectionId: string,
+  academicYearId?: string
+): Promise<void> {
+  const allowed = await canMarkAttendance(user, sectionId, academicYearId);
+  if (!allowed) {
+    throw new ForbiddenError(
+      `Access denied: Only the designated active class teacher or school administrator can mark daily attendance for this section`
+    );
+  }
+}
+
+export async function assertStudentAccess(
+  user: AuthenticatedUser,
+  studentId: string,
+  academicYearId?: string
+): Promise<void> {
+  const allowed = await canAccessStudent(user, studentId, academicYearId);
+  if (!allowed) {
+    throw new ForbiddenError(
+      `Access denied: You are not authorized to view or manage student '${studentId}'`
+    );
+  }
+}
+
+export function assertCanManageTeachingAssignments(
+  user: AuthenticatedUser,
+  schoolId: string
+): void {
+  if (!canManageTeachingAssignments(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only school administrators are authorized to manage teaching assignments"
+    );
   }
 }

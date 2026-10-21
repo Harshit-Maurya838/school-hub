@@ -66,17 +66,55 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     );
   }
 
+  const isTeacher = user.role === "TEACHER";
+  const isAccountant = user.role === "ACCOUNTANT";
+  const isAdmin = user.role === "SUPER_ADMIN" || user.role === "SCHOOL_ADMIN";
+
+  const readiness = await getAcademicSetupReadiness(school.id, school.slug);
+
+  let teacherAssignments: import("@/lib/rbac").TeacherAssignmentContext | null = null;
+  if (isTeacher) {
+    const { getTeacherActiveAssignments } = await import("@/lib/rbac");
+    teacherAssignments = await getTeacherActiveAssignments(
+      school.id,
+      user.id,
+      readiness.summary.currentAcademicYear?.id
+    );
+  }
+
+  // Teacher student filter condition
+  const studentWhere: Record<string, unknown> = {
+    schoolId: school.id,
+    deletedAt: null,
+    isActive: true,
+  };
+
+  if (isTeacher) {
+    if (teacherAssignments && teacherAssignments.allPermittedSectionIds.length > 0) {
+      studentWhere.enrollments = {
+        some: {
+          sectionId: { in: teacherAssignments.allPermittedSectionIds },
+          academicYearId: teacherAssignments.academicYearId,
+          status: "ACTIVE",
+        },
+      };
+    } else {
+      // Teacher has no active assignments: match no students
+      studentWhere.id = "none";
+    }
+  }
+
   // Fetch real data concurrently
-  const [totalStudents, boysCount, girlsCount, classesData, readiness, studentsForBirthdays] =
+  const [totalStudents, boysCount, girlsCount, rawClassesData, studentsForBirthdays] =
     await Promise.all([
       prisma.student.count({
-        where: { schoolId: school.id, deletedAt: null, isActive: true },
+        where: studentWhere,
       }),
       prisma.student.count({
-        where: { schoolId: school.id, deletedAt: null, isActive: true, gender: "MALE" },
+        where: { ...studentWhere, gender: "MALE" },
       }),
       prisma.student.count({
-        where: { schoolId: school.id, deletedAt: null, isActive: true, gender: "FEMALE" },
+        where: { ...studentWhere, gender: "FEMALE" },
       }),
       prisma.class.findMany({
         where: { schoolId: school.id },
@@ -102,9 +140,8 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
         },
         orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
       }),
-      getAcademicSetupReadiness(school.id, school.slug),
       prisma.student.findMany({
-        where: { schoolId: school.id, deletedAt: null, isActive: true },
+        where: studentWhere,
         select: {
           id: true,
           name: true,
@@ -126,6 +163,20 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
       }),
     ]);
 
+  // If teacher, filter classesData to only assigned classes and sections
+  const classesData = isTeacher
+    ? rawClassesData
+        .filter((cls) =>
+          cls.sections.some((sec) => teacherAssignments?.allPermittedSectionIds.includes(sec.id))
+        )
+        .map((cls) => ({
+          ...cls,
+          sections: cls.sections.filter((sec) =>
+            teacherAssignments?.allPermittedSectionIds.includes(sec.id)
+          ),
+        }))
+    : rawClassesData;
+
   // Aggregate classes and enrollment numbers
   const classSummaryList: ClassSummaryItem[] = classesData.map((cls) => {
     const studentsInClass = cls.sections.reduce(
@@ -135,7 +186,7 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     return {
       id: cls.id,
       name: cls.name,
-      sectionsCount: cls._count.sections,
+      sectionsCount: cls.sections.length,
       subjectsCount: cls._count.subjects,
       studentsCount: studentsInClass,
     };
@@ -147,12 +198,8 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     sectionsCount: cls.sectionsCount,
   }));
 
-  // Build real reminders list from readiness steps
+  // Build real reminders list
   const reminders: ReminderItem[] = [];
-
-  const isTeacher = user.role === "TEACHER";
-  const isAccountant = user.role === "ACCOUNTANT";
-  const isAdmin = user.role === "SUPER_ADMIN" || user.role === "SCHOOL_ADMIN";
 
   if (isAdmin) {
     if (!readiness.schoolDetails.isReady) {
@@ -199,14 +246,38 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
       });
     }
   } else if (isTeacher) {
-    reminders.push({
-      id: "teacher-attendance",
-      title: "Daily Attendance Verification",
-      description: "Mark or verify daily student attendance register for your assigned classes.",
-      priority: "high",
-      actionUrl: `/school/${school.slug}/attendance`,
-      actionLabel: "Open Register",
-    });
+    if (teacherAssignments && teacherAssignments.isClassTeacher) {
+      const sectionNames = teacherAssignments.classTeacherSections
+        .map((s) => `${s.className} - ${s.sectionName}`)
+        .join(", ");
+      reminders.push({
+        id: "teacher-attendance",
+        title: "Class Teacher Daily Attendance",
+        description: `Mark or verify daily student roll call register for your section: ${sectionNames}.`,
+        priority: "high",
+        actionUrl: `/school/${school.slug}/attendance`,
+        actionLabel: "Open Register",
+      });
+    } else if (teacherAssignments && teacherAssignments.isSubjectTeacher) {
+      reminders.push({
+        id: "teacher-subjects",
+        title: "Subject Teaching Workload",
+        description: `You are assigned to ${teacherAssignments.subjectAssignments.length} course sections. Browse your class rosters.`,
+        priority: "normal",
+        actionUrl: `/school/${school.slug}/students`,
+        actionLabel: "View Roster",
+      });
+    } else {
+      reminders.push({
+        id: "teacher-no-assignments",
+        title: "No Active Teaching Assignments",
+        description:
+          "You currently have no class-teacher or subject-teacher assignments for this session. Contact your School Administrator.",
+        priority: "normal",
+        actionUrl: `/school/${school.slug}/academics`,
+        actionLabel: "View Curriculum",
+      });
+    }
   } else if (isAccountant) {
     reminders.push({
       id: "accountant-fees",
@@ -255,8 +326,8 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
                 </h2>
               </div>
               <p className="text-xs text-purple-800">
-                You are operating with Super Administrator platform credentials. You can inspect
-                and manage all tenant records.
+                You are operating with Super Administrator platform credentials. You can inspect and
+                manage all tenant records.
               </p>
             </div>
             <Link
@@ -401,7 +472,9 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
             icon={IndianRupee}
             variant="default"
             badgeText={isAccountant ? "In Roadmap" : "Module Pending"}
-            badgeColor={isAccountant ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"}
+            badgeColor={
+              isAccountant ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"
+            }
           />
         )}
 

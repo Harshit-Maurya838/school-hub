@@ -129,9 +129,7 @@ export function GlobalSearchModal({
     },
   ];
 
-  const quickLinks = allQuickLinks.filter((item) =>
-    item.roles.includes(userRole)
-  );
+  const quickLinks = allQuickLinks.filter((item) => item.roles.includes(userRole));
 
   const filteredLinks = query.trim()
     ? quickLinks.filter(

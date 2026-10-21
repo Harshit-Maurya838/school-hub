@@ -149,7 +149,9 @@ export function AcademicSectionsClient({
   const [assignmentSuccess, setAssignmentSuccess] = useState<string | null>(null);
   const [selectedClassTeacherId, setSelectedClassTeacherId] = useState<string>("");
   const [workloadWarning, setWorkloadWarning] = useState<string | null>(null);
-  const [subjectTeacherSelections, setSubjectTeacherSelections] = useState<Record<string, string>>({});
+  const [subjectTeacherSelections, setSubjectTeacherSelections] = useState<Record<string, string>>(
+    {}
+  );
 
   // Form fields
   const [classId, setClassId] = useState<string>(preselectedClassId || (classes[0]?.id ?? ""));
@@ -219,19 +221,16 @@ export function AcademicSectionsClient({
     setAssignmentSuccess(null);
 
     try {
-      const res = await fetch(
-        `/api/v1/school/${schoolSlug}/academics/assignments/class-teacher`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            academicYearId: currentAcademicYearId,
-            classId: assigningSection.classId,
-            sectionId: assigningSection.id,
-            teacherProfileId: selectedClassTeacherId,
-          }),
-        }
-      );
+      const res = await fetch(`/api/v1/school/${schoolSlug}/academics/assignments/class-teacher`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          academicYearId: currentAcademicYearId,
+          classId: assigningSection.classId,
+          sectionId: assigningSection.id,
+          teacherProfileId: selectedClassTeacherId,
+        }),
+      });
       const json = await res.json();
       if (!res.ok) {
         throw new Error(json.error?.message || "Failed to assign class teacher");
@@ -244,7 +243,10 @@ export function AcademicSectionsClient({
       setSections((prev) =>
         prev.map((s) =>
           s.id === assigningSection.id
-            ? { ...s, classTeacher: { id: assigned.teacherProfileId, name: teacherName, employeeId } }
+            ? {
+                ...s,
+                classTeacher: { id: assigned.teacherProfileId, name: teacherName, employeeId },
+              }
             : s
         )
       );
@@ -268,7 +270,9 @@ export function AcademicSectionsClient({
           : prev
       );
 
-      setAssignmentSuccess(`Class teacher successfully assigned to Section ${assigningSection.name}!`);
+      setAssignmentSuccess(
+        `Class teacher successfully assigned to Section ${assigningSection.name}!`
+      );
     } catch (err: unknown) {
       setAssignmentError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -726,7 +730,7 @@ export function AcademicSectionsClient({
                         {canAssignTeachers && currentAcademicYearId && (
                           <button
                             onClick={() => openAssignmentModal(sec)}
-                            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:border-emerald-300 hover:bg-slate-50 hover:text-emerald-800 transition-colors"
+                            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 transition-colors hover:border-emerald-300 hover:bg-slate-50 hover:text-emerald-800"
                             title="Assign Class & Subject Teachers"
                           >
                             <UserCheck className="h-3.5 w-3.5 text-emerald-600" />
@@ -963,10 +967,10 @@ export function AcademicSectionsClient({
 
       {/* Faculty & Teaching Assignment Modal */}
       {assigningSection && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs overflow-y-auto">
-          <div className="w-full max-w-4xl rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/60 p-4 backdrop-blur-xs">
+          <div className="flex max-h-[90vh] w-full max-w-4xl flex-col rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4 shrink-0">
+            <div className="flex shrink-0 items-start justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
                   <UserCheck className="h-5 w-5" />
@@ -1000,7 +1004,7 @@ export function AcademicSectionsClient({
             </div>
 
             {/* Modal Alerts */}
-            <div className="mt-4 space-y-2 shrink-0">
+            <div className="mt-4 shrink-0 space-y-2">
               {assignmentError && (
                 <div className="flex items-center justify-between rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900 shadow-xs">
                   <div className="flex items-center gap-2">
@@ -1048,20 +1052,20 @@ export function AcademicSectionsClient({
             </div>
 
             {/* Modal Body */}
-            <div className="mt-4 flex-1 overflow-y-auto space-y-6 pr-1">
+            <div className="mt-4 flex-1 space-y-6 overflow-y-auto pr-1">
               {assignmentLoading && !assignmentData ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500">
-                  <Loader2 className="h-8 w-8 animate-spin text-emerald-600 mb-2" />
+                  <Loader2 className="mb-2 h-8 w-8 animate-spin text-emerald-600" />
                   <p className="text-xs font-bold">Loading teaching assignments...</p>
                 </div>
               ) : assignmentData ? (
                 <>
                   {/* 1. Class Teacher Assignment Section */}
                   <div className="rounded-xl border border-slate-200/80 bg-slate-50/50 p-4">
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <GraduationCap className="h-4 w-4 text-emerald-700" />
-                        <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                        <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
                           Class Teacher
                         </h4>
                       </div>
@@ -1070,10 +1074,10 @@ export function AcademicSectionsClient({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
                       {/* Current Status Card */}
                       <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-2xs">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        <span className="mb-1 block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
                           Current Assigned Class Teacher
                         </span>
                         {assignmentData.classTeacher ? (
@@ -1082,12 +1086,12 @@ export function AcademicSectionsClient({
                               {assignmentData.classTeacher.name.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
-                              <p className="font-bold text-slate-900 text-xs">
+                              <p className="text-xs font-bold text-slate-900">
                                 {assignmentData.classTeacher.name}
                               </p>
                               <div className="flex items-center gap-2 text-[10px] text-slate-500">
                                 {assignmentData.classTeacher.employeeId && (
-                                  <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">
+                                  <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono">
                                     {assignmentData.classTeacher.employeeId}
                                   </span>
                                 )}
@@ -1096,7 +1100,7 @@ export function AcademicSectionsClient({
                             </div>
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-400 italic py-1">
+                          <p className="py-1 text-xs text-slate-400 italic">
                             No class teacher currently assigned.
                           </p>
                         )}
@@ -1104,8 +1108,10 @@ export function AcademicSectionsClient({
 
                       {/* Assignment Selector */}
                       <div className="space-y-2">
-                        <label className="text-[11px] font-bold text-slate-700 block">
-                          {assignmentData.classTeacher ? "Reassign Class Teacher" : "Designate Class Teacher"}
+                        <label className="block text-[11px] font-bold text-slate-700">
+                          {assignmentData.classTeacher
+                            ? "Reassign Class Teacher"
+                            : "Designate Class Teacher"}
                         </label>
                         <div className="flex gap-2">
                           <select
@@ -1116,22 +1122,29 @@ export function AcademicSectionsClient({
                             <option value="">Select a faculty member...</option>
                             {assignmentData.availableTeachers?.map((t) => (
                               <option key={t.id} value={t.id}>
-                                {t.name} ({t.employeeId || "No ID"}) {t.department ? `— ${t.department}` : ""}
+                                {t.name} ({t.employeeId || "No ID"}){" "}
+                                {t.department ? `— ${t.department}` : ""}
                               </option>
                             ))}
                           </select>
                           <button
                             type="button"
-                            disabled={assignmentLoading || !selectedClassTeacherId || selectedClassTeacherId === assignmentData.classTeacher?.teacherProfileId}
+                            disabled={
+                              assignmentLoading ||
+                              !selectedClassTeacherId ||
+                              selectedClassTeacherId ===
+                                assignmentData.classTeacher?.teacherProfileId
+                            }
                             onClick={handleSaveClassTeacher}
-                            className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800 disabled:opacity-50 shrink-0"
+                            className="shrink-0 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800 disabled:opacity-50"
                           >
                             {assignmentLoading ? "Saving..." : "Save"}
                           </button>
                         </div>
                         {assignmentData.classTeacher && (
                           <p className="text-[10px] text-slate-400">
-                            Reassigning will automatically archive the previous class teacher into historical records.
+                            Reassigning will automatically archive the previous class teacher into
+                            historical records.
                           </p>
                         )}
                       </div>
@@ -1139,8 +1152,8 @@ export function AcademicSectionsClient({
 
                     {/* Historical Class Teachers */}
                     {assignmentData.classTeacherHistory?.length > 0 && (
-                      <div className="mt-4 pt-3 border-t border-slate-200/60">
-                        <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-bold mb-2">
+                      <div className="mt-4 border-t border-slate-200/60 pt-3">
+                        <div className="mb-2 flex items-center gap-1.5 text-[11px] font-bold text-slate-500">
                           <History className="h-3.5 w-3.5" />
                           <span>Previous Class Teachers This Session</span>
                         </div>
@@ -1148,7 +1161,7 @@ export function AcademicSectionsClient({
                           {assignmentData.classTeacherHistory.map((h) => (
                             <div
                               key={h.id}
-                              className="flex items-center justify-between text-[11px] rounded-lg bg-white/80 px-3 py-1.5 border border-slate-100"
+                              className="flex items-center justify-between rounded-lg border border-slate-100 bg-white/80 px-3 py-1.5 text-[11px]"
                             >
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold text-slate-800">{h.name}</span>
@@ -1159,11 +1172,12 @@ export function AcademicSectionsClient({
                                 )}
                               </div>
                               <div className="flex items-center gap-2 text-slate-400">
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-slate-600">
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-slate-600 uppercase">
                                   {h.status}
                                 </span>
                                 <span>
-                                  {new Date(h.startDate).toLocaleDateString()} - {h.endDate ? new Date(h.endDate).toLocaleDateString() : "Now"}
+                                  {new Date(h.startDate).toLocaleDateString()} -{" "}
+                                  {h.endDate ? new Date(h.endDate).toLocaleDateString() : "Now"}
                                 </span>
                               </div>
                             </div>
@@ -1175,26 +1189,28 @@ export function AcademicSectionsClient({
 
                   {/* 2. Subject Teaching Allocations Section */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-emerald-700" />
-                        <h4 className="text-xs font-extrabold text-slate-900 uppercase tracking-wider">
+                        <h4 className="text-xs font-extrabold tracking-wider text-slate-900 uppercase">
                           Subject Teaching Allocations
                         </h4>
                       </div>
                       <span className="text-[11px] text-slate-500">
-                        {assignmentData.subjectTeachers?.length || 0} of {assignmentData.availableSubjects?.length || 0} subjects assigned
+                        {assignmentData.subjectTeachers?.length || 0} of{" "}
+                        {assignmentData.availableSubjects?.length || 0} subjects assigned
                       </span>
                     </div>
 
                     {assignmentData.availableSubjects?.length === 0 ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
-                        No subjects configured for this class. Create subjects in Academic Setup first.
+                        No subjects configured for this class. Create subjects in Academic Setup
+                        first.
                       </div>
                     ) : (
                       <div className="overflow-hidden rounded-xl border border-slate-200">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          <thead className="border-b border-slate-200 bg-slate-50 text-[10px] font-bold tracking-wider text-slate-500 uppercase">
                             <tr>
                               <th className="px-4 py-2.5">Subject</th>
                               <th className="px-4 py-2.5">Assigned Faculty</th>
@@ -1209,15 +1225,20 @@ export function AcademicSectionsClient({
                               const selectedTeacher = subjectTeacherSelections[subject.id] || "";
 
                               return (
-                                <tr key={subject.id} className="hover:bg-slate-50/60 transition-colors">
+                                <tr
+                                  key={subject.id}
+                                  className="transition-colors hover:bg-slate-50/60"
+                                >
                                   <td className="px-4 py-3">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-bold text-slate-900">{subject.name}</span>
-                                      <span className="font-mono text-[10px] rounded bg-slate-100 px-1.5 py-0.5 text-slate-500">
+                                      <span className="font-bold text-slate-900">
+                                        {subject.name}
+                                      </span>
+                                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
                                         {subject.code}
                                       </span>
                                       {subject.isClassSpecific && (
-                                        <span className="text-[9px] rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.2 font-medium">
+                                        <span className="py-0.2 rounded-full bg-emerald-50 px-1.5 text-[9px] font-medium text-emerald-700">
                                           Class-specific
                                         </span>
                                       )}
@@ -1230,7 +1251,7 @@ export function AcademicSectionsClient({
                                           {activeAssignment.teacherName.slice(0, 2).toUpperCase()}
                                         </div>
                                         <div>
-                                          <p className="font-semibold text-slate-900 text-xs">
+                                          <p className="text-xs font-semibold text-slate-900">
                                             {activeAssignment.teacherName}
                                           </p>
                                           {activeAssignment.employeeId && (
@@ -1265,8 +1286,10 @@ export function AcademicSectionsClient({
                                       <button
                                         type="button"
                                         disabled={assignmentLoading}
-                                        onClick={() => handleRemoveSubjectTeacher(activeAssignment.id)}
-                                        className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-100 transition disabled:opacity-50"
+                                        onClick={() =>
+                                          handleRemoveSubjectTeacher(activeAssignment.id)
+                                        }
+                                        className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-700 transition hover:bg-rose-100 disabled:opacity-50"
                                       >
                                         Remove
                                       </button>
@@ -1274,8 +1297,10 @@ export function AcademicSectionsClient({
                                       <button
                                         type="button"
                                         disabled={assignmentLoading || !selectedTeacher}
-                                        onClick={() => handleSaveSubjectTeacher(subject.id, selectedTeacher)}
-                                        className="rounded-lg bg-emerald-700 px-3 py-1 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition disabled:opacity-50"
+                                        onClick={() =>
+                                          handleSaveSubjectTeacher(subject.id, selectedTeacher)
+                                        }
+                                        className="rounded-lg bg-emerald-700 px-3 py-1 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-800 disabled:opacity-50"
                                       >
                                         Assign
                                       </button>
@@ -1294,7 +1319,7 @@ export function AcademicSectionsClient({
             </div>
 
             {/* Modal Footer */}
-            <div className="mt-5 flex justify-end border-t border-slate-100 pt-4 shrink-0">
+            <div className="mt-5 flex shrink-0 justify-end border-t border-slate-100 pt-4">
               <button
                 type="button"
                 onClick={() => {
@@ -1304,7 +1329,7 @@ export function AcademicSectionsClient({
                   setAssignmentSuccess(null);
                   setWorkloadWarning(null);
                 }}
-                className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white hover:bg-slate-800 transition"
+                className="rounded-xl bg-slate-900 px-5 py-2 text-xs font-bold text-white transition hover:bg-slate-800"
               >
                 Done
               </button>

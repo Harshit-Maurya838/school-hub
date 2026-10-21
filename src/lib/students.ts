@@ -133,6 +133,7 @@ export interface ListStudentsOptions {
   academicYearId?: string;
   classId?: string;
   sectionId?: string;
+  sectionIds?: string[];
   status?: "ACTIVE" | "INACTIVE" | "ARCHIVED" | "ALL";
   page?: number;
   limit?: number;
@@ -457,6 +458,7 @@ export async function listStudents(options: ListStudentsOptions) {
     classId,
     sectionId,
     status = "ACTIVE",
+    sectionIds,
     page = 1,
     limit = 10,
     sortBy = "createdAt",
@@ -465,6 +467,20 @@ export async function listStudents(options: ListStudentsOptions) {
 
   const take = Math.min(Math.max(1, limit), 100);
   const skip = (Math.max(1, page) - 1) * take;
+
+  // If sectionIds is explicitly provided as empty, user is assigned to 0 sections: return empty immediately
+  if (sectionIds !== undefined && sectionIds.length === 0) {
+    return {
+      students: [],
+      pagination: {
+        page: Math.max(1, page),
+        limit: take,
+        total: 0,
+        totalPages: 0,
+        hasMore: false,
+      },
+    };
+  }
 
   // Build where clause
   const where: Record<string, unknown> = {
@@ -495,8 +511,8 @@ export async function listStudents(options: ListStudentsOptions) {
     ];
   }
 
-  // Enrollment Filters (academicYearId, classId, sectionId)
-  if (academicYearId || classId || sectionId) {
+  // Enrollment Filters (academicYearId, classId, sectionId, sectionIds)
+  if (academicYearId || classId || sectionId || (sectionIds && sectionIds.length > 0)) {
     const enrollmentWhere: Record<string, unknown> = {};
 
     if (academicYearId) {
@@ -504,6 +520,8 @@ export async function listStudents(options: ListStudentsOptions) {
     }
     if (sectionId) {
       enrollmentWhere.sectionId = sectionId;
+    } else if (sectionIds && sectionIds.length > 0) {
+      enrollmentWhere.sectionId = { in: sectionIds };
     }
     if (classId) {
       enrollmentWhere.section = { classId };

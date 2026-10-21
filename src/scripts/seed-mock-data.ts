@@ -138,7 +138,9 @@ async function seed() {
   });
 
   console.log(`   ✅ School Admin: ${schoolAdmin.email}`);
-  console.log(`   ✅ Teachers:     ${teacher.email} (${teacherProfile.employeeId}), ${teacher2.email} (${teacher2Profile.employeeId})`);
+  console.log(
+    `   ✅ Teachers:     ${teacher.email} (${teacherProfile.employeeId}), ${teacher2.email} (${teacher2Profile.employeeId})`
+  );
   console.log(`   ✅ Accountant:   ${accountant.email}`);
 
   // Academic Year
@@ -517,7 +519,9 @@ async function seed() {
       isActive: true,
     },
   });
-  console.log(`   ✅ School created: ${unconfiguredSchool.name} (Slug: ${unconfiguredSchool.slug})`);
+  console.log(
+    `   ✅ School created: ${unconfiguredSchool.name} (Slug: ${unconfiguredSchool.slug})`
+  );
   console.log(`   ✅ School Admin:  ${apexAdmin.email}`);
   console.log("   ℹ️  Note: Apex Academy has NO academic years, NO classes, and NO students,");
   console.log("       so you can test the entire onboarding checklist & setup flow!");

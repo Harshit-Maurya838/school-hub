@@ -64,12 +64,12 @@ export default async function PlatformPage() {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-400">
-              <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="hidden items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-400 sm:flex">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
               <span>Multi-Tenant DB Connected</span>
             </div>
 
-            <div className="flex items-center gap-3 pl-2 border-l border-slate-800">
+            <div className="flex items-center gap-3 border-l border-slate-800 pl-2">
               <div className="text-right">
                 <p className="text-xs font-bold text-white">{user.name || "Platform Admin"}</p>
                 <p className="font-mono text-[11px] text-purple-400">{user.email}</p>
@@ -82,11 +82,11 @@ export default async function PlatformPage() {
         </div>
       </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-8 space-y-8">
+      <div className="mx-auto max-w-7xl space-y-8 px-6 py-8">
         {/* Hero Banner */}
         <div className="relative overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="absolute -right-10 -top-10 h-64 w-64 rounded-full bg-purple-600/10 blur-3xl pointer-events-none" />
-          <div className="absolute -left-10 -bottom-10 h-64 w-64 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+          <div className="pointer-events-none absolute -top-10 -right-10 h-64 w-64 rounded-full bg-purple-600/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-indigo-600/10 blur-3xl" />
 
           <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
             <div className="max-w-2xl space-y-2">
@@ -97,7 +97,7 @@ export default async function PlatformPage() {
               <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
                 Global Platform Infrastructure
               </h1>
-              <p className="text-sm text-slate-300 leading-relaxed">
+              <p className="text-sm leading-relaxed text-slate-300">
                 Oversee institution onboarding, inspect active tenant school databases, and access
                 any school workspace with administrative authority.
               </p>
@@ -122,13 +122,13 @@ export default async function PlatformPage() {
               <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                 Customer Schools
               </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
                 <Building2 className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-3 text-3xl font-black tracking-tight text-white">{schools.length}</p>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="inline-flex items-center text-purple-400 font-bold">100%</span>
+              <span className="inline-flex items-center font-bold text-purple-400">100%</span>
               <span>isolated tenant schemas</span>
             </div>
           </div>
@@ -138,13 +138,13 @@ export default async function PlatformPage() {
               <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                 Total Enrolled
               </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
                 <GraduationCap className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-3 text-3xl font-black tracking-tight text-white">{totalStudents}</p>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="text-emerald-400 font-bold">Active</span>
+              <span className="font-bold text-emerald-400">Active</span>
               <span>across all institutions</span>
             </div>
           </div>
@@ -154,13 +154,13 @@ export default async function PlatformPage() {
               <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                 Staff & Educators
               </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-400">
                 <Users className="h-5 w-5" />
               </div>
             </div>
             <p className="mt-3 text-3xl font-black tracking-tight text-white">{totalStaff}</p>
             <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="text-blue-400 font-bold">RBAC</span>
+              <span className="font-bold text-blue-400">RBAC</span>
               <span>Admins, Teachers & Accountants</span>
             </div>
           </div>
@@ -170,7 +170,7 @@ export default async function PlatformPage() {
               <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
                 Pending Onboarding
               </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
                 <Clock className="h-5 w-5" />
               </div>
             </div>
@@ -191,7 +191,7 @@ export default async function PlatformPage() {
                   Tenant Schools Roster ({schools.length})
                 </h2>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="mt-0.5 text-xs text-slate-400">
                 Click any school to enter its workspace with Super Admin privileges
               </p>
             </div>
@@ -231,17 +231,14 @@ export default async function PlatformPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-xs">
                   {schools.map((school) => (
-                    <tr
-                      key={school.id}
-                      className="group transition-colors hover:bg-slate-800/40"
-                    >
+                    <tr key={school.id} className="group transition-colors hover:bg-slate-800/40">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 font-black text-purple-300 border border-purple-500/20">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 font-black text-purple-300">
                             {school.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className="font-bold text-white group-hover:text-purple-300 transition-colors">
+                            <p className="font-bold text-white transition-colors group-hover:text-purple-300">
                               {school.name}
                             </p>
                             <p className="text-[11px] text-slate-500">ID: {school.id}</p>
@@ -305,7 +302,7 @@ export default async function PlatformPage() {
                   Recent School Registrations ({registrations.length})
                 </h2>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="mt-0.5 text-xs text-slate-400">
                 New school onboarding queue from the public registration portal
               </p>
             </div>

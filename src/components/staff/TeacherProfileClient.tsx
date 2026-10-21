@@ -27,11 +27,7 @@ interface Props {
   canEdit?: boolean;
 }
 
-export function TeacherProfileClient({
-  schoolSlug,
-  initialTeacher,
-  canEdit = true,
-}: Props) {
+export function TeacherProfileClient({ schoolSlug, initialTeacher, canEdit = true }: Props) {
   const router = useRouter();
   const [teacher, setTeacher] = useState<TeacherDetail>(initialTeacher);
   const [activeTab, setActiveTab] = useState<"assignments" | "history" | "details">("assignments");
@@ -121,7 +117,7 @@ export function TeacherProfileClient({
       <div className="flex items-center justify-between">
         <Link
           href={`/school/${schoolSlug}/staff`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-700 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-emerald-700"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Back to Staff Directory</span>
@@ -133,7 +129,7 @@ export function TeacherProfileClient({
               setError(null);
               setIsEditOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:border-emerald-300 hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs transition-colors hover:border-emerald-300 hover:bg-slate-50"
           >
             <Pencil className="h-3.5 w-3.5 text-slate-500" />
             <span>Edit Profile Details</span>
@@ -144,7 +140,7 @@ export function TeacherProfileClient({
       {success && (
         <div className="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-semibold text-emerald-800">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
             <span>{success}</span>
           </div>
           <button onClick={() => setSuccess(null)}>
@@ -219,9 +215,7 @@ export function TeacherProfileClient({
             <div className="flex items-center justify-between text-xs font-bold text-slate-500">
               <span>Teaching Workload</span>
               <span
-                className={`font-black ${
-                  isHighWorkload ? "text-amber-600" : "text-emerald-700"
-                }`}
+                className={`font-black ${isHighWorkload ? "text-amber-600" : "text-emerald-700"}`}
               >
                 {sectionsCount} {sectionsCount === 1 ? "Section" : "Sections"}
               </span>
@@ -317,7 +311,7 @@ export function TeacherProfileClient({
 
                   <Link
                     href={`/school/${schoolSlug}/students`}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-800 transition-colors"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-800"
                   >
                     <span>View Section Class Roster</span>
                     <ExternalLink className="h-3.5 w-3.5" />
@@ -443,7 +437,7 @@ export function TeacherProfileClient({
                   </div>
                 </div>
 
-                <div className="p-6 space-y-4">
+                <div className="space-y-4 p-6">
                   {group.classTeacherAssignments.length > 0 && (
                     <div>
                       <p className="text-xs font-bold text-slate-500 uppercase">
@@ -585,7 +579,7 @@ export function TeacherProfileClient({
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
                 placeholder="e.g. TCH-001"
-                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono focus:border-emerald-500 focus:outline-none"
+                className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 font-mono text-xs focus:border-emerald-500 focus:outline-none"
               />
             </div>
 
@@ -673,7 +667,7 @@ export function TeacherProfileClient({
             </div>
           </div>
 
-          <div className="mt-6 flex justify-end gap-2.5 pt-4 border-t border-slate-100">
+          <div className="mt-6 flex justify-end gap-2.5 border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={() => setIsEditOpen(false)}

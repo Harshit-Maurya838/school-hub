@@ -284,11 +284,7 @@ export function Sidebar({
           <div>
             {(!isCollapsed || isMobileOpen) && (
               <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                {isTeacher
-                  ? "Teaching Desk"
-                  : isAccountant
-                    ? "Accounts Desk"
-                    : "Main Modules"}
+                {isTeacher ? "Teaching Desk" : isAccountant ? "Accounts Desk" : "Main Modules"}
               </p>
             )}
             <nav className="space-y-1">{mainModules.map(renderNavItem)}</nav>
@@ -330,7 +326,7 @@ export function Sidebar({
                 <Shield className="h-3.5 w-3.5" />
                 <span>{roleName}</span>
               </div>
-              <span className="text-[10px] opacity-75 uppercase">Role</span>
+              <span className="text-[10px] uppercase opacity-75">Role</span>
             </div>
           ) : (
             <div

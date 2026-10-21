@@ -6,6 +6,8 @@ import {
   assertSchoolAccess,
   assertParentStudentAccess,
   assertStudentOwnAccess,
+  assertStudentAccess,
+  sanitizeStudentForAccountant,
 } from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
 import { NotFoundError, BadRequestError } from "@/lib/errors";
@@ -40,11 +42,13 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
 
   assertSchoolAccess(user, school.id);
 
-  // Resource-level authorization for parent & student roles
+  // Resource-level authorization for parent, student, and teacher roles
   if (user.role === "PARENT") {
     await assertParentStudentAccess(user, studentId);
   } else if (user.role === "STUDENT") {
     await assertStudentOwnAccess(user, studentId);
+  } else if (user.role === "TEACHER") {
+    await assertStudentAccess(user, studentId);
   }
 
   const student = await getStudentById(school.id, studentId);
@@ -54,7 +58,12 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
     throw new NotFoundError("Student not found");
   }
 
-  return successResponse({ student });
+  const resultStudent =
+    user.role === "ACCOUNTANT"
+      ? sanitizeStudentForAccountant(student as unknown as Record<string, unknown>)
+      : student;
+
+  return successResponse({ student: resultStudent });
 });
 
 export const PATCH = apiHandler(async (req: NextRequest, context?: Context) => {

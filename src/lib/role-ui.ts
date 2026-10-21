@@ -3,12 +3,7 @@
  */
 
 export type AppRole =
-  | "SUPER_ADMIN"
-  | "SCHOOL_ADMIN"
-  | "TEACHER"
-  | "ACCOUNTANT"
-  | "PARENT"
-  | "STUDENT";
+  "SUPER_ADMIN" | "SCHOOL_ADMIN" | "TEACHER" | "ACCOUNTANT" | "PARENT" | "STUDENT";
 
 export function getRoleDisplayName(role?: string): string {
   switch (role) {
@@ -85,10 +80,7 @@ export function canManageStudents(role?: string): boolean {
 
 export function canViewStudents(role?: string): boolean {
   return (
-    role === "SUPER_ADMIN" ||
-    role === "SCHOOL_ADMIN" ||
-    role === "TEACHER" ||
-    role === "ACCOUNTANT"
+    role === "SUPER_ADMIN" || role === "SCHOOL_ADMIN" || role === "TEACHER" || role === "ACCOUNTANT"
   );
 }
 
@@ -98,10 +90,7 @@ export function canManageAcademics(role?: string): boolean {
 
 export function canViewAcademics(role?: string): boolean {
   return (
-    role === "SUPER_ADMIN" ||
-    role === "SCHOOL_ADMIN" ||
-    role === "TEACHER" ||
-    role === "STUDENT"
+    role === "SUPER_ADMIN" || role === "SCHOOL_ADMIN" || role === "TEACHER" || role === "STUDENT"
   );
 }
 

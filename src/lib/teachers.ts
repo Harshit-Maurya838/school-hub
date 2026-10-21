@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { EmploymentStatus } from "@/generated/prisma/enums";
-import { NotFoundError, ConflictError } from "./errors";
+import { NotFoundError, ConflictError, ForbiddenError } from "./errors";
 import { logAuditEvent } from "./audit";
 
 export interface TeacherListItem {
@@ -476,7 +476,8 @@ export async function updateTeacherProfile(
   schoolId: string,
   teacherProfileIdOrUserId: string,
   data: UpdateTeacherProfileInput,
-  actorUserId?: string
+  actorUserId?: string,
+  actorRole?: string
 ) {
   const profile = await prisma.teacherProfile.findFirst({
     where: {
@@ -488,6 +489,24 @@ export async function updateTeacherProfile(
 
   if (!profile) {
     throw new NotFoundError("Teacher profile not found in this school");
+  }
+
+  // Phase 3 D: Teachers may update only explicitly permitted personal fields (phone).
+  // They must not edit employee identifiers, employment status, qualifications, designations, etc.
+  if (actorRole === "TEACHER") {
+    if (
+      data.employeeId !== undefined ||
+      data.status !== undefined ||
+      data.qualification !== undefined ||
+      data.specialization !== undefined ||
+      data.designation !== undefined ||
+      data.department !== undefined ||
+      data.joiningDate !== undefined
+    ) {
+      throw new ForbiddenError(
+        "Teachers are not authorized to modify employment status, employee identifiers, qualifications, or designations"
+      );
+    }
   }
 
   // Validate employeeId uniqueness if changed

@@ -1,9 +1,14 @@
 import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { requireAuth, assertSchoolAccess } from "@/lib/rbac";
+import {
+  requireAuth,
+  assertSchoolAccess,
+  getTeacherActiveAssignments,
+  sanitizeStudentForAccountant,
+} from "@/lib/rbac";
 import { prisma } from "@/lib/prisma";
-import { NotFoundError, BadRequestError } from "@/lib/errors";
+import { NotFoundError, BadRequestError, ForbiddenError } from "@/lib/errors";
 import {
   admitStudent,
   admitStudentSchema,
@@ -120,6 +125,38 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
   const academicYearId = searchParams.get("academicYearId") || undefined;
   const classId = searchParams.get("classId") || undefined;
   const sectionId = searchParams.get("sectionId") || undefined;
+
+  let permittedSectionIds: string[] | undefined = undefined;
+
+  if (user.role === "TEACHER") {
+    const teacherAssignments = await getTeacherActiveAssignments(
+      school.id,
+      user.id,
+      academicYearId
+    );
+    if (!teacherAssignments || teacherAssignments.allPermittedSectionIds.length === 0) {
+      // Teacher has no active assignments: return empty result
+      return successResponse({
+        students: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasMore: false,
+        },
+      });
+    }
+
+    if (sectionId) {
+      if (!teacherAssignments.allPermittedSectionIds.includes(sectionId)) {
+        throw new ForbiddenError(`Access denied: You are not assigned to Section '${sectionId}'`);
+      }
+    } else {
+      permittedSectionIds = teacherAssignments.allPermittedSectionIds;
+    }
+  }
+
   const statusParam = searchParams.get("status");
   const status =
     statusParam === "ACTIVE" ||
@@ -145,6 +182,7 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
     academicYearId,
     classId,
     sectionId,
+    sectionIds: permittedSectionIds,
     status,
     page: isNaN(page) ? 1 : page,
     limit: isNaN(limit) ? 10 : limit,
@@ -152,9 +190,14 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
     sortOrder,
   });
 
+  const students =
+    user.role === "ACCOUNTANT"
+      ? result.students.map((st) => sanitizeStudentForAccountant(st))
+      : result.students;
+
   return successResponse(
     {
-      students: result.students,
+      students,
       pagination: result.pagination,
     },
     result.pagination

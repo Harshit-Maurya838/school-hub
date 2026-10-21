@@ -3,6 +3,7 @@ import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { resolveSchoolAndAuthorize } from "@/lib/academics";
 import { BadRequestError } from "@/lib/errors";
+import { assertSectionAccess } from "@/lib/rbac";
 import { getSectionTeachingAssignments } from "@/lib/teaching-assignments";
 
 type Context = RouteContext<{ schoolSlug: string }>;
@@ -15,13 +16,16 @@ export const GET = apiHandler(async (req: NextRequest, context?: Context) => {
     throw new BadRequestError("Missing schoolSlug in route");
   }
 
-  const { school } = await resolveSchoolAndAuthorize(req, schoolSlug, "read");
+  const { school, user } = await resolveSchoolAndAuthorize(req, schoolSlug, "read");
   const academicYearId = req.nextUrl.searchParams.get("academicYearId");
   const sectionId = req.nextUrl.searchParams.get("sectionId");
 
   if (!academicYearId || !sectionId) {
     throw new BadRequestError("Both academicYearId and sectionId query parameters are required");
   }
+
+  // Enforce section access: Teachers can only view assignments for their assigned sections
+  await assertSectionAccess(user, sectionId, academicYearId);
 
   const assignments = await getSectionTeachingAssignments(school.id, academicYearId, sectionId);
 

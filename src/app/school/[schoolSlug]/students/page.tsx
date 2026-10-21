@@ -52,7 +52,7 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
   }
 
   // Fetch filter options and current academic year
-  const [academicYears, classes, sections, initialListResult] = await Promise.all([
+  const [academicYears, allClasses, allSections] = await Promise.all([
     prisma.academicYear.findMany({
       where: { schoolId: school.id },
       select: { id: true, name: true, isCurrent: true },
@@ -68,15 +68,50 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
       select: { id: true, name: true, classId: true },
       orderBy: { name: "asc" },
     }),
-    listStudents({
-      schoolId: school.id,
-      page: 1,
-      limit: 10,
-      status: "ACTIVE",
-    }),
   ]);
 
   const currentYear = academicYears.find((y) => y.isCurrent) || null;
+
+  let permittedSectionIds: string[] | undefined = undefined;
+  let classes = allClasses;
+  let sections = allSections;
+
+  if (user.role === "TEACHER") {
+    const { getTeacherActiveAssignments } = await import("@/lib/rbac");
+    const teacherAssignments = await getTeacherActiveAssignments(
+      school.id,
+      user.id,
+      currentYear?.id
+    );
+
+    if (teacherAssignments) {
+      permittedSectionIds = teacherAssignments.allPermittedSectionIds;
+      sections = allSections.filter((s) => permittedSectionIds!.includes(s.id));
+      const permittedClassIds = new Set(sections.map((s) => s.classId));
+      classes = allClasses.filter((c) => permittedClassIds.has(c.id));
+    } else {
+      permittedSectionIds = [];
+      classes = [];
+      sections = [];
+    }
+  }
+
+  const initialListResult = await listStudents({
+    schoolId: school.id,
+    page: 1,
+    limit: 10,
+    status: "ACTIVE",
+    sectionIds: permittedSectionIds,
+  });
+
+  const students =
+    user.role === "ACCOUNTANT"
+      ? initialListResult.students.map((st) => {
+          const sanitized = { ...st };
+          delete (sanitized as Record<string, unknown>).apaarId;
+          return sanitized;
+        })
+      : initialListResult.students;
 
   return (
     <div className="space-y-6">
@@ -95,7 +130,7 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
           classes,
           sections,
         }}
-        initialStudents={initialListResult.students as unknown as StudentListItem[]}
+        initialStudents={students as unknown as StudentListItem[]}
         initialPagination={initialListResult.pagination}
         userRole={user.role}
       />

@@ -651,11 +651,7 @@ export async function deleteClass(schoolId: string, classId: string, userId?: st
 // Phase D: Section Management
 // ============================================================================
 
-export async function listSections(
-  schoolId: string,
-  classId?: string,
-  academicYearId?: string
-) {
+export async function listSections(schoolId: string, classId?: string, academicYearId?: string) {
   const whereClause: {
     schoolId: string;
     classId?: string;
