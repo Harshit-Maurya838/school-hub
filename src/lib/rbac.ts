@@ -731,6 +731,19 @@ export async function assertAttendanceMarkingAccess(
   }
 }
 
+export function canAdminCorrectAttendance(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return user.role === "SCHOOL_ADMIN" && user.schoolId === schoolId;
+}
+
+export function assertAdminCorrectionAccess(user: AuthenticatedUser, schoolId: string): void {
+  if (!canAdminCorrectAttendance(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only school administrators are authorized to perform administrative attendance corrections"
+    );
+  }
+}
+
 export async function assertStudentAccess(
   user: AuthenticatedUser,
   studentId: string,

@@ -164,39 +164,32 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
     })
     .filter((c) => c.sections.length > 0);
 
-  const formattedClasses = filteredClasses.map((c) => {
-    const allEnrollments = c.sections.flatMap((s) => s.enrollments);
-    const sectionNames =
-      c.sections
-        .map((s) => {
-          const isClassTeacher = classTeacherSectionIds?.has(s.id);
-          return isClassTeacher ? `${s.name} (Class Teacher)` : s.name;
-        })
-        .join(", ") || "All";
+  const sectionsList = filteredClasses.flatMap((c) =>
+    c.sections.map((s) => ({
+      sectionId: s.id,
+      sectionName: s.name,
+      classId: c.id,
+      className: c.name,
+      displayName: `${c.name} - ${s.name}`,
+      studentCount: s.enrollments.length,
+      isClassTeacher:
+        classTeacherSectionIds?.has(s.id) ??
+        (user.role === "SCHOOL_ADMIN" || user.role === "SUPER_ADMIN"),
+    }))
+  );
 
-    return {
-      id: c.id,
-      name: c.name,
-      section: sectionNames,
-      sectionsCount: c.sections.length,
-      studentCount: allEnrollments.length,
-      students: allEnrollments.map((e) => ({
-        id: e.student.id,
-        name: e.student.name,
-        admissionNo: e.student.admissionNumber,
-        gender: e.student.gender,
-        rollNumber: e.rollNumber || undefined,
-      })),
-    };
-  });
+  const defaultSection = sectionsList.find((s) => s.isClassTeacher) || sectionsList[0] || null;
 
   return (
     <AttendanceClient
       schoolSlug={school.slug}
       schoolName={school.name}
       userRole={user.role}
-      classes={formattedClasses}
       currentSession={activeYear?.name || "2026-27"}
+      academicYearId={activeYear?.id}
+      sections={sectionsList}
+      defaultSectionId={defaultSection?.sectionId}
+      initialDate={new Date().toISOString().slice(0, 10)}
     />
   );
 }

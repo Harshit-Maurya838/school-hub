@@ -101,6 +101,8 @@ model School {
   teacherProfiles  TeacherProfile[]
   classTeacherAssignments   ClassTeacherAssignment[]
   subjectTeacherAssignments SubjectTeacherAssignment[]
+  attendanceRegisters       AttendanceRegister[]
+  attendanceCorrections     AttendanceCorrection[]
 
   @@map("schools")
 }
@@ -125,6 +127,10 @@ model User {
   teacherProfile        TeacherProfile?
   createdInvitations    Invitation[]         @relation("CreatedInvitations")
   reviewedRegistrations SchoolRegistration[] @relation("ReviewedRegistrations")
+  submittedAttendanceRegisters AttendanceRegister[] @relation("SubmittedRegisters")
+  createdAttendanceRegisters   AttendanceRegister[] @relation("CreatedRegisters")
+  updatedAttendanceRegisters   AttendanceRegister[] @relation("UpdatedRegisters")
+  attendanceCorrections        AttendanceCorrection[]
 
   @@index([schoolId])
   @@index([role])
@@ -169,6 +175,7 @@ model AcademicYear {
   enrollments Enrollment[]
   classTeacherAssignments   ClassTeacherAssignment[]
   subjectTeacherAssignments SubjectTeacherAssignment[]
+  attendanceRegisters       AttendanceRegister[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -208,6 +215,7 @@ model Section {
   enrollments Enrollment[]
   classTeacherAssignments   ClassTeacherAssignment[]
   subjectTeacherAssignments SubjectTeacherAssignment[]
+  attendanceRegisters       AttendanceRegister[]
 
   @@unique([classId, name])
   @@index([schoolId])
@@ -252,6 +260,7 @@ model Student {
   guardians       StudentGuardian[]
   enrollments     Enrollment[]
   invitations     Invitation[]
+  attendanceRecords AttendanceRecord[]
 
   @@unique([schoolId, admissionNumber])
   @@index([schoolId])
@@ -319,6 +328,7 @@ model Enrollment {
   student        Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
   section        Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   academicYear   AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  attendanceRecords AttendanceRecord[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId])
@@ -465,5 +475,95 @@ model SubjectTeacherAssignment {
   @@index([academicYearId, status])
   @@map("subject_teacher_assignments")
 }
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+enum RegisterStatus {
+  DRAFT
+  SUBMITTED
+}
+
+model AttendanceRegister {
+  id             String             @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  sectionId      String
+  date           DateTime
+  status         RegisterStatus     @default(DRAFT)
+  submittedAt    DateTime?
+  submittedById  String?
+  createdById    String?
+  updatedById    String?
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  school         School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear       @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  section        Section            @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  submittedBy    User?              @relation("SubmittedRegisters", fields: [submittedById], references: [id], onDelete: SetNull)
+  createdBy      User?              @relation("CreatedRegisters", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy      User?              @relation("UpdatedRegisters", fields: [updatedById], references: [id], onDelete: SetNull)
+  records        AttendanceRecord[]
+  corrections    AttendanceCorrection[]
+
+  @@unique([schoolId, academicYearId, sectionId, date])
+  @@index([schoolId])
+  @@index([sectionId, date])
+  @@index([academicYearId, sectionId])
+  @@map("attendance_registers")
+}
+
+model AttendanceRecord {
+  id           String             @id @default(cuid())
+  registerId   String
+  studentId    String
+  enrollmentId String
+  status       AttendanceStatus
+  remarks      String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  register     AttendanceRegister @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  student      Student            @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment         @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  corrections  AttendanceCorrection[]
+
+  @@unique([registerId, studentId])
+  @@index([studentId])
+  @@index([enrollmentId])
+  @@index([registerId, status])
+  @@map("attendance_records")
+}
+
+model AttendanceCorrection {
+  id             String             @id @default(cuid())
+  registerId     String
+  recordId       String?
+  schoolId       String
+  correctedById  String
+  reason         String
+  previousStatus AttendanceStatus?
+  newStatus      AttendanceStatus?
+  details        Json?
+  createdAt      DateTime           @default(now())
+
+  register       AttendanceRegister @relation(fields: [registerId], references: [id], onDelete: Cascade)
+  record         AttendanceRecord?  @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  school         School             @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  correctedBy    User               @relation(fields: [correctedById], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([registerId])
+  @@index([recordId])
+  @@index([correctedById])
+  @@map("attendance_corrections")
+}
+
 
 
