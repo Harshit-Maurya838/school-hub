@@ -767,3 +767,105 @@ export function assertCanManageTeachingAssignments(
     );
   }
 }
+
+// ============================================================================
+// Phase 11: Examination and Marks Management RBAC Services & Centralized Checks
+// ============================================================================
+
+export function canManageExams(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return user.role === "SCHOOL_ADMIN" && user.schoolId === schoolId;
+}
+
+export function assertCanManageExams(user: AuthenticatedUser, schoolId: string): void {
+  if (!canManageExams(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only school administrators are authorized to create or configure examinations"
+    );
+  }
+}
+
+export async function canEnterSubjectMarks(
+  user: AuthenticatedUser,
+  schoolId: string,
+  sectionId: string,
+  subjectId: string,
+  academicYearId?: string
+): Promise<boolean> {
+  if (user.role === "SUPER_ADMIN") return true;
+
+  if (user.role === "SCHOOL_ADMIN") {
+    return user.schoolId === schoolId;
+  }
+
+  if (user.role === "ACCOUNTANT") {
+    return false;
+  }
+
+  if (user.role === "TEACHER" && user.schoolId === schoolId) {
+    const assignments = await getTeacherActiveAssignments(schoolId, user.id, academicYearId);
+    if (!assignments) return false;
+    // Strict Subject-Teacher enforcement:
+    // Only teachers with an ACTIVE SubjectTeacherAssignment for this exact subject-section can enter marks.
+    // Class-teacher status alone DOES NOT grant marks entry!
+    return assignments.subjectAssignments.some(
+      (sa) => sa.sectionId === sectionId && sa.subjectId === subjectId
+    );
+  }
+
+  return false;
+}
+
+export async function assertCanEnterSubjectMarks(
+  user: AuthenticatedUser,
+  schoolId: string,
+  sectionId: string,
+  subjectId: string,
+  academicYearId?: string
+): Promise<void> {
+  const allowed = await canEnterSubjectMarks(user, schoolId, sectionId, subjectId, academicYearId);
+  if (!allowed) {
+    throw new ForbiddenError(
+      `Access denied: You are not authorized to enter marks for subject '${subjectId}' in section '${sectionId}'`
+    );
+  }
+}
+
+export function canReviewMarks(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return user.role === "SCHOOL_ADMIN" && user.schoolId === schoolId;
+}
+
+export function assertCanReviewMarks(user: AuthenticatedUser, schoolId: string): void {
+  if (!canReviewMarks(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only school administrators are authorized to review or approve examination marks"
+    );
+  }
+}
+
+export function canPublishResults(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return user.role === "SCHOOL_ADMIN" && user.schoolId === schoolId;
+}
+
+export function assertCanPublishResults(user: AuthenticatedUser, schoolId: string): void {
+  if (!canPublishResults(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only school administrators are authorized to publish examination results"
+    );
+  }
+}
+
+export function canAdminCorrectMarks(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return true;
+  return user.role === "SCHOOL_ADMIN" && user.schoolId === schoolId;
+}
+
+export function assertCanAdminCorrectMarks(user: AuthenticatedUser, schoolId: string): void {
+  if (!canAdminCorrectMarks(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only school administrators are authorized to perform administrative corrections on marks"
+    );
+  }
+}

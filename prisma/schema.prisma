@@ -103,6 +103,12 @@ model School {
   subjectTeacherAssignments SubjectTeacherAssignment[]
   attendanceRegisters       AttendanceRegister[]
   attendanceCorrections     AttendanceCorrection[]
+  exams                     Exam[]
+  examClasses               ExamClass[]
+  examSubjectConfigs        ExamSubjectConfig[]
+  examSectionSubjects       ExamSectionSubject[]
+  studentExamMarks          StudentExamMark[]
+  examMarkCorrections       ExamMarkCorrection[]
 
   @@map("schools")
 }
@@ -131,6 +137,14 @@ model User {
   createdAttendanceRegisters   AttendanceRegister[] @relation("CreatedRegisters")
   updatedAttendanceRegisters   AttendanceRegister[] @relation("UpdatedRegisters")
   attendanceCorrections        AttendanceCorrection[]
+  createdExams                 Exam[]                 @relation("CreatedExams")
+  updatedExams                 Exam[]                 @relation("UpdatedExams")
+  publishedExams               Exam[]                 @relation("PublishedExams")
+  submittedExamSectionSubjects ExamSectionSubject[]   @relation("SubmittedExamSectionSubjects")
+  reviewedExamSectionSubjects  ExamSectionSubject[]   @relation("ReviewedExamSectionSubjects")
+  createdStudentExamMarks      StudentExamMark[]      @relation("CreatedStudentExamMarks")
+  updatedStudentExamMarks      StudentExamMark[]      @relation("UpdatedStudentExamMarks")
+  correctedExamMarks           ExamMarkCorrection[]   @relation("CorrectedExamMarks")
 
   @@index([schoolId])
   @@index([role])
@@ -176,6 +190,7 @@ model AcademicYear {
   classTeacherAssignments   ClassTeacherAssignment[]
   subjectTeacherAssignments SubjectTeacherAssignment[]
   attendanceRegisters       AttendanceRegister[]
+  exams                     Exam[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -195,6 +210,8 @@ model Class {
   subjects     Subject[]
   classTeacherAssignments   ClassTeacherAssignment[]
   subjectTeacherAssignments SubjectTeacherAssignment[]
+  examClasses               ExamClass[]
+  examSubjectConfigs        ExamSubjectConfig[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -216,6 +233,8 @@ model Section {
   classTeacherAssignments   ClassTeacherAssignment[]
   subjectTeacherAssignments SubjectTeacherAssignment[]
   attendanceRegisters       AttendanceRegister[]
+  examSectionSubjects       ExamSectionSubject[]
+  studentExamMarks          StudentExamMark[]
 
   @@unique([classId, name])
   @@index([schoolId])
@@ -235,6 +254,10 @@ model Subject {
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   class     Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
   teacherAssignments SubjectTeacherAssignment[]
+  examSubjectConfigs ExamSubjectConfig[]
+  examSectionSubjects ExamSectionSubject[]
+  studentExamMarks   StudentExamMark[]
+  examMarkCorrections ExamMarkCorrection[]
 
   @@index([schoolId])
   @@index([classId])
@@ -261,6 +284,8 @@ model Student {
   enrollments     Enrollment[]
   invitations     Invitation[]
   attendanceRecords AttendanceRecord[]
+  examMarks       StudentExamMark[]
+  examMarkCorrections ExamMarkCorrection[]
 
   @@unique([schoolId, admissionNumber])
   @@index([schoolId])
@@ -329,6 +354,7 @@ model Enrollment {
   section        Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   academicYear   AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
   attendanceRecords AttendanceRecord[]
+  examMarks      StudentExamMark[]
 
   @@unique([studentId, academicYearId])
   @@index([schoolId])
@@ -564,6 +590,215 @@ model AttendanceCorrection {
   @@index([correctedById])
   @@map("attendance_corrections")
 }
+
+enum ExamType {
+  UNIT_TEST
+  MID_TERM
+  FINAL
+  QUARTERLY
+  PRACTICAL
+  OTHER
+}
+
+enum ExamStatus {
+  DRAFT
+  SCHEDULED
+  MARKS_ENTRY
+  UNDER_REVIEW
+  PUBLISHED
+  CANCELLED
+}
+
+enum ExamMarksSubmissionStatus {
+  NOT_STARTED
+  DRAFT
+  SUBMITTED
+  RETURNED
+  APPROVED
+  PUBLISHED
+}
+
+model Exam {
+  id             String       @id @default(cuid())
+  schoolId       String
+  academicYearId String
+  name           String
+  type           ExamType
+  description    String?
+  startDate      DateTime
+  endDate        DateTime
+  status         ExamStatus   @default(DRAFT)
+  publishedAt    DateTime?
+  publishedById  String?
+  createdById    String?
+  updatedById    String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  school         School       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  publishedBy    User?        @relation("PublishedExams", fields: [publishedById], references: [id], onDelete: SetNull)
+  createdBy      User?        @relation("CreatedExams", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy      User?        @relation("UpdatedExams", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  classes        ExamClass[]
+  subjectConfigs ExamSubjectConfig[]
+  sectionSubjects ExamSectionSubject[]
+  studentMarks   StudentExamMark[]
+  corrections    ExamMarkCorrection[]
+
+  @@unique([schoolId, academicYearId, name])
+  @@index([schoolId])
+  @@index([academicYearId])
+  @@index([status])
+  @@map("exams")
+}
+
+model ExamClass {
+  id        String   @id @default(cuid())
+  schoolId  String
+  examId    String
+  classId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, classId])
+  @@index([schoolId])
+  @@index([classId])
+  @@map("exam_classes")
+}
+
+model ExamSubjectConfig {
+  id        String   @id @default(cuid())
+  schoolId  String
+  examId    String
+  classId   String
+  subjectId String
+  maxMarks  Float
+  passMarks Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam      Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, classId, subjectId])
+  @@index([schoolId])
+  @@index([examId])
+  @@index([subjectId])
+  @@map("exam_subject_configs")
+}
+
+model ExamSectionSubject {
+  id            String                    @id @default(cuid())
+  schoolId      String
+  examId        String
+  sectionId     String
+  subjectId     String
+  status        ExamMarksSubmissionStatus @default(NOT_STARTED)
+  submittedAt   DateTime?
+  submittedById String?
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewNotes   String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  school        School                    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam          Exam                      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  section       Section                   @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject       Subject                   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  submittedBy   User?                     @relation("SubmittedExamSectionSubjects", fields: [submittedById], references: [id], onDelete: SetNull)
+  reviewedBy    User?                     @relation("ReviewedExamSectionSubjects", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  studentMarks  StudentExamMark[]
+
+  @@unique([examId, sectionId, subjectId])
+  @@index([schoolId])
+  @@index([examId])
+  @@index([sectionId])
+  @@index([subjectId])
+  @@index([status])
+  @@map("exam_section_subjects")
+}
+
+model StudentExamMark {
+  id                   String              @id @default(cuid())
+  schoolId             String
+  examId               String
+  examSectionSubjectId String?
+  studentId            String
+  enrollmentId         String
+  sectionId            String
+  subjectId            String
+  marksObtained        Float?
+  isAbsent             Boolean             @default(false)
+  isExempt             Boolean             @default(false)
+  remarks              String?
+  createdById          String?
+  updatedById          String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  school               School              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam                 Exam                @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examSectionSubject   ExamSectionSubject? @relation(fields: [examSectionSubjectId], references: [id], onDelete: SetNull)
+  student              Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment           Enrollment          @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  section              Section             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subject              Subject             @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  createdBy            User?               @relation("CreatedStudentExamMarks", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy            User?               @relation("UpdatedStudentExamMarks", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  corrections          ExamMarkCorrection[]
+
+  @@unique([examId, studentId, subjectId])
+  @@index([schoolId])
+  @@index([examId])
+  @@index([studentId])
+  @@index([enrollmentId])
+  @@index([sectionId])
+  @@index([subjectId])
+  @@map("student_exam_marks")
+}
+
+model ExamMarkCorrection {
+  id             String          @id @default(cuid())
+  schoolId       String
+  examId         String
+  studentMarkId  String
+  studentId      String
+  subjectId      String
+  correctedById  String
+  previousMarks  Float?
+  newMarks       Float?
+  previousAbsent Boolean         @default(false)
+  newAbsent      Boolean         @default(false)
+  reason         String
+  details        Json?
+  createdAt      DateTime        @default(now())
+
+  school         School          @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  exam           Exam            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentMark    StudentExamMark @relation(fields: [studentMarkId], references: [id], onDelete: Cascade)
+  student        Student         @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject        Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  correctedBy    User            @relation("CorrectedExamMarks", fields: [correctedById], references: [id], onDelete: Cascade)
+
+  @@index([schoolId])
+  @@index([examId])
+  @@index([studentMarkId])
+  @@index([studentId])
+  @@index([correctedById])
+  @@map("exam_mark_corrections")
+}
+
 
 
 

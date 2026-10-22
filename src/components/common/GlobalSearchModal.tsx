@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Shield,
   CreditCard,
+  GraduationCap,
 } from "lucide-react";
 
 export interface GlobalSearchModalProps {
@@ -98,6 +99,13 @@ export function GlobalSearchModal({
       icon: CreditCard,
       badge: "Finance",
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "ACCOUNTANT"],
+    },
+    {
+      label: isTeacher ? "Marks Entry & Assessments" : "Examinations & Results",
+      href: `/school/${schoolSlug}/exams`,
+      icon: GraduationCap,
+      badge: "Exams",
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
     },
     {
       label: isTeacher ? "Curriculum & Grade Levels" : "Academic Setup & Overview",

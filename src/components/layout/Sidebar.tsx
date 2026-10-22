@@ -121,8 +121,10 @@ export function Sidebar({
       label: isTeacher ? "Marks & Exams" : "Exam & Results",
       icon: GraduationCap,
       href: `/school/${schoolSlug}/exams`,
-      badge: "SOON",
-      badgeVariant: "bg-slate-100 text-slate-500",
+      badge: isTeacher ? "PRIMARY" : "ACTIVE",
+      badgeVariant: isTeacher
+        ? "bg-blue-100 text-blue-800 border border-blue-200"
+        : "bg-emerald-100 text-emerald-800 border border-emerald-200",
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
       isActive: pathname.startsWith(`/school/${schoolSlug}/exams`),
     },
