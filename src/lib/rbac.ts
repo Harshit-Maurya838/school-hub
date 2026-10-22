@@ -869,3 +869,109 @@ export function assertCanAdminCorrectMarks(user: AuthenticatedUser, schoolId: st
     );
   }
 }
+
+// ============================================================================
+// Phase: Fees and Finance Management RBAC Services & Centralized Checks
+// ============================================================================
+
+export function canViewSchoolFees(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "TEACHER" || user.role === "STUDENT" || user.role === "PARENT") return false;
+  if (user.role === "SUPER_ADMIN") return false;
+  return (user.role === "SCHOOL_ADMIN" || user.role === "ACCOUNTANT") && user.schoolId === schoolId;
+}
+
+export function assertCanViewSchoolFees(user: AuthenticatedUser, schoolId: string): void {
+  if (user.role === "SUPER_ADMIN") {
+    throw new ForbiddenError(
+      "Platform administrators cannot perform routine tenant finance operations without explicit school-scoped authorization"
+    );
+  }
+  if (!canViewSchoolFees(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only the school administrator or accountant of this school is authorized to access finance records"
+    );
+  }
+}
+
+export function canConfigureSchoolFees(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role !== "SCHOOL_ADMIN") return false;
+  return user.schoolId === schoolId;
+}
+
+export function assertCanConfigureSchoolFees(user: AuthenticatedUser, schoolId: string): void {
+  if (user.role === "SUPER_ADMIN") {
+    throw new ForbiddenError(
+      "Platform administrators cannot perform routine tenant finance operations without explicit school-scoped authorization"
+    );
+  }
+  if (user.role === "ACCOUNTANT") {
+    throw new ForbiddenError(
+      "Accountants cannot configure fee heads, fee structures, or school-wide financial settings"
+    );
+  }
+  if (!canConfigureSchoolFees(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only the school administrator of this school is authorized to configure fee structures"
+    );
+  }
+}
+
+export function canGenerateInvoices(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return false;
+  return (user.role === "SCHOOL_ADMIN" || user.role === "ACCOUNTANT") && user.schoolId === schoolId;
+}
+
+export function assertCanGenerateInvoices(user: AuthenticatedUser, schoolId: string): void {
+  if (user.role === "SUPER_ADMIN") {
+    throw new ForbiddenError(
+      "Platform administrators cannot perform routine tenant finance operations without explicit school-scoped authorization"
+    );
+  }
+  if (!canGenerateInvoices(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only the school administrator or accountant of this school is authorized to generate invoices"
+    );
+  }
+}
+
+export function canCollectSchoolFees(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role === "SUPER_ADMIN") return false;
+  return (user.role === "SCHOOL_ADMIN" || user.role === "ACCOUNTANT") && user.schoolId === schoolId;
+}
+
+export function assertCanCollectSchoolFees(user: AuthenticatedUser, schoolId: string): void {
+  if (user.role === "SUPER_ADMIN") {
+    throw new ForbiddenError(
+      "Platform administrators cannot perform routine tenant finance operations without explicit school-scoped authorization"
+    );
+  }
+  if (!canCollectSchoolFees(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only the school administrator or accountant of this school is authorized to collect fees and issue receipts"
+    );
+  }
+}
+
+export function canApproveFeeAdjustments(user: AuthenticatedUser, schoolId: string): boolean {
+  if (user.role !== "SCHOOL_ADMIN") return false;
+  return user.schoolId === schoolId;
+}
+
+export function assertCanApproveFeeAdjustments(user: AuthenticatedUser, schoolId: string): void {
+  if (user.role === "SUPER_ADMIN") {
+    throw new ForbiddenError(
+      "Platform administrators cannot perform routine tenant finance operations without explicit school-scoped authorization"
+    );
+  }
+  if (user.role === "ACCOUNTANT") {
+    throw new ForbiddenError(
+      "Accountants cannot approve adjustments, concessions, or refunds without administrator authorization"
+    );
+  }
+  if (!canApproveFeeAdjustments(user, schoolId)) {
+    throw new ForbiddenError(
+      "Only the school administrator of this school is authorized to approve concessions, adjustments, or refunds"
+    );
+  }
+}
+

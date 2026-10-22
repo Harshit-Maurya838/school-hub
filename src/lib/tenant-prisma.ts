@@ -13,6 +13,14 @@ export const TENANT_MODELS = [
   "studentGuardian",
   "enrollment",
   "invitation",
+  "feeHead",
+  "feeStructure",
+  "feeStructureItem",
+  "invoice",
+  "invoiceItem",
+  "payment",
+  "feeAdjustment",
+  "refund",
 ] as const;
 
 export type TenantModel = (typeof TENANT_MODELS)[number];
