@@ -142,7 +142,7 @@ export async function issueInvitation(params: IssueInvitationParams) {
   });
 
   // Construct activation URL
-  const base = params.baseUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const base = params.baseUrl || process.env.NEXT_APP_URL || "http://localhost:3000";
   const actionUrl = `${base}/accept-invitation?token=${rawToken}`;
 
   // Send invitation email

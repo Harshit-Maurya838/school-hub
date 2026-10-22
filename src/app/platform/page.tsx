@@ -13,6 +13,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { PlatformRegistrationsRoster } from "@/modules/onboarding";
+
 export default async function PlatformPage() {
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "SUPER_ADMIN") {
@@ -30,9 +32,33 @@ export default async function PlatformPage() {
     }),
     prisma.schoolRegistration.findMany({
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 20,
+      include: {
+        school: {
+          select: {
+            slug: true,
+          },
+        },
+      },
     }),
   ]);
+
+  const serializedRegistrations = registrations.map((r) => ({
+    id: r.id,
+    schoolName: r.schoolName,
+    schoolCode: r.schoolCode,
+    desiredSlug: r.desiredSlug,
+    adminName: r.adminName,
+    adminEmail: r.adminEmail,
+    adminPhone: r.adminPhone,
+    status: r.status,
+    emailVerifiedAt: r.emailVerifiedAt ? r.emailVerifiedAt.toISOString() : null,
+    reviewedAt: r.reviewedAt ? r.reviewedAt.toISOString() : null,
+    rejectionReason: r.rejectionReason,
+    schoolId: r.schoolId,
+    school: r.school,
+    createdAt: r.createdAt.toISOString(),
+  }));
 
   const pendingCount = registrations.filter(
     (r) => r.status === "PENDING_VERIFICATION" || r.status === "PENDING_REVIEW"
@@ -291,94 +317,8 @@ export default async function PlatformPage() {
         </section>
 
         {/* Public SaaS Registrations Applications */}
-        <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-sm">
-          <div className="flex flex-col justify-between gap-4 border-b border-slate-800 px-6 py-5 sm:flex-row sm:items-center">
-            <div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-amber-400" />
-                <h2 className="text-lg font-black tracking-tight text-white">
-                  Recent School Registrations ({registrations.length})
-                </h2>
-              </div>
-              <p className="mt-0.5 text-xs text-slate-400">
-                New school onboarding queue from the public registration portal
-              </p>
-            </div>
-            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
-              {pendingCount} Pending Verification
-            </span>
-          </div>
+        <PlatformRegistrationsRoster initialRegistrations={serializedRegistrations} />
 
-          {registrations.length === 0 ? (
-            <div className="p-16 text-center">
-              <Clock className="mx-auto h-12 w-12 text-slate-700" />
-              <p className="mt-3 text-sm font-semibold text-slate-400">
-                No registration applications submitted yet.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="border-b border-slate-800/80 bg-slate-950/40 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                  <tr>
-                    <th className="px-6 py-4">Applicant Institution</th>
-                    <th className="px-6 py-4">Desired Code / Slug</th>
-                    <th className="px-6 py-4">Contact Admin</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Submitted</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {registrations.map((reg) => (
-                    <tr key={reg.id} className="transition-colors hover:bg-slate-800/40">
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-white">{reg.schoolName}</p>
-                        <p className="text-[11px] text-slate-500">ID: {reg.id}</p>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-300">
-                        <span className="rounded bg-slate-800 px-2 py-0.5 text-purple-300">
-                          {reg.schoolCode}
-                        </span>{" "}
-                        <span className="text-slate-500">/ {reg.desiredSlug}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-semibold text-slate-200">{reg.adminName}</p>
-                        <p className="font-mono text-[11px] text-slate-400">{reg.adminEmail}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${reg.status === "APPROVED"
-                            ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                            : reg.status === "PENDING_REVIEW"
-                              ? "border border-amber-500/30 bg-amber-500/10 text-amber-300"
-                              : reg.status === "PENDING_VERIFICATION"
-                                ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
-                                : "border border-rose-500/30 bg-rose-500/10 text-rose-400"
-                            }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${reg.status === "APPROVED"
-                              ? "bg-emerald-400"
-                              : reg.status === "PENDING_REVIEW"
-                                ? "bg-amber-400"
-                                : reg.status === "PENDING_VERIFICATION"
-                                  ? "bg-blue-400"
-                                  : "bg-rose-400"
-                              }`}
-                          />
-                          {reg.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right text-slate-400">
-                        {new Date(reg.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
       </div>
     </div>
   );

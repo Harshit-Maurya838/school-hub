@@ -134,7 +134,7 @@ export async function submitSchoolRegistration(input: SubmitRegistrationInput) {
   });
 
   // Construct verification URL
-  const base = input.baseUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const base = process.env.NEXT_APP_URL || "http://localhost:3000";
   const verificationUrl = `${base}/register-school/verify?token=${rawVerificationToken}`;
 
   await sendEmail({

@@ -40,7 +40,7 @@ async function bootstrapFirstSchool() {
     slug: schoolSlug,
     adminName,
     adminEmail,
-    baseUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+    baseUrl: process.env.NEXT_APP_URL || "http://localhost:3000",
   });
 
   console.log(`\n✅ School successfully provisioned!`);
