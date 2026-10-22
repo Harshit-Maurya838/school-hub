@@ -16,7 +16,11 @@ import {
   CalendarCheck2,
   CreditCard,
 } from "lucide-react";
-import { getRoleDisplayName, getRoleTheme, canManageSettings } from "@/modules/auth/services/role-ui";
+import {
+  getRoleDisplayName,
+  getRoleTheme,
+  canManageSettings,
+} from "@/modules/auth/services/role-ui";
 
 function getGreeting(): string {
   const hour = new Date().getHours();

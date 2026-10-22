@@ -4,7 +4,11 @@ import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Users, UserPlus, CalendarDays, Shield } from "lucide-react";
-import { getRoleDisplayName, getRoleTheme, canManageStudents } from "@/modules/auth/services/role-ui";
+import {
+  getRoleDisplayName,
+  getRoleTheme,
+  canManageStudents,
+} from "@/modules/auth/services/role-ui";
 
 export interface StudentNavProps {
   schoolSlug: string;

@@ -1,41 +1,63 @@
-import Link from "next/link";
+import React from "react";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { Navbar } from "@/components/landing/Navbar";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { InteractiveProductDemo } from "@/components/landing/InteractiveProductDemo";
+import { FeatureGrid } from "@/components/landing/FeatureGrid";
+import { RoleSolutions } from "@/components/landing/RoleSolutions";
+import { RoiCalculator } from "@/components/landing/RoiCalculator";
+import { ArchitectureSecurity } from "@/components/landing/ArchitectureSecurity";
+import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
+import { PricingSection } from "@/components/landing/PricingSection";
+import { FaqSection } from "@/components/landing/FaqSection";
+import { CtaBanner } from "@/components/landing/CtaBanner";
+import { Footer } from "@/components/landing/Footer";
 
-export default async function Home() {
+export default async function HomePage() {
   const user = await getAuthenticatedUser();
 
   const destination = user?.role === "SUPER_ADMIN" ? "/platform" : user ? "/school" : "/login";
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 p-6 font-sans text-zinc-100">
-      <div className="max-w-2xl space-y-6 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3 py-1 text-xs font-medium text-indigo-400">
-          Multi-Tenant SaaS
-        </div>
-        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-          Atenea School Management
-        </h1>
-        <p className="text-lg text-zinc-400">
-          Enterprise multi-tenant education platform with role-based access control, strict tenant
-          boundary isolation, and comprehensive audit trails.
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-          <Link
-            href={destination}
-            className="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-          >
-            {user ? "Go to Dashboard" : "Sign In to Portal"}
-          </Link>
-          {!user && (
-            <Link
-              href="/register-school"
-              className="rounded-lg border border-zinc-700 bg-zinc-900/80 px-6 py-3 text-sm font-semibold text-zinc-200 shadow-sm transition hover:bg-zinc-800 hover:text-white"
-            >
-              Register Your School
-            </Link>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen bg-zinc-950 font-sans text-zinc-100 selection:bg-emerald-500 selection:text-white">
+      {/* Top Navbar */}
+      <Navbar user={user} dashboardHref={destination} />
+
+      {/* Main Content Flow */}
+      <main>
+        {/* 1. Hero Section */}
+        <HeroSection isLoggedIn={Boolean(user)} userDestination={destination} />
+
+        {/* 2. Live Interactive Product Demo & Module Switcher */}
+        <InteractiveProductDemo />
+
+        {/* 3. Deep-Dive Feature Grid */}
+        <FeatureGrid />
+
+        {/* 4. Audience-Tailored Solutions (Principals, Teachers, Finance, Parents, Admins) */}
+        <RoleSolutions />
+
+        {/* 5. Interactive ROI & Cost Savings Calculator */}
+        <RoiCalculator />
+
+        {/* 6. Architecture, Compliance & Multi-Tenant Security */}
+        <ArchitectureSecurity />
+
+        {/* 7. Verified Educator Testimonials */}
+        <TestimonialsSection />
+
+        {/* 8. Predictable Institutional Pricing */}
+        <PricingSection />
+
+        {/* 9. Frequently Asked Questions */}
+        <FaqSection />
+
+        {/* 10. High-Impact Call to Action Banner */}
+        <CtaBanner isLoggedIn={Boolean(user)} userDestination={destination} />
+      </main>
+
+      {/* Enterprise Institutional Footer */}
+      <Footer />
     </div>
   );
 }
