@@ -1,6 +1,6 @@
-import { prisma } from "../lib/prisma";
-import { provisionSchoolWithAdmin } from "../lib/provisioning";
-import { logger } from "../lib/logger";
+import { prisma } from "../src/lib/prisma";
+import { provisionSchoolWithAdmin } from "../src/lib/provisioning";
+import { logger } from "../src/lib/logger";
 
 async function bootstrapFirstSchool() {
   const schoolName = process.env.BOOTSTRAP_SCHOOL_NAME || "Demo International School";

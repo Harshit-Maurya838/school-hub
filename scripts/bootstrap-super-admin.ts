@@ -1,6 +1,6 @@
-import { prisma } from "../lib/prisma";
-import { hashPassword } from "../lib/password";
-import { logger } from "../lib/logger";
+import { prisma } from "../src/lib/prisma";
+import { hashPassword } from "../src/lib/password";
+import { logger } from "../src/lib/logger";
 
 async function bootstrap() {
   const email = (process.env.BOOTSTRAP_ADMIN_EMAIL || "superadmin@atenea.local")

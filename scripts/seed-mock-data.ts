@@ -1,5 +1,5 @@
-import { prisma } from "../lib/prisma";
-import { hashPassword } from "../lib/password";
+import { prisma } from "../src/lib/prisma";
+import { hashPassword } from "../src/lib/password";
 
 async function seed() {
   console.log("\n========================================================");

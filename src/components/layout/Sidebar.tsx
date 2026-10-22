@@ -19,7 +19,7 @@ import {
   X,
   Shield,
 } from "lucide-react";
-import { getRoleDisplayName, getRoleTheme } from "@/lib/role-ui";
+import { getRoleDisplayName, getRoleTheme } from "@/modules/auth/services/role-ui";
 
 export interface SidebarProps {
   schoolSlug: string;

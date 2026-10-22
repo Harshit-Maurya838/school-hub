@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE_NAME, verifySessionToken } from "./lib/auth";
+import { SESSION_COOKIE_NAME, verifySessionToken } from "@/modules/auth";
 
 export function sanitizeRedirectUrl(url: string | null | undefined): string {
   if (!url) return "";
