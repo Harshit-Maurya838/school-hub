@@ -105,7 +105,7 @@ export default async function PlatformPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <Link
-                href="/register"
+                href="/register-school"
                 className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-600/30 transition-all hover:bg-purple-500 hover:shadow-purple-600/50"
               >
                 <School className="h-4 w-4" />
@@ -209,7 +209,7 @@ export default async function PlatformPage() {
                 No customer schools provisioned yet.
               </p>
               <Link
-                href="/register"
+                href="/register-school"
                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white hover:bg-purple-500"
               >
                 Register First School
@@ -255,16 +255,14 @@ export default async function PlatformPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                            school.status === "ACTIVE"
-                              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                              : "border border-slate-700 bg-slate-800 text-slate-400"
-                          }`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${school.status === "ACTIVE"
+                            ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                            : "border border-slate-700 bg-slate-800 text-slate-400"
+                            }`}
                         >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              school.status === "ACTIVE" ? "bg-emerald-400" : "bg-slate-500"
-                            }`}
+                            className={`h-1.5 w-1.5 rounded-full ${school.status === "ACTIVE" ? "bg-emerald-400" : "bg-slate-500"
+                              }`}
                           />
                           {school.status}
                         </span>
@@ -349,26 +347,24 @@ export default async function PlatformPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                            reg.status === "APPROVED"
-                              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                              : reg.status === "PENDING_REVIEW"
-                                ? "border border-amber-500/30 bg-amber-500/10 text-amber-300"
-                                : reg.status === "PENDING_VERIFICATION"
-                                  ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
-                                  : "border border-rose-500/30 bg-rose-500/10 text-rose-400"
-                          }`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${reg.status === "APPROVED"
+                            ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                            : reg.status === "PENDING_REVIEW"
+                              ? "border border-amber-500/30 bg-amber-500/10 text-amber-300"
+                              : reg.status === "PENDING_VERIFICATION"
+                                ? "border border-blue-500/30 bg-blue-500/10 text-blue-300"
+                                : "border border-rose-500/30 bg-rose-500/10 text-rose-400"
+                            }`}
                         >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              reg.status === "APPROVED"
-                                ? "bg-emerald-400"
-                                : reg.status === "PENDING_REVIEW"
-                                  ? "bg-amber-400"
-                                  : reg.status === "PENDING_VERIFICATION"
-                                    ? "bg-blue-400"
-                                    : "bg-rose-400"
-                            }`}
+                            className={`h-1.5 w-1.5 rounded-full ${reg.status === "APPROVED"
+                              ? "bg-emerald-400"
+                              : reg.status === "PENDING_REVIEW"
+                                ? "bg-amber-400"
+                                : reg.status === "PENDING_VERIFICATION"
+                                  ? "bg-blue-400"
+                                  : "bg-rose-400"
+                              }`}
                           />
                           {reg.status}
                         </span>

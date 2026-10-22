@@ -21,7 +21,11 @@ import {
   Eye,
 } from "lucide-react";
 import { Badge } from "@/components/common/Badge";
-import { canManageStudents, getRoleDisplayName, getRoleTheme } from "@/modules/auth/services/role-ui";
+import {
+  canManageStudents,
+  getRoleDisplayName,
+  getRoleTheme,
+} from "@/modules/auth/services/role-ui";
 
 export interface StudentDetail {
   id: string;
