@@ -7,6 +7,7 @@ import { GET as verifyRegistrationHandler } from "../src/app/api/v1/public/regis
 import { GET as listRegistrationsHandler } from "../src/app/api/v1/platform/registrations/route.js";
 import { POST as approveRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/approve/route.js";
 import { POST as rejectRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/reject/route.js";
+import { DELETE as deleteRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/route.js";
 import { submitSchoolRegistration } from "../src/lib/school-registration.js";
 import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
 import { getLatestEmailFor } from "../src/lib/email.js";
@@ -179,7 +180,7 @@ describe("Phase 5: Public School Registration for Future SaaS Customers", () => 
     assert.strictEqual(invitation?.role, "SCHOOL_ADMIN");
   });
 
-  it("should allow Platform Super Admin to reject registration with a documented reason", async () => {
+  it("should allow Platform Super Admin to reject registration, notify applicant, and delete from DB to release unique fields", async () => {
     const submitResult = await submitSchoolRegistration({
       schoolName: "Rejected School",
       schoolCode: "REJ_SCH_01",
@@ -204,15 +205,18 @@ describe("Phase 5: Public School Registration for Future SaaS Customers", () => 
       params: Promise.resolve({ registrationId: submitResult.registration.id }),
     });
     assert.strictEqual(rejectRes.status, 200);
-
-    const updated = await prisma.schoolRegistration.findUnique({
-      where: { id: submitResult.registration.id },
-    });
-    assert.strictEqual(updated?.status, "REJECTED");
+    const rejectBody = await rejectRes.json();
+    assert.strictEqual(rejectBody.data.registration.status, "REJECTED");
     assert.strictEqual(
-      updated?.rejectionReason,
+      rejectBody.data.registration.rejectionReason,
       "School accreditation documents could not be verified."
     );
+
+    // Verify rejected application was deleted from database so unique constraints are released
+    const dbRecord = await prisma.schoolRegistration.findUnique({
+      where: { id: submitResult.registration.id },
+    });
+    assert.strictEqual(dbRecord, null, "Rejected registration must be deleted from DB");
 
     // Verify rejection email was dispatched
     const email = getLatestEmailFor("rejected@newacademy.org");
@@ -221,5 +225,74 @@ describe("Phase 5: Public School Registration for Future SaaS Customers", () => 
       email?.text.includes("School accreditation documents could not be verified."),
       true
     );
+
+    // Verify applicant can re-register using the exact same email without collision error
+    const reRegisterSameEmail = await submitSchoolRegistration({
+      schoolName: "Rejected School Re-application",
+      schoolCode: "REJ_SCH_02",
+      desiredSlug: "rejected-school-re",
+      adminName: "Fake Admin",
+      adminEmail: "rejected@newacademy.org",
+    });
+    assert.strictEqual(reRegisterSameEmail.registration.status, "PENDING_VERIFICATION");
+
+    // Verify another school can register using the same school code and desired slug that was previously rejected
+    const newApplicantUsingSameSlug = await submitSchoolRegistration({
+      schoolName: "Legitimate Academy",
+      schoolCode: "REJ_SCH_01",
+      desiredSlug: "rejected-school",
+      adminName: "New Principal",
+      adminEmail: "principal@legitimate.org",
+    });
+    assert.strictEqual(newApplicantUsingSameSlug.registration.status, "PENDING_VERIFICATION");
+
+    // Clean up created registrations from this test
+    await prisma.schoolRegistration.deleteMany({
+      where: {
+        adminEmail: { in: ["rejected@newacademy.org", "principal@legitimate.org"] },
+      },
+    });
+  });
+
+  it("should allow Platform Super Admin to permanently delete a pending registration to release unique fields", async () => {
+    const submitResult = await submitSchoolRegistration({
+      schoolName: "Spam School Application",
+      schoolCode: "SPAM_99",
+      desiredSlug: "spam-school",
+      adminName: "Spam Bot",
+      adminEmail: "spambot@example.com",
+    });
+
+    const deleteReq = new NextRequest(
+      `http://localhost:3000/api/v1/platform/registrations/${submitResult.registration.id}`,
+      {
+        method: "DELETE",
+        headers: { Cookie: `${SESSION_COOKIE_NAME}=${superAdminToken}` },
+      }
+    );
+
+    const deleteRes = await deleteRegistrationHandler(deleteReq, {
+      params: Promise.resolve({ registrationId: submitResult.registration.id }),
+    });
+    assert.strictEqual(deleteRes.status, 200);
+
+    const checkDb = await prisma.schoolRegistration.findUnique({
+      where: { id: submitResult.registration.id },
+    });
+    assert.strictEqual(checkDb, null, "Deleted registration must not exist in DB");
+
+    // Now re-registering with the same schoolCode, slug, and email succeeds immediately
+    const cleanReRegister = await submitSchoolRegistration({
+      schoolName: "Real School After Delete",
+      schoolCode: "SPAM_99",
+      desiredSlug: "spam-school",
+      adminName: "Real Person",
+      adminEmail: "spambot@example.com",
+    });
+    assert.strictEqual(cleanReRegister.registration.status, "PENDING_VERIFICATION");
+
+    await prisma.schoolRegistration.deleteMany({
+      where: { adminEmail: "spambot@example.com" },
+    });
   });
 });

@@ -70,6 +70,28 @@ export async function submitSchoolRegistration(input: SubmitRegistrationInput) {
     throw new ConflictError(`An active account with email '${adminEmail}' already exists`);
   }
 
+  // Check pending invitations for contact email
+  const existingInvitation = await prisma.invitation.findFirst({
+    where: {
+      email: adminEmail,
+      status: "PENDING",
+      expiresAt: { gt: new Date() },
+    },
+    select: { id: true },
+  });
+  if (existingInvitation) {
+    throw new ConflictError(`An active invitation already exists for email '${adminEmail}'`);
+  }
+
+  // Remove any previously rejected applications matching this schoolCode, desiredSlug, or adminEmail
+  // so they do not occupy unique database slots or block re-application
+  await prisma.schoolRegistration.deleteMany({
+    where: {
+      OR: [{ schoolCode }, { desiredSlug }, { adminEmail }],
+      status: "REJECTED",
+    },
+  });
+
   // 2. Check pending applications in SchoolRegistration
   const existingPending = await prisma.schoolRegistration.findFirst({
     where: {
@@ -289,6 +311,7 @@ export async function approveRegistration(registrationId: string, reviewedByUser
 
 /**
  * Super Admin review action: Rejects a pending school application with an optional reason.
+ * Deletes the record from database so that email, desiredSlug, and schoolCode are freed immediately.
  */
 export async function rejectRegistration(
   registrationId: string,
@@ -307,15 +330,7 @@ export async function rejectRegistration(
     throw new BadRequestError("Cannot reject an application that has already been approved");
   }
 
-  const updatedRegistration = await prisma.schoolRegistration.update({
-    where: { id: registration.id },
-    data: {
-      status: "REJECTED",
-      reviewedById: reviewedByUserId,
-      reviewedAt: new Date(),
-      rejectionReason: reason?.trim() || "Application does not meet platform requirements.",
-    },
-  });
+  const rejectionReason = reason?.trim() || "Application does not meet platform requirements.";
 
   await logAuditEvent({
     action: "REGISTRATION_REJECTED",
@@ -324,7 +339,9 @@ export async function rejectRegistration(
     userId: reviewedByUserId,
     details: {
       schoolCode: registration.schoolCode,
-      reason: updatedRegistration.rejectionReason,
+      schoolName: registration.schoolName,
+      adminEmail: registration.adminEmail,
+      reason: rejectionReason,
     },
   });
 
@@ -332,9 +349,63 @@ export async function rejectRegistration(
   await sendEmail({
     to: registration.adminEmail,
     subject: `Update regarding your school registration for ${registration.schoolName}`,
-    text: `Your application to register ${registration.schoolName} could not be approved at this time. Reason: ${updatedRegistration.rejectionReason}`,
-    html: `<p>Your application to register <strong>${registration.schoolName}</strong> could not be approved at this time.</p><p><strong>Reason:</strong> ${updatedRegistration.rejectionReason}</p>`,
+    text: `Your application to register ${registration.schoolName} could not be approved at this time. Reason: ${rejectionReason}`,
+    html: `<p>Your application to register <strong>${registration.schoolName}</strong> could not be approved at this time.</p><p><strong>Reason:</strong> ${rejectionReason}</p>`,
   });
 
-  return { registration: updatedRegistration };
+  // Delete rejected application from DB so unique slots for adminEmail, desiredSlug, and schoolCode are immediately freed
+  await prisma.schoolRegistration.delete({
+    where: { id: registration.id },
+  });
+
+  return {
+    registration: {
+      ...registration,
+      status: "REJECTED" as const,
+      rejectionReason,
+      reviewedById: reviewedByUserId,
+      reviewedAt: new Date(),
+    },
+  };
+}
+
+/**
+ * Super Admin review action: Permanently deletes a pending or unapproved school registration from the database.
+ */
+export async function deleteRegistration(registrationId: string, deletedByUserId: string) {
+  const registration = await prisma.schoolRegistration.findUnique({
+    where: { id: registrationId },
+  });
+
+  if (!registration) {
+    throw new NotFoundError("Registration application not found");
+  }
+
+  if (registration.status === "APPROVED") {
+    throw new BadRequestError(
+      "Cannot delete an approved registration with an active tenant school"
+    );
+  }
+
+  await logAuditEvent({
+    action: "REGISTRATION_DELETED",
+    entityType: "SchoolRegistration",
+    entityId: registration.id,
+    userId: deletedByUserId,
+    details: {
+      schoolCode: registration.schoolCode,
+      schoolName: registration.schoolName,
+      adminEmail: registration.adminEmail,
+    },
+  });
+
+  await prisma.schoolRegistration.delete({
+    where: { id: registration.id },
+  });
+
+  return {
+    success: true,
+    message: "Registration application permanently deleted",
+    deletedRegistration: registration,
+  };
 }

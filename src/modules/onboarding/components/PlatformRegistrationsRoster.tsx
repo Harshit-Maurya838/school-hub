@@ -18,6 +18,7 @@ import {
   Sparkles,
   X,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 
 export interface SerializedRegistration {
@@ -57,6 +58,7 @@ export function PlatformRegistrationsRoster({
     schoolSlug?: string;
   } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const pendingCount = registrations.filter(
     (r) => r.status === "PENDING_VERIFICATION" || r.status === "PENDING_REVIEW"
@@ -149,23 +151,47 @@ export function PlatformRegistrationsRoster({
         throw new Error(data.error?.message || data.message || "Failed to reject registration");
       }
 
-      setRegistrations((prev) =>
-        prev.map((r) =>
-          r.id === activeReg.id
-            ? {
-                ...r,
-                status: "REJECTED",
-                rejectionReason: rejectionReason.trim() || null,
-              }
-            : r
-        )
-      );
-
+      // Rejected applications are deleted from the database to immediately release unique fields
+      setRegistrations((prev) => prev.filter((r) => r.id !== activeReg.id));
       closeReviewModal();
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setIsRejecting(false);
+    }
+  };
+
+  const handleDelete = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (
+      !window.confirm(
+        "Are you sure you want to permanently delete this registration? This will free up the email, school code, and slug."
+      )
+    ) {
+      return;
+    }
+
+    setDeletingId(id);
+    setErrorMessage(null);
+    try {
+      const res = await fetch(`/api/v1/platform/registrations/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error?.message || data?.message || "Failed to delete registration");
+      }
+
+      setRegistrations((prev) => prev.filter((r) => r.id !== id));
+      if (activeReg?.id === id) {
+        closeReviewModal();
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete registration";
+      setErrorMessage(msg);
+      alert(msg);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -275,14 +301,26 @@ export function PlatformRegistrationsRoster({
                           <ExternalLink className="h-3 w-3" />
                         </Link>
                       ) : (
-                        <button
-                          type="button"
-                          onClick={() => openReviewModal(reg)}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 px-3.5 py-1.5 text-xs font-bold text-purple-300 transition-all hover:border-purple-500 hover:bg-purple-600 hover:text-white"
-                        >
-                          <span>Review</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openReviewModal(reg)}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 px-3.5 py-1.5 text-xs font-bold text-purple-300 transition-all hover:border-purple-500 hover:bg-purple-600 hover:text-white"
+                          >
+                            <span>Review</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingId === reg.id}
+                            onClick={(e) => handleDelete(reg.id, e)}
+                            className="inline-flex items-center gap-1 rounded-xl border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs font-bold text-rose-300 transition-all hover:border-rose-500 hover:bg-rose-600 hover:text-white disabled:opacity-50"
+                            title="Delete registration"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>{deletingId === reg.id ? "Deleting..." : "Delete"}</span>
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -537,13 +575,28 @@ export function PlatformRegistrationsRoster({
 
             {/* Modal Actions Footer */}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-slate-950/80 px-6 py-4">
-              <button
-                type="button"
-                onClick={closeReviewModal}
-                className="rounded-xl border border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 transition hover:bg-slate-800 hover:text-white"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={closeReviewModal}
+                  className="rounded-xl border border-slate-800 px-4 py-2 text-xs font-bold text-slate-400 transition hover:bg-slate-800 hover:text-white"
+                >
+                  Close
+                </button>
+                {activeReg.status !== "APPROVED" && (
+                  <button
+                    type="button"
+                    disabled={deletingId === activeReg.id}
+                    onClick={() => handleDelete(activeReg.id)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-bold text-rose-300 transition hover:bg-rose-600 hover:text-white disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>
+                      {deletingId === activeReg.id ? "Deleting..." : "Delete Application"}
+                    </span>
+                  </button>
+                )}
+              </div>
 
               {activeReg.status !== "APPROVED" && (
                 <div className="flex items-center gap-3">

@@ -47,17 +47,41 @@ export default function RegisterSchoolPage() {
           }),
         });
 
-        const data = await res.json();
+        interface ErrorResponseData {
+          error?: {
+            message?: string;
+            details?: Array<{ message?: string }>;
+          };
+          message?: string;
+        }
+        let data: ErrorResponseData | null = null;
+        try {
+          data = (await res.json()) as ErrorResponseData;
+        } catch {
+          data = null;
+        }
 
         if (!res.ok) {
-          setErrorMessage(
-            data?.error?.message || "Failed to submit registration. Please review the form."
-          );
+          const specificIssue =
+            data?.error?.message ||
+            data?.message ||
+            (Array.isArray(data?.error?.details)
+              ? data.error.details
+                  .map((d) => d.message)
+                  .filter(Boolean)
+                  .join(", ")
+              : null) ||
+            `Registration failed (${res.status} ${res.statusText}). Please check your input.`;
+          setErrorMessage(specificIssue);
           return;
         }
         setSubmitted(true);
-      } catch {
-        setErrorMessage("Network error occurred. Please try again.");
+      } catch (err: unknown) {
+        setErrorMessage(
+          err instanceof Error
+            ? `Connection error: ${err.message}`
+            : "Network error occurred while connecting to the server. Please try again."
+        );
       }
     });
   };
@@ -129,9 +153,23 @@ export default function RegisterSchoolPage() {
         {errorMessage && (
           <div
             role="alert"
-            className="rounded-lg border border-red-900/50 bg-red-950/40 p-3 text-sm text-red-300"
+            className="flex items-start gap-3 rounded-xl border border-rose-500/40 bg-rose-950/50 p-4 text-sm text-rose-200 backdrop-blur-sm"
           >
-            {errorMessage}
+            <svg
+              className="mt-0.5 h-5 w-5 shrink-0 text-rose-400"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="font-bold text-rose-300">Registration Issue</p>
+              <p className="mt-0.5 text-xs text-rose-200/90">{errorMessage}</p>
+            </div>
           </div>
         )}
 
