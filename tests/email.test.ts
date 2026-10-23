@@ -10,6 +10,8 @@ import {
   renderVerificationEmailHtml,
   renderInvitationEmailHtml,
   escapeHtml,
+  getMailSyncConfig,
+  setMailSyncDispatcher,
   getResendClient,
   setResendClient,
 } from "../src/lib/email.js";
@@ -22,9 +24,10 @@ import {
 } from "../src/modules/onboarding/services/school-registration.js";
 import { BadRequestError } from "../src/lib/errors.js";
 
-describe("Email Service & Resend Integration", () => {
+describe("Email Service & MailSync Integration", () => {
   beforeEach(() => {
     clearSentEmails();
+    setMailSyncDispatcher(null);
     setResendClient(null);
   });
 
@@ -142,35 +145,73 @@ describe("Email Service & Resend Integration", () => {
     });
   });
 
-  describe("Resend Provider Client & Error Handling", () => {
-    it("initializes Resend client when API key is available", () => {
-      const client = getResendClient();
-      if (env.RESEND_API_KEY) {
-        assert.notStrictEqual(client, null);
-      } else {
-        assert.strictEqual(client, null);
+  describe("MailSync Provider Client & Error Handling", () => {
+    it("initializes MailSync configuration with endpoint and access key", () => {
+      const config = getMailSyncConfig();
+      assert.ok(config.apiUrl);
+      assert.strictEqual(typeof config.apiUrl, "string");
+      if (env.EMAIL_ACCESS_KEY) {
+        assert.strictEqual(config.accessKey, env.EMAIL_ACCESS_KEY);
       }
     });
 
-    it("handles simulated Resend provider error safely without exposing secrets", async () => {
-      // Mock Resend client returning an API error
-      const mockResend = {
-        emails: {
-          send: async () => ({
-            data: null,
-            error: {
-              name: "validation_error",
-              message: "Domain not verified",
-            },
-          }),
-        },
-      } as unknown as import("resend").Resend;
+    it("dispatches email to MailSync successfully with mock dispatcher", async () => {
+      let capturedUrl = "";
+      let capturedBody: Record<string, unknown> = {};
 
-      setResendClient(mockResend);
+      setMailSyncDispatcher(async (url, init) => {
+        capturedUrl = url;
+        capturedBody = JSON.parse(init.body as string);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: "Email sent successfully",
+            messageId: "mock_ms_123456",
+            recipient: "teacher@oakridge.edu",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      });
+
+      const result = await sendEmail({
+        to: "teacher@oakridge.edu",
+        subject: "Welcome to MailSync",
+        text: "Plain text body",
+        html: "<p>HTML body</p>",
+        forceDeliver: true,
+      });
+
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.id, "mock_ms_123456");
+      assert.ok(capturedUrl.endsWith("/mail"));
+      assert.strictEqual(capturedBody.email, "teacher@oakridge.edu");
+      assert.strictEqual(capturedBody.to, "teacher@oakridge.edu");
+      assert.strictEqual(capturedBody.subject, "Welcome to MailSync");
+    });
+
+    it("handles simulated MailSync provider error safely without exposing secrets", async () => {
+      // Mock MailSync dispatcher returning a 401/400 provider error
+      setMailSyncDispatcher(async () => {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "Unauthorized",
+            message: "Invalid or missing Access Key",
+          }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      });
 
       const result = await sendEmail({
         to: "user@test.org",
-        subject: "Test Resend Error",
+        subject: "Test MailSync Error",
         text: "Error test",
         html: "<p>Error test</p>",
         forceDeliver: true, // Force provider execution even in test env
@@ -179,24 +220,18 @@ describe("Email Service & Resend Integration", () => {
       assert.strictEqual(result.success, false);
       assert.strictEqual(result.error, "Email delivery failed with provider");
       // Ensure raw error message and API key are never leaked in returned object
-      assert.strictEqual(JSON.stringify(result).includes("Domain not verified"), false);
+      assert.strictEqual(JSON.stringify(result).includes("Invalid or missing Access Key"), false);
       assert.strictEqual(
-        JSON.stringify(result).includes(env.RESEND_API_KEY || "neverfound"),
+        JSON.stringify(result).includes(env.EMAIL_ACCESS_KEY || "neverfound"),
         false
       );
     });
 
     it("handles unexpected provider exceptions gracefully", async () => {
-      // Mock Resend client throwing an unhandled exception
-      const throwingResend = {
-        emails: {
-          send: async () => {
-            throw new Error("Network timeout to api.resend.com");
-          },
-        },
-      } as unknown as import("resend").Resend;
-
-      setResendClient(throwingResend);
+      // Mock MailSync dispatcher throwing an unhandled network error
+      setMailSyncDispatcher(async () => {
+        throw new Error("Network timeout to mailsync-sigma.vercel.app");
+      });
 
       const result = await sendEmail({
         to: "user@test.org",
@@ -208,6 +243,31 @@ describe("Email Service & Resend Integration", () => {
 
       assert.strictEqual(result.success, false);
       assert.strictEqual(result.error, "Unexpected error during email delivery");
+    });
+
+    it("maintains backwards compatibility for legacy resend adapter mocks", async () => {
+      assert.ok(getResendClient());
+      const mockLegacyResend = {
+        emails: {
+          send: async () => ({
+            data: { id: "legacy_resend_id_999" },
+            error: null,
+          }),
+        },
+      };
+
+      setResendClient(mockLegacyResend);
+
+      const result = await sendEmail({
+        to: "legacy@test.org",
+        subject: "Legacy Adapter Test",
+        text: "Legacy text",
+        html: "<p>Legacy html</p>",
+        forceDeliver: true,
+      });
+
+      assert.strictEqual(result.success, true);
+      assert.strictEqual(result.id, "legacy_resend_id_999");
     });
   });
 

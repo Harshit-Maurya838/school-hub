@@ -1,4 +1,3 @@
-import { Resend } from "resend";
 import { env } from "./env";
 import { logger } from "./logger";
 
@@ -12,9 +11,19 @@ export interface SendEmailOptions {
   text: string;
   html: string;
   actionUrl?: string;
+  recipientName?: string;
+  fromName?: string;
   metadata?: Record<string, unknown>;
   forceDeliver?: boolean;
 }
+
+export interface MailSyncConfig {
+  apiUrl: string;
+  accessKey?: string;
+  from: string;
+}
+
+export type MailSyncDispatcher = (url: string, init: RequestInit) => Promise<Response>;
 
 export interface SendEmailResult {
   success: boolean;
@@ -56,31 +65,68 @@ export interface SendInvitationEmailOptions {
 // In-memory queue for tests, development, and audit verification
 const sentEmailsStore: SentEmailRecord[] = [];
 
-let resendInstance: Resend | null = null;
+let customDispatcher: MailSyncDispatcher | null = null;
 
 /**
- * Lazily initializes and returns the Resend client instance.
- * Returns null if RESEND_API_KEY is not configured.
+ * Returns the current MailSync configuration.
  */
-export function getResendClient(): Resend | null {
-  if (resendInstance) {
-    return resendInstance;
-  }
-
-  const apiKey = env.RESEND_API_KEY;
-  if (!apiKey || apiKey.trim() === "") {
-    return null;
-  }
-
-  resendInstance = new Resend(apiKey.trim());
-  return resendInstance;
+export function getMailSyncConfig(): MailSyncConfig {
+  return {
+    apiUrl: env.MAILSYNC_API_URL,
+    accessKey: env.EMAIL_ACCESS_KEY,
+    from: env.EMAIL_FROM,
+  };
 }
 
 /**
- * Allows overriding or resetting the Resend client for unit testing or custom configurations.
+ * Allows overriding the HTTP dispatcher for MailSync (primarily for unit testing and error simulation).
  */
-export function setResendClient(client: Resend | null): void {
-  resendInstance = client;
+export function setMailSyncDispatcher(dispatcher: MailSyncDispatcher | null): void {
+  customDispatcher = dispatcher;
+}
+
+/**
+ * Backwards compatibility helper for tests or legacy code expecting Resend client.
+ */
+export function getResendClient(): unknown {
+  return env.EMAIL_ACCESS_KEY || env.RESEND_API_KEY ? { provider: "mailsync" } : null;
+}
+
+/**
+ * Backwards compatibility helper for tests or legacy code expecting Resend client.
+ */
+export function setResendClient(client: unknown): void {
+  if (!client) {
+    customDispatcher = null;
+    return;
+  }
+  const legacyMock = client as {
+    emails?: {
+      send?: (payload: unknown) => Promise<{ data: unknown; error: unknown }>;
+    };
+  };
+  if (legacyMock?.emails?.send) {
+    customDispatcher = async (_url, init) => {
+      const body = JSON.parse(init.body as string);
+      const res = await legacyMock.emails!.send!(body);
+      if (res.error) {
+        return new Response(JSON.stringify({ success: false, error: res.error }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(
+        JSON.stringify({
+          success: true,
+          messageId: (res.data as { id?: string })?.id || "mock_id",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    };
+  }
 }
 
 /**
@@ -493,7 +539,7 @@ export function isTestEnvironment(): boolean {
 }
 
 /**
- * Sends an email using Resend (or records it to the in-memory test queue in test mode).
+ * Sends an email using MailSync API (or records it to the in-memory test queue in test mode).
  * Safely handles errors without exposing API keys or provider response details.
  */
 export async function sendEmail(options: SendEmailOptions): Promise<SendEmailResult> {
@@ -528,39 +574,71 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     return { success: true, id };
   }
 
-  const resend = getResendClient();
+  const config = getMailSyncConfig();
 
-  if (!resend) {
+  // If neither an access key is configured nor a mock dispatcher is set, save to in-memory store only
+  if (!config.accessKey && !customDispatcher) {
     logger.warn(
       {
         emailId: id,
         to: record.to,
         subject: record.subject,
       },
-      "RESEND_API_KEY is not configured; email saved to in-memory store only"
+      "EMAIL_ACCESS_KEY is not configured; email saved to in-memory store only"
     );
     return { success: true, id };
   }
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: env.EMAIL_FROM,
-      to: [normalizedTo],
+    const baseUrl = config.apiUrl.replace(/\/+$/, "");
+    const url = `${baseUrl}/mail`;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (config.accessKey) {
+      headers["x-access-key"] = config.accessKey;
+      headers["Authorization"] = `Bearer ${config.accessKey}`;
+    }
+
+    const payload = {
+      to: normalizedTo,
+      email: normalizedTo,
       subject: options.subject,
-      html: options.html,
+      message: options.text,
       text: options.text,
+      html: options.html,
+      from: config.from,
+      fromName: options.fromName || "CampusPulse",
+      name: options.recipientName,
+    };
+
+    const dispatcher = customDispatcher || fetch;
+    const response = await dispatcher(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
     });
 
-    if (error) {
+    const responseData = (await response.json().catch(() => null)) as {
+      success?: boolean;
+      messageId?: string;
+      id?: string;
+      message?: string;
+      error?: string;
+    } | null;
+
+    if (!response.ok || (responseData && responseData.success === false)) {
       logger.error(
         {
           emailId: id,
           to: record.to,
           subject: record.subject,
-          resendErrorCode: error.name,
-          resendErrorMessage: error.message,
+          statusCode: response.status,
+          providerError: responseData?.error || responseData?.message || `HTTP ${response.status}`,
         },
-        "Failed to deliver email through Resend"
+        "Failed to deliver email through MailSync"
       );
       return {
         success: false,
@@ -569,17 +647,17 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       };
     }
 
-    const resendId = data?.id || id;
+    const mailSyncId = responseData?.messageId || responseData?.id || id;
     logger.info(
       {
-        emailId: resendId,
+        emailId: mailSyncId,
         to: record.to,
         subject: record.subject,
       },
-      `Email successfully delivered via Resend: ${record.subject} -> ${record.to}`
+      `Email successfully delivered via MailSync: ${record.subject} -> ${record.to}`
     );
 
-    return { success: true, id: resendId };
+    return { success: true, id: mailSyncId };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
     logger.error(
@@ -589,7 +667,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
         subject: record.subject,
         errorMessage,
       },
-      "Unexpected exception while dispatching email through Resend"
+      "Unexpected exception while dispatching email through MailSync"
     );
 
     return {
@@ -642,6 +720,7 @@ export async function sendVerificationEmail(
     text,
     html,
     actionUrl: options.verificationUrl,
+    recipientName: options.recipientName,
     metadata: {
       ...options.metadata,
       type: "email_verification",
