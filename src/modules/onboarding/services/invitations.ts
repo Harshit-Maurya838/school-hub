@@ -4,8 +4,9 @@ import { Role } from "@/generated/prisma/enums";
 import { hashPassword } from "@/lib/password";
 import { BadRequestError, ConflictError, NotFoundError, ForbiddenError } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit";
-import { sendEmail } from "@/lib/email";
+import { sendInvitationEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
 
 export const INVITATION_EXPIRY_HOURS = 48;
 
@@ -142,16 +143,16 @@ export async function issueInvitation(params: IssueInvitationParams) {
   });
 
   // Construct activation URL
-  const base = params.baseUrl || process.env.NEXT_APP_URL || "http://localhost:3000";
-  const actionUrl = `${base}/accept-invitation?token=${rawToken}`;
+  const baseUrl = (params.baseUrl || env.APP_URL).replace(/\/+$/, "");
+  const actionUrl = `${baseUrl}/accept-invitation?token=${rawToken}`;
 
   // Send invitation email
-  await sendEmail({
+  await sendInvitationEmail({
     to: normalizedEmail,
-    subject: `Invitation to join ${school.name}`,
-    text: `You have been invited to join ${school.name} as a ${params.role}. Complete your account setup here: ${actionUrl}`,
-    html: `<p>You have been invited to join <strong>${school.name}</strong> as a <strong>${params.role}</strong>.</p><p><a href="${actionUrl}">Click here to accept your invitation and set your password</a></p><p>This link will expire in ${hours} hours.</p>`,
-    actionUrl,
+    invitationUrl: actionUrl,
+    schoolName: school.name,
+    role: params.role,
+    expiresInHours: hours,
     metadata: { invitationId: invitation.id, schoolId: params.schoolId, role: params.role },
   });
 

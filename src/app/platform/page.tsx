@@ -281,14 +281,16 @@ export default async function PlatformPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${school.status === "ACTIVE"
-                            ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                            : "border border-slate-700 bg-slate-800 text-slate-400"
-                            }`}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                            school.status === "ACTIVE"
+                              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
+                              : "border border-slate-700 bg-slate-800 text-slate-400"
+                          }`}
                         >
                           <span
-                            className={`h-1.5 w-1.5 rounded-full ${school.status === "ACTIVE" ? "bg-emerald-400" : "bg-slate-500"
-                              }`}
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              school.status === "ACTIVE" ? "bg-emerald-400" : "bg-slate-500"
+                            }`}
                           />
                           {school.status}
                         </span>
@@ -318,7 +320,6 @@ export default async function PlatformPage() {
 
         {/* Public SaaS Registrations Applications */}
         <PlatformRegistrationsRoster initialRegistrations={serializedRegistrations} />
-
       </div>
     </div>
   );

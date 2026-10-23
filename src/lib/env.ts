@@ -6,6 +6,21 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   REDIS_URL: z.string().optional(),
   APP_SECRET: z.string().min(32, "APP_SECRET must be at least 32 characters long"),
+  RESEND_API_KEY: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() !== "" ? val.trim() : undefined),
+    z.string().optional()
+  ),
+  EMAIL_FROM: z.preprocess(
+    (val) => (typeof val === "string" && val.trim() !== "" ? val.trim() : undefined),
+    z.string().default("CampusPulse <onboarding@resend.dev>")
+  ),
+  APP_URL: z.preprocess(
+    (val) =>
+      typeof val === "string" && val.trim() !== ""
+        ? val.trim()
+        : process.env.APP_URL || undefined,
+    z.string().url().default("http://localhost:3000")
+  ),
 });
 
 export type Env = z.infer<typeof envSchema>;

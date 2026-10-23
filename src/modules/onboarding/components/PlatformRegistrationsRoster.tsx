@@ -44,7 +44,8 @@ interface PlatformRegistrationsRosterProps {
 export function PlatformRegistrationsRoster({
   initialRegistrations,
 }: PlatformRegistrationsRosterProps) {
-  const [registrations, setRegistrations] = useState<SerializedRegistration[]>(initialRegistrations);
+  const [registrations, setRegistrations] =
+    useState<SerializedRegistration[]>(initialRegistrations);
   const [activeReg, setActiveReg] = useState<SerializedRegistration | null>(null);
   const [isApproving, setIsApproving] = useState(false);
   const [isRejecting, setIsRejecting] = useState(false);
@@ -186,7 +187,8 @@ export function PlatformRegistrationsRoster({
               </h2>
             </div>
             <p className="mt-0.5 text-xs text-slate-400">
-              Review and approve incoming institution registrations, provision tenant databases, and issue admin invitations
+              Review and approve incoming institution registrations, provision tenant databases, and
+              issue admin invitations
             </p>
           </div>
           <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-300">
@@ -311,7 +313,8 @@ export function PlatformRegistrationsRoster({
                 <div>
                   <h3 className="font-extrabold text-white">Review Registration Application</h3>
                   <p className="text-xs text-slate-400">
-                    Application ID: <span className="font-mono text-purple-400">{activeReg.id}</span>
+                    Application ID:{" "}
+                    <span className="font-mono text-purple-400">{activeReg.id}</span>
                   </p>
                 </div>
               </div>
@@ -371,7 +374,8 @@ export function PlatformRegistrationsRoster({
                     <h4 className="font-bold">Tenant Successfully Provisioned!</h4>
                   </div>
                   <p className="text-xs text-slate-300">
-                    The tenant school is active. An invitation was issued for the primary administrator to set their password.
+                    The tenant school is active. An invitation was issued for the primary
+                    administrator to set their password.
                   </p>
 
                   <div className="mt-2 space-y-2">
@@ -436,7 +440,9 @@ export function PlatformRegistrationsRoster({
                   </div>
                   <div>
                     <span className="text-[11px] text-slate-500">Workspace Slug</span>
-                    <p className="font-mono text-xs text-purple-300">/school/{activeReg.desiredSlug}</p>
+                    <p className="font-mono text-xs text-purple-300">
+                      /school/{activeReg.desiredSlug}
+                    </p>
                   </div>
                   <div>
                     <span className="text-[11px] text-slate-500">Submitted Date</span>

@@ -3,8 +3,11 @@ import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
 import { normalizeCode, normalizeSlug, provisionSchoolWithAdmin } from "./provisioning";
 import { generateRawToken, hashToken } from "./invitations";
 import { logAuditEvent } from "@/lib/audit";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, sendVerificationEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
+
+export const REGISTRATION_TOKEN_EXPIRY_HOURS = 24;
 
 export interface SubmitRegistrationInput {
   schoolName: string;
@@ -134,15 +137,15 @@ export async function submitSchoolRegistration(input: SubmitRegistrationInput) {
   });
 
   // Construct verification URL
-  const base = process.env.NEXT_APP_URL || "http://localhost:3000";
-  const verificationUrl = `${base}/register-school/verify?token=${rawVerificationToken}`;
+  const baseUrl = (input.baseUrl || env.APP_URL).replace(/\/+$/, "");
+  const verificationUrl = `${baseUrl}/register-school/verify?token=${rawVerificationToken}`;
 
-  await sendEmail({
+  await sendVerificationEmail({
     to: adminEmail,
-    subject: `Verify your school registration for ${schoolName}`,
-    text: `Thank you for registering ${schoolName}. Please verify your email: ${verificationUrl}`,
-    html: `<p>Thank you for submitting a registration request for <strong>${schoolName}</strong>.</p><p><a href="${verificationUrl}">Click here to verify your contact email address</a></p>`,
-    actionUrl: verificationUrl,
+    verificationUrl,
+    schoolName,
+    recipientName: adminName,
+    expiresInHours: REGISTRATION_TOKEN_EXPIRY_HOURS,
     metadata: { registrationId: registration.id },
   });
 
@@ -175,6 +178,12 @@ export async function verifyRegistrationEmail(rawToken: string) {
 
   if (!registration) {
     throw new NotFoundError("Invalid or expired registration verification token");
+  }
+
+  const expiryMs = REGISTRATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
+  const isExpired = Date.now() - registration.createdAt.getTime() > expiryMs;
+  if (isExpired) {
+    throw new BadRequestError("Verification token has expired. Please submit a new registration.");
   }
 
   if (registration.status === "PENDING_REVIEW") {
