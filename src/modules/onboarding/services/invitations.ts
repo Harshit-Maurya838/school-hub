@@ -43,11 +43,16 @@ export async function issueInvitation(params: IssueInvitationParams) {
   // Validate that no active platform Super Admin or customer user already claims this email
   const existingUser = await prisma.user.findUnique({
     where: { email: normalizedEmail },
-    select: { id: true, isActive: true, deletedAt: true },
+    select: { id: true, isActive: true, deletedAt: true, passwordHash: true, schoolId: true },
   });
 
   if (existingUser && existingUser.isActive && existingUser.deletedAt === null) {
-    throw new ConflictError("An active user account already exists with this email address");
+    if (existingUser.passwordHash !== null) {
+      throw new ConflictError("An active user account already exists with this email address");
+    }
+    if (existingUser.schoolId && existingUser.schoolId !== params.schoolId) {
+      throw new ConflictError("An account with this email already exists in another school");
+    }
   }
 
   // Ensure target school exists and is active
@@ -298,23 +303,60 @@ export async function acceptInvitation(params: AcceptInvitationParams) {
       where: { email: invitation.email },
     });
 
-    if (existingUser && existingUser.isActive && existingUser.deletedAt === null) {
+    if (
+      existingUser &&
+      existingUser.isActive &&
+      existingUser.deletedAt === null &&
+      existingUser.passwordHash !== null
+    ) {
       throw new ConflictError("An account with this email already exists");
     }
 
     const passwordHash = await hashPassword(params.password);
 
-    // Create the authenticated user record
-    const user = await tx.user.create({
-      data: {
-        name: params.name.trim(),
-        email: invitation.email,
-        passwordHash,
-        role: invitation.role,
-        schoolId: invitation.schoolId,
-        isActive: true,
-      },
-    });
+    // Create or update the authenticated user record
+    let user;
+    if (existingUser) {
+      user = await tx.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name: params.name.trim(),
+          passwordHash,
+          role: invitation.role,
+          schoolId: invitation.schoolId,
+          isActive: true,
+        },
+      });
+    } else {
+      user = await tx.user.create({
+        data: {
+          name: params.name.trim(),
+          email: invitation.email,
+          passwordHash,
+          role: invitation.role,
+          schoolId: invitation.schoolId,
+          isActive: true,
+        },
+      });
+    }
+
+    // If TEACHER role, ensure teacher profile exists
+    if (invitation.role === "TEACHER") {
+      const existingProfile = await tx.teacherProfile.findUnique({
+        where: { userId: user.id },
+      });
+      if (!existingProfile) {
+        await tx.teacherProfile.create({
+          data: {
+            schoolId: invitation.schoolId,
+            userId: user.id,
+            designation: "Instructor",
+            department: "General Academics",
+            status: "ACTIVE",
+          },
+        });
+      }
+    }
 
     // If PARENT role with guardianId, link guardian record
     if (invitation.role === "PARENT" && invitation.guardianId) {
@@ -400,4 +442,86 @@ export async function acceptInvitation(params: AcceptInvitationParams) {
   );
 
   return { user: result.user };
+}
+
+export interface ResendInvitationParams {
+  schoolId: string;
+  invitationId?: string;
+  email?: string;
+  invitedById?: string | null;
+  expiryHours?: number;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+/**
+ * Resends an existing or expired invitation.
+ * Invalidates any old pending tokens, creates a new token valid for 48 hours,
+ * dispatches the invitation email, and returns the new invitation & link.
+ */
+export async function resendInvitation(params: ResendInvitationParams) {
+  let targetEmail = params.email?.toLowerCase().trim();
+  let targetRole: Role = "TEACHER";
+  let guardianId: string | null = null;
+  let studentId: string | null = null;
+  let metadata: Record<string, unknown> | null = null;
+
+  if (params.invitationId) {
+    const existing = await prisma.invitation.findFirst({
+      where: { id: params.invitationId, schoolId: params.schoolId },
+    });
+    if (!existing) {
+      throw new NotFoundError("Invitation not found in this school");
+    }
+    if (existing.status === "ACCEPTED") {
+      throw new BadRequestError("This invitation has already been accepted");
+    }
+    targetEmail = existing.email;
+    targetRole = existing.role;
+    guardianId = existing.guardianId;
+    studentId = existing.studentId;
+    metadata = existing.metadata as Record<string, unknown> | null;
+  } else if (targetEmail) {
+    const existing = await prisma.invitation.findFirst({
+      where: { email: targetEmail, schoolId: params.schoolId },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      if (existing.status === "ACCEPTED") {
+        throw new BadRequestError("This invitation has already been accepted");
+      }
+      targetRole = existing.role;
+      guardianId = existing.guardianId;
+      studentId = existing.studentId;
+      metadata = existing.metadata as Record<string, unknown> | null;
+    } else {
+      const user = await prisma.user.findFirst({
+        where: { email: targetEmail, schoolId: params.schoolId },
+      });
+      if (user) {
+        targetRole = user.role;
+      }
+    }
+  } else {
+    throw new BadRequestError(
+      "Either invitationId or email must be provided to resend an invitation"
+    );
+  }
+
+  if (!targetEmail) {
+    throw new BadRequestError("Target email is required to resend invitation");
+  }
+
+  return await issueInvitation({
+    schoolId: params.schoolId,
+    email: targetEmail,
+    role: targetRole,
+    invitedById: params.invitedById,
+    guardianId,
+    studentId,
+    metadata,
+    expiryHours: params.expiryHours,
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+  });
 }
