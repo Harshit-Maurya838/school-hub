@@ -16,9 +16,7 @@ export const envSchema = z.object({
   ),
   APP_URL: z.preprocess(
     (val) =>
-      typeof val === "string" && val.trim() !== ""
-        ? val.trim()
-        : process.env.APP_URL || undefined,
+      typeof val === "string" && val.trim() !== "" ? val.trim() : process.env.APP_URL || undefined,
     z.string().url().default("http://localhost:3000")
   ),
 });

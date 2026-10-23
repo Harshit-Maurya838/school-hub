@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getAuthenticatedUser } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  title: "CampusPlus | Modern School Management Platform",
+  description:
+    "Enterprise-grade multi-tenant school management platform with role-based access control, strict tenant boundary isolation, and comprehensive academic workflows.",
+};
 
 export default async function Home() {
   const user = await getAuthenticatedUser();
@@ -13,7 +20,7 @@ export default async function Home() {
           Multi-Tenant SaaS
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-          Atenea School Management
+          CampusPlus School Management
         </h1>
         <p className="text-lg text-zinc-400">
           Enterprise multi-tenant education platform with role-based access control, strict tenant

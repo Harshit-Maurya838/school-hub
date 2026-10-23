@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAuthenticatedUser } from "@/lib/auth";
+
+export const metadata: Metadata = {
+  title: "Platform Administration",
+  description:
+    "Super Administrator console for managing educational institutions and onboarding applications on CampusPlus.",
+};
 import { prisma } from "@/lib/prisma";
 import {
   Building2,

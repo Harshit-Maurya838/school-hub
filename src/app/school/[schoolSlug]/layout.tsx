@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -8,6 +9,25 @@ interface SchoolLayoutProps {
   params: Promise<{
     schoolSlug: string;
   }>;
+}
+
+export async function generateMetadata({ params }: SchoolLayoutProps): Promise<Metadata> {
+  const { schoolSlug } = await params;
+  const school = await prisma.school.findUnique({
+    where: { slug: schoolSlug },
+    select: { name: true },
+  });
+
+  if (!school) {
+    return {
+      title: "School Portal",
+    };
+  }
+
+  return {
+    title: `${school.name} Portal`,
+    description: `Manage academics, attendance, examinations, and student life at ${school.name} on CampusPlus.`,
+  };
 }
 
 export default async function SchoolSlugLayout({ children, params }: SchoolLayoutProps) {
