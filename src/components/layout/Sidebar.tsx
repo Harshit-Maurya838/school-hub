@@ -89,7 +89,9 @@ export function Sidebar({
       icon: BookOpen,
       href: `/school/${schoolSlug}/academics`,
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
-      isActive: pathname.startsWith(`/school/${schoolSlug}/academics`),
+      isActive:
+        pathname.startsWith(`/school/${schoolSlug}/academics`) &&
+        !pathname.startsWith(`/school/${schoolSlug}/academics/sessions`),
     },
     {
       id: "staff",
@@ -134,12 +136,25 @@ export function Sidebar({
 
   const allManagementModules = [
     {
+      id: "academic-settings",
+      label: "Academic Settings",
+      icon: CalendarDays,
+      href: `/school/${schoolSlug}/settings/academic`,
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+      isActive:
+        pathname.startsWith(`/school/${schoolSlug}/settings/academic`) ||
+        pathname.startsWith(`/school/${schoolSlug}/academics/sessions`),
+    },
+    {
       id: "settings",
       label: "School Settings",
       icon: Settings,
       href: `/school/${schoolSlug}/settings`,
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
-      isActive: pathname.startsWith(`/school/${schoolSlug}/settings`),
+      isActive:
+        pathname === `/school/${schoolSlug}/settings` ||
+        (pathname.startsWith(`/school/${schoolSlug}/settings`) &&
+          !pathname.startsWith(`/school/${schoolSlug}/settings/academic`)),
     },
   ];
 

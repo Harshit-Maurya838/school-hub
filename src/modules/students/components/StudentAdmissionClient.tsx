@@ -250,7 +250,7 @@ export function StudentAdmissionClient({
               </div>
             </div>
             <Link
-              href={`/school/${schoolSlug}/academics/sessions`}
+              href={`/school/${schoolSlug}/settings/academic`}
               className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-amber-700"
             >
               <span>Configure Sessions</span>

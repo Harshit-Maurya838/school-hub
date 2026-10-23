@@ -221,7 +221,7 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
         title: "Active Academic Year Missing",
         description: "Configure and set an active academic calendar session.",
         priority: "high",
-        actionUrl: `/school/${school.slug}/academics/sessions`,
+        actionUrl: `/school/${school.slug}/settings/academic`,
         actionLabel: "Configure Year",
       });
     }
@@ -426,7 +426,7 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
               </p>
             </div>
             <Link
-              href={`/school/${school.slug}/academics/sessions`}
+              href={`/school/${school.slug}/settings/academic`}
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-800"
             >
               <span>Configure Academic Year</span>

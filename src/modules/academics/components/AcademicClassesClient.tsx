@@ -51,7 +51,7 @@ export function AcademicClassesClient({
   initialClasses,
   canCreate = true,
   blockedReason,
-  actionUrl = `/school/${schoolSlug}/academics/sessions`,
+  actionUrl = `/school/${schoolSlug}/settings/academic`,
   actionLabel = "Configure Academic Year",
 }: Props) {
   const router = useRouter();

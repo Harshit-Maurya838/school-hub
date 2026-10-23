@@ -251,8 +251,8 @@ export async function getAcademicSetupReadiness(
       isComplete: true,
       isBlocked: false,
       message: `Active Session: ${currentYear!.name}`,
-      actionUrl: `/school/${slug}/academics/sessions`,
-      actionLabel: "Manage Sessions",
+      actionUrl: `/school/${slug}/settings/academic`,
+      actionLabel: "Manage Academic Settings",
     };
   } else {
     academicYearStep = {
@@ -265,7 +265,7 @@ export async function getAcademicSetupReadiness(
         years.length > 0
           ? `${years.length} session(s) defined, but none is marked current. Mark a current year.`
           : "No active academic session configured. Create and activate a session.",
-      actionUrl: `/school/${slug}/academics/sessions`,
+      actionUrl: `/school/${slug}/settings/academic`,
       actionLabel: years.length > 0 ? "Set Current Session" : "Create Session",
     };
   }
@@ -291,7 +291,7 @@ export async function getAcademicSetupReadiness(
       isComplete: false,
       isBlocked: true,
       message: "Set up and activate an academic year before creating classes.",
-      actionUrl: `/school/${slug}/academics/sessions`,
+      actionUrl: `/school/${slug}/settings/academic`,
       actionLabel: "Configure Academic Year First",
     };
   } else if (classesCount > 0) {
@@ -339,7 +339,7 @@ export async function getAcademicSetupReadiness(
       isComplete: false,
       isBlocked: true,
       message: "Set up and activate an academic year before creating sections.",
-      actionUrl: `/school/${slug}/academics/sessions`,
+      actionUrl: `/school/${slug}/settings/academic`,
       actionLabel: "Configure Academic Year First",
     };
   } else if (classesCount === 0) {
@@ -398,7 +398,7 @@ export async function getAcademicSetupReadiness(
       isComplete: false,
       isBlocked: true,
       message: "Set up and activate an academic year before creating subjects.",
-      actionUrl: `/school/${slug}/academics/sessions`,
+      actionUrl: `/school/${slug}/settings/academic`,
       actionLabel: "Configure Academic Year First",
     };
   } else if (subjectsCount > 0) {

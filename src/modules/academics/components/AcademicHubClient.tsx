@@ -13,6 +13,8 @@ import {
   Clock,
   AlertCircle,
   Sparkles,
+  UserCheck,
+  Settings,
 } from "lucide-react";
 
 interface Props {
@@ -30,7 +32,7 @@ interface Props {
   recentYears: AcademicYearData[];
 }
 
-export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) {
+export function AcademicHubClient({ schoolSlug, overview }: Props) {
   const { currentYear, stats, readiness } = overview;
   const basePath = `/school/${schoolSlug}/academics`;
 
@@ -59,9 +61,11 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
           status: currentYear ? ("COMPLETE" as const) : ("PENDING" as const),
           isComplete: Boolean(currentYear),
           isBlocked: false,
-          message: currentYear ? `Active: ${currentYear.name}` : "No active session configured",
-          actionUrl: `${basePath}/sessions`,
-          actionLabel: "Configure Sessions",
+          message: currentYear
+            ? `Active: ${currentYear.name}`
+            : "Configure in Management > Academic Settings",
+          actionUrl: `/school/${schoolSlug}/settings/academic`,
+          actionLabel: "Academic Settings",
         },
         {
           id: "classes",
@@ -161,10 +165,10 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
               {currentYear ? "Operational" : "Setup needed"}
             </span>
             <Link
-              href={`${basePath}/sessions`}
+              href={`/school/${schoolSlug}/settings/academic`}
               className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
             >
-              <span>Manage</span>
+              <span>Management Settings</span>
               <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
@@ -326,15 +330,15 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
 
         {/* Quick Config Modules */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:col-span-2">
-          {/* Card 1: Academic Sessions */}
+          {/* Card 1: Faculty Assignments & Workload */}
           <Link
-            href={`${basePath}/sessions`}
+            href={`/school/${schoolSlug}/staff`}
             className="group flex flex-col justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
           >
             <div>
               <div className="flex items-center justify-between">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 font-bold text-emerald-700">
-                  <CalendarDays className="h-5 w-5" />
+                  <UserCheck className="h-5 w-5" />
                 </span>
                 <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 transition-transform group-hover:translate-x-0.5">
                   <span>Open</span>
@@ -342,15 +346,14 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
                 </span>
               </div>
               <h4 className="mt-4 text-base font-extrabold text-slate-900 group-hover:text-emerald-900">
-                Academic Sessions
+                Faculty Allocations
               </h4>
               <p className="mt-1 text-xs text-slate-500">
-                Configure school calendar years, designate the active operational session, and
-                prevent date conflicts.
+                Assign class teachers to sections and assign instructors to syllabus subjects.
               </p>
             </div>
             <div className="mt-4 border-t border-slate-100 pt-3 text-[11px] font-bold text-slate-400">
-              {stats.yearsCount} Total Session(s) Recorded
+              Manage Teaching Faculty & Workload &rarr;
             </div>
           </Link>
 
@@ -439,57 +442,33 @@ export function AcademicHubClient({ schoolSlug, overview, recentYears }: Props) 
         </div>
       </div>
 
-      {/* Recent Sessions Overview */}
-      {recentYears.length > 0 && (
-        <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      {/* Academic Settings Reference Banner */}
+      <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-xs">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <Settings className="h-5 w-5" />
+            </div>
             <div>
-              <h3 className="text-sm font-extrabold text-slate-900">Recent Academic Sessions</h3>
+              <h3 className="text-sm font-extrabold text-slate-900">
+                Academic Settings & Session Timelines
+              </h3>
               <p className="text-xs text-slate-400">
-                School calendar sessions and activation status
+                Academic years, date ranges, and session roll-over are managed under Management &gt;
+                Academic Settings.
               </p>
             </div>
-            <Link
-              href={`${basePath}/sessions`}
-              className="flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
-            >
-              <span>View All</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
           </div>
-          <div className="divide-y divide-slate-100">
-            {recentYears.slice(0, 4).map((year) => (
-              <div
-                key={year.id}
-                className="flex items-center justify-between rounded-xl px-2 py-3.5 text-sm transition hover:bg-slate-50/50"
-              >
-                <div>
-                  <div className="font-bold text-slate-900">{year.name}</div>
-                  <div className="text-xs text-slate-400">
-                    {new Date(year.startDate).toLocaleDateString(undefined, {
-                      dateStyle: "medium",
-                    })}{" "}
-                    &rarr;{" "}
-                    {new Date(year.endDate).toLocaleDateString(undefined, { dateStyle: "medium" })}
-                  </div>
-                </div>
-                <div>
-                  {year.isCurrent ? (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">
-                      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-600" />
-                      <span>Active Session</span>
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                      Archived / Inactive
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <Link
+            href={`/school/${schoolSlug}/settings/academic`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-slate-800"
+          >
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span>Open Academic Settings</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
-      )}
+      </div>
     </div>
   );
 }

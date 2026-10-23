@@ -108,17 +108,17 @@ export function GlobalSearchModal({
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
     },
     {
-      label: isTeacher ? "Curriculum & Grade Levels" : "Academic Setup & Overview",
+      label: isTeacher ? "Curriculum & Grade Levels" : "Class & Subjects",
       href: `/school/${schoolSlug}/academics`,
       icon: BookOpen,
       badge: "Academics",
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER"],
     },
     {
-      label: "Academic Sessions / Calendar",
-      href: `/school/${schoolSlug}/academics/sessions`,
+      label: "Academic Settings (Sessions & Years)",
+      href: `/school/${schoolSlug}/settings/academic`,
       icon: CalendarDays,
-      badge: "Sessions",
+      badge: "Management",
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
     },
     {

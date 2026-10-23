@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Shield,
   Sparkles,
+  CalendarDays,
 } from "lucide-react";
 import { SchoolDetailsReadiness } from "../services/school-readiness";
 
@@ -129,10 +130,18 @@ export function SchoolSettingsClient({
           </div>
 
           <Link
-            href={`/school/${schoolSlug}/academics`}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-all hover:scale-[1.02] hover:bg-emerald-800"
+            href={`/school/${schoolSlug}/settings/academic`}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-all hover:scale-[1.02] hover:bg-slate-800"
           >
-            <span>Academic Setup</span>
+            <CalendarDays className="h-3.5 w-3.5" />
+            <span>Academic Settings</span>
+          </Link>
+
+          <Link
+            href={`/school/${schoolSlug}/academics`}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50"
+          >
+            <span>Class & Subjects</span>
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -414,10 +423,10 @@ export function SchoolSettingsClient({
               </p>
               <div className="mt-3">
                 <Link
-                  href={`/school/${schoolSlug}/academics/sessions`}
+                  href={`/school/${schoolSlug}/settings/academic`}
                   className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-800"
                 >
-                  <span>Go to Academic Sessions</span>
+                  <span>Go to Academic Settings</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </Link>
               </div>

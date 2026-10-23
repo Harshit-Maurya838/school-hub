@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
-  CalendarDays,
   Layers,
   Grid,
   BookOpen,
@@ -44,25 +43,16 @@ export function AcademicNav({
   const roleName = getRoleDisplayName(userRole);
   const roleTheme = getRoleTheme(userRole);
 
-  const allNavItems = [
-    { label: "Overview", href: basePath, exact: true, icon: LayoutGrid, teacher: true },
-    {
-      label: "Academic Sessions",
-      href: `${basePath}/sessions`,
-      icon: CalendarDays,
-      teacher: false,
-    },
+  const navItems = [
+    { label: "Overview", href: basePath, exact: true, icon: LayoutGrid },
     {
       label: isTeacher ? "Curriculum Classes" : "Classes",
       href: `${basePath}/classes`,
       icon: Layers,
-      teacher: true,
     },
-    { label: "Sections", href: `${basePath}/sections`, icon: Grid, teacher: true },
-    { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen, teacher: true },
+    { label: "Sections", href: `${basePath}/sections`, icon: Grid },
+    { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen },
   ];
-
-  const navItems = isTeacher ? allNavItems.filter((item) => item.teacher) : allNavItems;
 
   return (
     <header className="mb-6 space-y-4">
@@ -77,20 +67,20 @@ export function AcademicNav({
               {schoolName} ({schoolCode})
             </Link>
             <span>/</span>
-            <span className="text-slate-800">Academics</span>
+            <span className="text-slate-800">Class & Subjects</span>
           </div>
           <h2 className="mt-1 font-sans text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
-            {isTeacher ? "Curriculum & Syllabus Directory" : "Academic Setup & Curriculum"}
+            {isTeacher ? "Curriculum & Syllabus Directory" : "Class & Subject Directory"}
           </h2>
           <p className="mt-0.5 text-xs text-slate-400">
             {isTeacher
               ? "Browse grade-level standards, section allocations, and subject course syllabi"
-              : "Configure academic sessions, grade standards, student sections, and subject syllabi"}
+              : "Manage grade standards, student sections, curriculum subjects, and teaching allocations"}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Prominent Active Academic Year Indicator */}
+          {/* Active Academic Year Indicator with Link to Management Academic Settings */}
           {currentYear ? (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 shadow-xs">
               <span className="relative flex h-2 w-2">
@@ -98,11 +88,28 @@ export function AcademicNav({
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600"></span>
               </span>
               <span>Active Session: {currentYear.name}</span>
+              {!isTeacher && (
+                <Link
+                  href={`/school/${schoolSlug}/settings/academic`}
+                  className="rounded-md bg-emerald-200/60 px-1.5 py-0.5 text-[10px] font-bold text-emerald-900 transition hover:bg-emerald-200"
+                  title="Configure in Management > Academic Settings"
+                >
+                  Settings &rarr;
+                </Link>
+              )}
             </div>
           ) : (
-            <div className="flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
+            <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800">
               <span className="h-2 w-2 rounded-full bg-amber-500"></span>
               <span>No Active Session Set</span>
+              {!isTeacher && (
+                <Link
+                  href={`/school/${schoolSlug}/settings/academic`}
+                  className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 transition hover:bg-amber-200"
+                >
+                  Configure &rarr;
+                </Link>
+              )}
             </div>
           )}
 
