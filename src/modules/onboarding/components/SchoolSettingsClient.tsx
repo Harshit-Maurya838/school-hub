@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Building2,
@@ -39,6 +39,7 @@ export function SchoolSettingsClient({
   userRole,
 }: Props) {
   const [activeTab, setActiveTab] = useState<"identity" | "readiness" | "appearance">("identity");
+  const [, startTabTransition] = useTransition();
   const [school, setSchool] = useState<SchoolData>(initialSchool);
   const [readiness, setReadiness] = useState<SchoolDetailsReadiness>(initialReadiness);
 
@@ -131,6 +132,7 @@ export function SchoolSettingsClient({
 
           <Link
             href={`/school/${schoolSlug}/settings/academic`}
+            prefetch={true}
             className="inline-flex items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition-all hover:scale-[1.02] hover:bg-slate-800"
           >
             <CalendarDays className="h-3.5 w-3.5" />
@@ -139,6 +141,7 @@ export function SchoolSettingsClient({
 
           <Link
             href={`/school/${schoolSlug}/academics`}
+            prefetch={true}
             className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50"
           >
             <span>Class & Subjects</span>
@@ -155,7 +158,11 @@ export function SchoolSettingsClient({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                startTabTransition(() => {
+                  setActiveTab(tab.id);
+                });
+              }}
               className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all ${
                 isActive
                   ? "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-xs"

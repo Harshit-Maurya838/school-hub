@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -326,6 +326,32 @@ export function AttendanceClient({
     return () => clearTimeout(timer);
   }, [activeTab, fetchHistory, fetchReports]);
 
+  const [, startTabTransition] = useTransition();
+
+  const handleTabSwitch = useCallback((tab: "register" | "history" | "reports") => {
+    startTabTransition(() => {
+      setActiveTab(tab);
+    });
+  }, []);
+
+  const handleTabHover = useCallback(
+    (tab: "register" | "history" | "reports") => {
+      if (tab === "history" && historicalRegisters.length === 0 && !isHistoryLoading) {
+        fetchHistory();
+      } else if (tab === "reports" && !reportsData && !isReportsLoading) {
+        fetchReports();
+      }
+    },
+    [
+      historicalRegisters.length,
+      isHistoryLoading,
+      fetchHistory,
+      reportsData,
+      isReportsLoading,
+      fetchReports,
+    ]
+  );
+
   // Real-time counting stats
   const stats = useMemo(() => {
     let present = 0;
@@ -600,7 +626,7 @@ export function AttendanceClient({
       <div className="flex border-b border-slate-200 text-xs font-bold text-slate-600">
         <button
           type="button"
-          onClick={() => setActiveTab("register")}
+          onClick={() => handleTabSwitch("register")}
           className={`flex items-center gap-2 border-b-2 px-4 py-2.5 transition-colors ${
             activeTab === "register"
               ? "border-emerald-700 text-emerald-800"
@@ -613,7 +639,9 @@ export function AttendanceClient({
 
         <button
           type="button"
-          onClick={() => setActiveTab("history")}
+          onClick={() => handleTabSwitch("history")}
+          onMouseEnter={() => handleTabHover("history")}
+          onTouchStart={() => handleTabHover("history")}
           className={`flex items-center gap-2 border-b-2 px-4 py-2.5 transition-colors ${
             activeTab === "history"
               ? "border-emerald-700 text-emerald-800"
@@ -626,7 +654,9 @@ export function AttendanceClient({
 
         <button
           type="button"
-          onClick={() => setActiveTab("reports")}
+          onClick={() => handleTabSwitch("reports")}
+          onMouseEnter={() => handleTabHover("reports")}
+          onTouchStart={() => handleTabHover("reports")}
           className={`flex items-center gap-2 border-b-2 px-4 py-2.5 transition-colors ${
             activeTab === "reports"
               ? "border-emerald-700 text-emerald-800"

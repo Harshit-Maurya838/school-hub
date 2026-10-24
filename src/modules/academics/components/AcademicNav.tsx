@@ -1,7 +1,8 @@
 "use client";
 
+import { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutGrid,
   Layers,
@@ -37,22 +38,48 @@ export function AcademicNav({
   isSchoolDetailsReady,
   schoolDetailsReason,
 }: AcademicNavProps) {
+  const router = useRouter();
   const pathname = usePathname() || "";
   const basePath = `/school/${schoolSlug}/academics`;
   const isTeacher = userRole === "TEACHER";
   const roleName = getRoleDisplayName(userRole);
   const roleTheme = getRoleTheme(userRole);
 
-  const navItems = [
-    { label: "Overview", href: basePath, exact: true, icon: LayoutGrid },
-    {
-      label: isTeacher ? "Curriculum Classes" : "Classes",
-      href: `${basePath}/classes`,
-      icon: Layers,
-    },
-    { label: "Sections", href: `${basePath}/sections`, icon: Grid },
-    { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen },
-  ];
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [, startNavTransition] = useTransition();
+
+  // Reset optimistic state during render whenever actual route change commits
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setPendingHref(null);
+  }
+
+  const navItems = useMemo(
+    () => [
+      { label: "Overview", href: basePath, exact: true, icon: LayoutGrid },
+      {
+        label: isTeacher ? "Curriculum Classes" : "Classes",
+        href: `${basePath}/classes`,
+        icon: Layers,
+      },
+      { label: "Sections", href: `${basePath}/sections`, icon: Grid },
+      { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen },
+    ],
+    [basePath, isTeacher]
+  );
+
+  // Pre-warm router cache for all academic tabs so clicks are instantaneous
+  useEffect(() => {
+    navItems.forEach((item) => {
+      router.prefetch(item.href);
+    });
+    router.prefetch(`/school/${schoolSlug}`);
+    router.prefetch(`/school/${schoolSlug}/settings/academic`);
+    router.prefetch(`/school/${schoolSlug}/settings`);
+  }, [router, navItems, schoolSlug]);
+
+  const effectivePath = pendingHref ?? pathname;
 
   return (
     <header className="mb-6 space-y-4">
@@ -62,6 +89,7 @@ export function AcademicNav({
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
             <Link
               href={`/school/${schoolSlug}`}
+              prefetch={true}
               className="transition-colors hover:text-emerald-700"
             >
               {schoolName} ({schoolCode})
@@ -91,6 +119,7 @@ export function AcademicNav({
               {!isTeacher && (
                 <Link
                   href={`/school/${schoolSlug}/settings/academic`}
+                  prefetch={true}
                   className="rounded-md bg-emerald-200/60 px-1.5 py-0.5 text-[10px] font-bold text-emerald-900 transition hover:bg-emerald-200"
                   title="Configure in Management > Academic Settings"
                 >
@@ -105,6 +134,7 @@ export function AcademicNav({
               {!isTeacher && (
                 <Link
                   href={`/school/${schoolSlug}/settings/academic`}
+                  prefetch={true}
                   className="rounded-md bg-amber-200/70 px-1.5 py-0.5 text-[10px] font-bold text-amber-900 transition hover:bg-amber-200"
                 >
                   Configure &rarr;
@@ -146,6 +176,7 @@ export function AcademicNav({
           </div>
           <Link
             href={`/school/${schoolSlug}/settings`}
+            prefetch={true}
             className="flex items-center gap-1 font-bold text-amber-800 underline hover:text-amber-950"
           >
             Complete School Profile &rarr;
@@ -156,13 +187,23 @@ export function AcademicNav({
       {/* Tabs */}
       <nav className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200/80 pb-2">
         {navItems.map((item) => {
-          const isActive = item.exact ? pathname === item.href : pathname?.startsWith(item.href);
+          const isActive = item.exact
+            ? effectivePath === item.href
+            : effectivePath?.startsWith(item.href);
           const Icon = item.icon;
 
           return (
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(item.href)}
+              onTouchStart={() => router.prefetch(item.href)}
+              onClick={() => {
+                startNavTransition(() => {
+                  setPendingHref(item.href);
+                });
+              }}
               className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
                 isActive
                   ? "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-xs"

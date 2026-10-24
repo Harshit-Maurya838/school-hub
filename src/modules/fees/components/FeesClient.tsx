@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useTransition } from "react";
 import {
   CreditCard,
   Calendar,
@@ -258,8 +258,14 @@ export function FeesClient({
   allAcademicYears,
   classes,
 }: FeesClientProps) {
-  // Navigation Tabs
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [, startTabTransition] = useTransition();
+
+  const handleTabSwitch = useCallback((tab: TabType) => {
+    startTabTransition(() => {
+      setActiveTab(tab);
+    });
+  }, []);
 
   // Filter States
   const [selectedYearId, setSelectedYearId] = useState<string>(activeAcademicYear?.id || "");
@@ -930,7 +936,7 @@ export function FeesClient({
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabSwitch(tab.id)}
               className={`flex cursor-pointer items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-bold whitespace-nowrap transition-colors ${
                 isActive
                   ? "rounded-t-xl border-amber-600 bg-amber-50/50 text-amber-700"

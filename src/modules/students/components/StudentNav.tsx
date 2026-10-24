@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Users, UserPlus, CalendarDays, Shield } from "lucide-react";
 import {
   getRoleDisplayName,
@@ -22,15 +22,34 @@ export interface StudentNavProps {
 }
 
 export function StudentNav({ schoolSlug, schoolName, userRole, currentYear }: StudentNavProps) {
+  const router = useRouter();
   const pathname = usePathname() || "";
   const basePath = `/school/${schoolSlug}/students`;
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const [, startNavTransition] = useTransition();
 
-  const isDirectory = pathname === basePath;
-  const isNewAdmission = pathname === `${basePath}/new`;
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setPendingHref(null);
+  }
 
   const canManage = canManageStudents(userRole);
   const roleName = getRoleDisplayName(userRole);
   const roleTheme = getRoleTheme(userRole);
+
+  // Pre-warm router cache for student tabs
+  useEffect(() => {
+    router.prefetch(basePath);
+    if (canManage) {
+      router.prefetch(`${basePath}/new`);
+    }
+    router.prefetch(`/school/${schoolSlug}`);
+  }, [router, basePath, canManage, schoolSlug]);
+
+  const effectivePath = pendingHref ?? pathname;
+  const isDirectory = effectivePath === basePath;
+  const isNewAdmission = effectivePath === `${basePath}/new`;
 
   return (
     <div className="mb-6 space-y-4">
@@ -40,6 +59,7 @@ export function StudentNav({ schoolSlug, schoolName, userRole, currentYear }: St
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
             <Link
               href={`/school/${schoolSlug}`}
+              prefetch={true}
               className="transition-colors hover:text-emerald-700"
             >
               {schoolName}
@@ -77,6 +97,14 @@ export function StudentNav({ schoolSlug, schoolName, userRole, currentYear }: St
           {canManage && (
             <Link
               href={`${basePath}/new`}
+              prefetch={true}
+              onMouseEnter={() => router.prefetch(`${basePath}/new`)}
+              onTouchStart={() => router.prefetch(`${basePath}/new`)}
+              onClick={() => {
+                startNavTransition(() => {
+                  setPendingHref(`${basePath}/new`);
+                });
+              }}
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs shadow-emerald-700/20 transition-all hover:scale-[1.02] hover:bg-emerald-800"
             >
               <UserPlus className="h-4 w-4" />
@@ -90,6 +118,14 @@ export function StudentNav({ schoolSlug, schoolName, userRole, currentYear }: St
       <nav className="flex items-center gap-2 border-b border-slate-200/80 pb-2">
         <Link
           href={basePath}
+          prefetch={true}
+          onMouseEnter={() => router.prefetch(basePath)}
+          onTouchStart={() => router.prefetch(basePath)}
+          onClick={() => {
+            startNavTransition(() => {
+              setPendingHref(basePath);
+            });
+          }}
           className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
             isDirectory
               ? "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-xs"
@@ -102,6 +138,14 @@ export function StudentNav({ schoolSlug, schoolName, userRole, currentYear }: St
         {canManage && (
           <Link
             href={`${basePath}/new`}
+            prefetch={true}
+            onMouseEnter={() => router.prefetch(`${basePath}/new`)}
+            onTouchStart={() => router.prefetch(`${basePath}/new`)}
+            onClick={() => {
+              startNavTransition(() => {
+                setPendingHref(`${basePath}/new`);
+              });
+            }}
             className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition-all ${
               isNewAdmission
                 ? "border border-emerald-200 bg-emerald-50 text-emerald-800 shadow-xs"

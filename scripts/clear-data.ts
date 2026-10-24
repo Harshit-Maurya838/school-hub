@@ -1,3 +1,4 @@
+// node --env-file=.env --import tsx scripts/clear-data.ts
 import { prisma } from "../src/lib/prisma";
 import { hashPassword } from "../src/lib/password";
 

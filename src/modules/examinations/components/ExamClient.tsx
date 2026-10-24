@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useTransition } from "react";
 import Link from "next/link";
 import {
   GraduationCap,
@@ -411,6 +411,34 @@ export function ExamClient({
     return () => clearTimeout(timer);
   }, [activeTab, selectedExamId, fetchReports]);
 
+  const [, startTabTransition] = useTransition();
+
+  const handleTabSwitch = useCallback((tab: "exams" | "marks" | "reviews" | "reports") => {
+    startTabTransition(() => {
+      setActiveTab(tab);
+    });
+  }, []);
+
+  const handleTabHover = useCallback(
+    (tab: "exams" | "marks" | "reviews" | "reports") => {
+      if (tab === "reports" && selectedExamId && !reportsData && !loadingReports) {
+        fetchReports(selectedExamId);
+      } else if (tab === "marks" && selectedSubjectOption && !roster && !loadingRoster) {
+        fetchMarksRoster();
+      }
+    },
+    [
+      selectedExamId,
+      reportsData,
+      loadingReports,
+      fetchReports,
+      selectedSubjectOption,
+      roster,
+      loadingRoster,
+      fetchMarksRoster,
+    ]
+  );
+
   // ==========================================================================
   // Handlers for Marks Entry
   // ==========================================================================
@@ -813,7 +841,7 @@ export function ExamClient({
         <div className="mt-6 flex border-b border-slate-100">
           <button
             type="button"
-            onClick={() => setActiveTab("exams")}
+            onClick={() => handleTabSwitch("exams")}
             className={`cursor-pointer pb-3 text-xs font-bold transition-colors ${
               activeTab === "exams"
                 ? "border-b-2 border-blue-600 text-blue-600"
@@ -826,7 +854,9 @@ export function ExamClient({
 
           <button
             type="button"
-            onClick={() => setActiveTab("marks")}
+            onClick={() => handleTabSwitch("marks")}
+            onMouseEnter={() => handleTabHover("marks")}
+            onTouchStart={() => handleTabHover("marks")}
             className={`cursor-pointer pb-3 text-xs font-bold transition-colors ${
               activeTab === "marks"
                 ? "border-b-2 border-blue-600 text-blue-600"
@@ -840,7 +870,7 @@ export function ExamClient({
           {isAdmin && (
             <button
               type="button"
-              onClick={() => setActiveTab("reviews")}
+              onClick={() => handleTabSwitch("reviews")}
               className={`cursor-pointer pb-3 text-xs font-bold transition-colors ${
                 activeTab === "reviews"
                   ? "border-b-2 border-blue-600 text-blue-600"
@@ -854,7 +884,9 @@ export function ExamClient({
 
           <button
             type="button"
-            onClick={() => setActiveTab("reports")}
+            onClick={() => handleTabSwitch("reports")}
+            onMouseEnter={() => handleTabHover("reports")}
+            onTouchStart={() => handleTabHover("reports")}
             className={`cursor-pointer pb-3 text-xs font-bold transition-colors ${
               activeTab === "reports"
                 ? "border-b-2 border-blue-600 text-blue-600"

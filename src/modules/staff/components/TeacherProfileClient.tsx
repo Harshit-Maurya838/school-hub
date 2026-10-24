@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -34,6 +34,7 @@ export function TeacherProfileClient({ schoolSlug, initialTeacher, canEdit = tru
   const router = useRouter();
   const [teacher, setTeacher] = useState<TeacherDetail>(initialTeacher);
   const [activeTab, setActiveTab] = useState<"assignments" | "history" | "details">("assignments");
+  const [, startTabTransition] = useTransition();
 
   // Edit Modal State
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -353,7 +354,7 @@ export function TeacherProfileClient({ schoolSlug, initialTeacher, canEdit = tru
         {/* Tab Navigation */}
         <div className="mt-8 flex border-b border-slate-100">
           <button
-            onClick={() => setActiveTab("assignments")}
+            onClick={() => startTabTransition(() => setActiveTab("assignments"))}
             className={`border-b-2 px-5 py-3 text-xs font-extrabold transition-colors ${
               activeTab === "assignments"
                 ? "border-emerald-600 text-emerald-800"
@@ -363,7 +364,7 @@ export function TeacherProfileClient({ schoolSlug, initialTeacher, canEdit = tru
             Current Assignments ({currentYear?.name || "Active Session"})
           </button>
           <button
-            onClick={() => setActiveTab("history")}
+            onClick={() => startTabTransition(() => setActiveTab("history"))}
             className={`border-b-2 px-5 py-3 text-xs font-extrabold transition-colors ${
               activeTab === "history"
                 ? "border-emerald-600 text-emerald-800"
@@ -373,7 +374,7 @@ export function TeacherProfileClient({ schoolSlug, initialTeacher, canEdit = tru
             Assignment History ({teacher.assignmentHistory.length})
           </button>
           <button
-            onClick={() => setActiveTab("details")}
+            onClick={() => startTabTransition(() => setActiveTab("details"))}
             className={`border-b-2 px-5 py-3 text-xs font-extrabold transition-colors ${
               activeTab === "details"
                 ? "border-emerald-600 text-emerald-800"

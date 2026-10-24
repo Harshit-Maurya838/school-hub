@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
@@ -40,7 +40,18 @@ export function Sidebar({
   session = "Current Session",
   userRole = "SCHOOL_ADMIN",
 }: SidebarProps) {
-  const pathname = usePathname() || "";
+  const router = useRouter();
+  const rawPathname = usePathname() || "";
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [prevPathname, setPrevPathname] = useState(rawPathname);
+  const [, startNavTransition] = useTransition();
+
+  if (rawPathname !== prevPathname) {
+    setPrevPathname(rawPathname);
+    setPendingHref(null);
+  }
+
+  const pathname = pendingHref ?? rawPathname;
   const roleTheme = getRoleTheme(userRole);
   const roleName = getRoleDisplayName(userRole);
 
@@ -160,6 +171,22 @@ export function Sidebar({
 
   const managementModules = allManagementModules.filter((m) => m.roles.includes(userRole));
 
+  // Pre-warm router cache for accessible modules so sidebar navigation is instant
+  useEffect(() => {
+    const accessibleHrefs = [
+      `/school/${schoolSlug}`,
+      `/school/${schoolSlug}/attendance`,
+      `/school/${schoolSlug}/students`,
+      `/school/${schoolSlug}/academics`,
+      `/school/${schoolSlug}/staff`,
+      `/school/${schoolSlug}/fees`,
+      `/school/${schoolSlug}/exams`,
+      `/school/${schoolSlug}/settings/academic`,
+      `/school/${schoolSlug}/settings`,
+    ];
+    accessibleHrefs.forEach((href) => router.prefetch(href));
+  }, [router, schoolSlug]);
+
   const renderNavItem = (item: {
     id: string;
     label: string;
@@ -175,7 +202,15 @@ export function Sidebar({
       <Link
         key={item.id}
         href={item.href}
-        onClick={() => setIsMobileOpen?.(false)}
+        prefetch={true}
+        onMouseEnter={() => router.prefetch(item.href)}
+        onTouchStart={() => router.prefetch(item.href)}
+        onClick={() => {
+          startNavTransition(() => {
+            setPendingHref(item.href);
+          });
+          setIsMobileOpen?.(false);
+        }}
         title={isCollapsed ? item.label : undefined}
         className={`group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-150 ${
           item.isActive
