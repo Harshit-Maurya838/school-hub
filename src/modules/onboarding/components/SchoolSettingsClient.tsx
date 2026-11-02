@@ -138,24 +138,6 @@ export function SchoolSettingsClient({
         aria-label="Profile actions"
         className="shadow-card flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
       >
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-lg font-bold text-slate-900">
-              {profile.identity.name || school.name}
-            </p>
-            {isLocked ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
-                <Lock className="h-3 w-3" aria-hidden="true" />
-                Locked
-              </span>
-            ) : (
-              <SectionState saved={profile.isComplete} />
-            )}
-          </div>
-          <p className="mt-0.5 text-xs text-slate-500">
-            UDISE+ master school profile · <span className="font-mono">{school.code}</span>
-          </p>
-        </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           {mode === "edit" ? (
@@ -227,18 +209,6 @@ export function SchoolSettingsClient({
         >
           <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
           {lockMessage.text}
-        </p>
-      )}
-
-      {isLocked && (
-        <p className="flex items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white px-5 py-3.5 text-sm text-slate-700">
-          <Lock className="h-4 w-4 shrink-0 text-slate-500" aria-hidden="true" />
-          <span>
-            This profile is locked
-            {profile.lock.lockedByName && <> by {profile.lock.lockedByName}</>}
-            {lockedOn && <> on {lockedOn}</>}.{" "}
-            {canLock ? "Unlock it to make changes." : "Ask a school administrator to unlock it."}
-          </span>
         </p>
       )}
 
