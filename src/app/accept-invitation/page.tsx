@@ -2,6 +2,22 @@
 
 import React, { useState, useEffect, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { TriangleAlert } from "lucide-react";
+import { PublicShell, PublicSheetHeader } from "@/components/layout/PublicShell";
+import {
+  FieldError,
+  IconTile,
+  Notice,
+  PasswordToggle,
+  PublicLoading,
+  Spinner,
+  inputClass,
+  labelClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from "@/components/common/FormControls";
+import { getRoleDisplayName, getRoleTheme } from "@/modules/auth/services/role-ui";
 
 interface InvitationData {
   id: string;
@@ -131,209 +147,141 @@ function AcceptInvitationContent() {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 font-sans text-zinc-300">
-        <div className="flex items-center gap-3">
-          <svg className="h-6 w-6 animate-spin text-indigo-500" fill="none" viewBox="0 0 24 24">
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-            />
-          </svg>
-          <span>Verifying invitation security token...</span>
-        </div>
-      </div>
-    );
+    return <PublicLoading label="Checking your invitation…" />;
   }
 
   if (loadError || !invitation) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-12 font-sans text-zinc-100">
-        <div className="w-full max-w-md rounded-2xl border border-red-900/50 bg-zinc-900/90 p-8 text-center shadow-2xl">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-red-950/60 text-red-400">
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-white">Invalid Invitation</h2>
-          <p className="mt-2 text-sm text-zinc-400">{loadError}</p>
-          <div className="mt-6">
-            <a
-              href="/login"
-              className="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
-            >
-              Return to Login
-            </a>
-          </div>
+      <PublicShell>
+        <PublicSheetHeader
+          icon={<IconTile icon={TriangleAlert} tone="alert" />}
+          title="This invitation can’t be used"
+        >
+          {loadError}
+        </PublicSheetHeader>
+        <div className="mt-6">
+          <Link href="/login" className={secondaryButtonClass}>
+            Back to sign in
+          </Link>
         </div>
-      </div>
+      </PublicShell>
     );
   }
 
+  const roleTheme = getRoleTheme(invitation.role);
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 py-12 font-sans text-zinc-100 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-6 rounded-2xl border border-zinc-800 bg-zinc-900/90 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-500/30 bg-indigo-600/20 text-indigo-400">
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="2"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-          </div>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight text-white">
-            Activate Your Account
-          </h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            Join <span className="font-semibold text-indigo-300">{invitation.schoolName}</span>
-          </p>
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-zinc-700 bg-zinc-800/80 px-3 py-1 text-xs text-zinc-300">
-            <span className="font-mono text-indigo-400">{invitation.role}</span>
-            <span>•</span>
-            <span>{invitation.email}</span>
-          </div>
+    <PublicShell>
+      <PublicSheetHeader title="Activate your account">
+        You’ve been invited to join{" "}
+        <span className="font-semibold text-slate-900">{invitation.schoolName}</span>.
+      </PublicSheetHeader>
+
+      <dl className="mt-5 grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-2.5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+        <dt className="text-xs font-bold tracking-wider text-slate-500 uppercase">Role</dt>
+        <dd>
+          <span
+            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
+          >
+            {getRoleDisplayName(invitation.role)}
+          </span>
+        </dd>
+        <dt className="text-xs font-bold tracking-wider text-slate-500 uppercase">Email</dt>
+        <dd className="min-w-0 truncate font-medium text-slate-800">{invitation.email}</dd>
+      </dl>
+
+      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+        {formError && <Notice>{formError}</Notice>}
+
+        <div>
+          <label htmlFor="name" className={labelClass}>
+            Full name
+          </label>
+          <input
+            id="name"
+            type="text"
+            autoComplete="name"
+            required
+            disabled={isPending}
+            value={name}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: undefined });
+            }}
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? "name-error" : undefined}
+            className={inputClass(Boolean(fieldErrors.name))}
+            placeholder="e.g. Priya Nair"
+          />
+          <FieldError id="name-error">{fieldErrors.name}</FieldError>
         </div>
 
-        {formError && (
-          <div
-            role="alert"
-            className="rounded-lg border border-red-900/50 bg-red-950/40 p-3 text-sm text-red-300"
-          >
-            {formError}
-          </div>
-        )}
-
-        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-zinc-200">
-              Your Full Name
-            </label>
+        <div>
+          <label htmlFor="password" className={labelClass}>
+            Choose a password
+          </label>
+          <div className="relative">
             <input
-              id="name"
-              type="text"
-              required
-              disabled={isPending}
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: undefined });
-              }}
-              className={`mt-1 block w-full rounded-lg border bg-zinc-800/80 px-3.5 py-2.5 text-white placeholder-zinc-500 shadow-sm transition focus:ring-2 focus:outline-none ${
-                fieldErrors.name
-                  ? "border-red-500 focus:ring-red-500/20"
-                  : "border-zinc-700 focus:ring-indigo-500/20"
-              }`}
-              placeholder="e.g. Jane Doe"
-            />
-            {fieldErrors.name && <p className="mt-1 text-xs text-red-400">{fieldErrors.name}</p>}
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-zinc-200">
-              Choose Password
-            </label>
-            <div className="relative mt-1">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                required
-                disabled={isPending}
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined });
-                }}
-                className={`block w-full rounded-lg border bg-zinc-800/80 px-3.5 py-2.5 pr-10 text-white placeholder-zinc-500 shadow-sm transition focus:ring-2 focus:outline-none ${
-                  fieldErrors.password
-                    ? "border-red-500 focus:ring-red-500/20"
-                    : "border-zinc-700 focus:ring-indigo-500/20"
-                }`}
-                placeholder="Min. 8 characters (1 uppercase, 1 number)"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400 hover:text-zinc-200"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-            {fieldErrors.password && (
-              <p className="mt-1 text-xs text-red-400">{fieldErrors.password}</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-zinc-200">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
+              id="password"
               type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
               required
               disabled={isPending}
-              value={confirmPassword}
+              value={password}
               onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                if (fieldErrors.confirmPassword)
-                  setFieldErrors({ ...fieldErrors, confirmPassword: undefined });
+                setPassword(e.target.value);
+                if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: undefined });
               }}
-              className={`mt-1 block w-full rounded-lg border bg-zinc-800/80 px-3.5 py-2.5 text-white placeholder-zinc-500 shadow-sm transition focus:ring-2 focus:outline-none ${
-                fieldErrors.confirmPassword
-                  ? "border-red-500 focus:ring-red-500/20"
-                  : "border-zinc-700 focus:ring-indigo-500/20"
-              }`}
-              placeholder="Re-enter password"
+              aria-invalid={Boolean(fieldErrors.password)}
+              aria-describedby={`password-hint${fieldErrors.password ? " password-error" : ""}`}
+              className={inputClass(Boolean(fieldErrors.password), "pr-11")}
             />
-            {fieldErrors.confirmPassword && (
-              <p className="mt-1 text-xs text-red-400">{fieldErrors.confirmPassword}</p>
-            )}
+            <PasswordToggle shown={showPassword} onToggle={() => setShowPassword(!showPassword)} />
           </div>
+          {fieldErrors.password ? (
+            <FieldError id="password-error">{fieldErrors.password}</FieldError>
+          ) : (
+            <p id="password-hint" className="mt-1.5 text-xs text-slate-500">
+              At least 8 characters, with one uppercase letter and one number.
+            </p>
+          )}
+        </div>
 
-          <button
-            type="submit"
+        <div>
+          <label htmlFor="confirmPassword" className={labelClass}>
+            Confirm password
+          </label>
+          <input
+            id="confirmPassword"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            required
             disabled={isPending}
-            className="flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-500 focus:ring-2 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isPending ? "Setting up account..." : "Complete Setup & Sign In"}
-          </button>
-        </form>
-      </div>
-    </div>
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              if (fieldErrors.confirmPassword)
+                setFieldErrors({ ...fieldErrors, confirmPassword: undefined });
+            }}
+            aria-invalid={Boolean(fieldErrors.confirmPassword)}
+            aria-describedby={fieldErrors.confirmPassword ? "confirmPassword-error" : undefined}
+            className={inputClass(Boolean(fieldErrors.confirmPassword))}
+          />
+          <FieldError id="confirmPassword-error">{fieldErrors.confirmPassword}</FieldError>
+        </div>
+
+        <button type="submit" disabled={isPending} className={`w-full ${primaryButtonClass}`}>
+          {isPending && <Spinner />}
+          {isPending ? "Setting up your account…" : "Activate and sign in"}
+        </button>
+      </form>
+    </PublicShell>
   );
 }
 
 export default function AcceptInvitationPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-zinc-400">
-          Loading invitation portal...
-        </div>
-      }
-    >
+    <Suspense fallback={<PublicLoading label="Loading invitation…" />}>
       <AcceptInvitationContent />
     </Suspense>
   );

@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 const siteUrl = process.env.APP_URL || "http://localhost:3000";
 
 export const viewport: Viewport = {
-  themeColor: "#09090b",
+  themeColor: "#f8fafc",
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
@@ -24,16 +24,16 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "CampusPlus | Modern School Management Platform",
-    template: "%s | CampusPlus",
+    default: "Classic Giga | School Management for K-12 Schools",
+    template: "%s | Classic Giga",
   },
   description:
-    "CampusPlus is an enterprise-grade multi-tenant school management platform featuring academic years, attendance tracking, examinations, student profiles, and fee collections.",
-  applicationName: "CampusPlus",
-  authors: [{ name: "CampusPlus Team" }],
+    "Classic Giga is an enterprise-grade multi-tenant school management platform featuring academic years, attendance tracking, examinations, student profiles, and fee collections.",
+  applicationName: "Classic Giga",
+  authors: [{ name: "Classic Giga Team" }],
   generator: "Next.js",
   keywords: [
-    "CampusPlus",
+    "Classic Giga",
     "School Management System",
     "Education SaaS",
     "School ERP",
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     "Multi-tenant Education",
   ],
   referrer: "origin-when-cross-origin",
-  creator: "CampusPlus",
-  publisher: "CampusPlus",
+  creator: "Classic Giga",
+  publisher: "Classic Giga",
   formatDetection: {
     email: false,
     address: false,
@@ -56,17 +56,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "CampusPlus",
-    title: "CampusPlus | Modern School Management Platform",
+    siteName: "Classic Giga",
+    title: "Classic Giga | School Management for K-12 Schools",
     description:
       "Enterprise-grade multi-tenant school management platform for academic administration, attendance registers, examinations, and fee collections.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "CampusPlus | Modern School Management Platform",
+    title: "Classic Giga | School Management for K-12 Schools",
     description:
       "Enterprise-grade multi-tenant school management platform for academic administration, attendance registers, examinations, and fee collections.",
-    creator: "@CampusPlus",
   },
   robots: {
     index: true,

@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: SchoolLayoutProps): Promise<M
 
   return {
     title: `${school.name} Portal`,
-    description: `Manage academics, attendance, examinations, and student life at ${school.name} on CampusPlus.`,
+    description: `Manage academics, attendance, examinations, and student life at ${school.name} on Classic Giga.`,
   };
 }
 

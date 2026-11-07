@@ -1,0 +1,520 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-07T14:58:24.434874+00:00",
+  "title": "Design System: Classic Giga",
+  "extensions": {
+    "colorMeta": {
+      "register-green": {
+        "role": "primary",
+        "displayName": "Register Green",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "register-green-deep": {
+        "role": "primary",
+        "displayName": "Register Green Deep",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "register-green-bright": {
+        "role": "primary",
+        "displayName": "Register Green Bright",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "register-green-wash": {
+        "role": "primary",
+        "displayName": "Register Green Wash",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "register-green-rule": {
+        "role": "primary",
+        "displayName": "Register Green Rule",
+        "tonalRamp": [
+          "#022c22",
+          "#064e3b",
+          "#065f46",
+          "#047857",
+          "#059669",
+          "#34d399",
+          "#a7f3d0",
+          "#ecfdf5"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "ink-strong": {
+        "role": "neutral",
+        "displayName": "Ink Strong",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "ink-body": {
+        "role": "neutral",
+        "displayName": "Ink Body",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Ink Muted",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "ink-faint": {
+        "role": "neutral",
+        "displayName": "Ink Faint",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "hairline-soft": {
+        "role": "neutral",
+        "displayName": "Hairline Soft",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "#020617",
+          "#0f172a",
+          "#1e293b",
+          "#334155",
+          "#64748b",
+          "#94a3b8",
+          "#e2e8f0",
+          "#f8fafc"
+        ]
+      },
+      "register-paper": {
+        "role": "tertiary",
+        "displayName": "Register Paper",
+        "tonalRamp": [
+          "#3a3426",
+          "#5c5440",
+          "#857a5f",
+          "#b0a487",
+          "#d6cdb5",
+          "#ebe5d6",
+          "#f1eee6",
+          "#fffdf7"
+        ]
+      },
+      "register-ruling": {
+        "role": "tertiary",
+        "displayName": "Register Ruling",
+        "tonalRamp": [
+          "#3a3426",
+          "#5c5440",
+          "#857a5f",
+          "#b0a487",
+          "#d6cdb5",
+          "#ebe5d6",
+          "#f1eee6",
+          "#fffdf7"
+        ]
+      },
+      "pending-wash": {
+        "role": "status",
+        "displayName": "Pending Wash",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      },
+      "pending-rule": {
+        "role": "status",
+        "displayName": "Pending Rule",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      },
+      "pending-ink": {
+        "role": "status",
+        "displayName": "Pending Ink",
+        "tonalRamp": [
+          "#451a03",
+          "#78350f",
+          "#92400e",
+          "#b45309",
+          "#d97706",
+          "#fbbf24",
+          "#fde68a",
+          "#fffbeb"
+        ]
+      },
+      "alert-wash": {
+        "role": "status",
+        "displayName": "Alert Wash",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fb7185",
+          "#fecdd3",
+          "#fff1f2"
+        ]
+      },
+      "alert-rule": {
+        "role": "status",
+        "displayName": "Alert Rule",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fb7185",
+          "#fecdd3",
+          "#fff1f2"
+        ]
+      },
+      "alert-ink": {
+        "role": "status",
+        "displayName": "Alert Ink",
+        "tonalRamp": [
+          "#4c0519",
+          "#881337",
+          "#9f1239",
+          "#be123c",
+          "#e11d48",
+          "#fb7185",
+          "#fecdd3",
+          "#fff1f2"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "page-title": {
+        "displayName": "Page Title",
+        "purpose": "One per page; also stat figures."
+      },
+      "section-title": {
+        "displayName": "Section Title",
+        "purpose": "Card headers and modal titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Navigation, prose, explanations."
+      },
+      "body-compact": {
+        "displayName": "Body Compact",
+        "purpose": "Working size for tables, fields, buttons, badges."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase tracked captions and table headers."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Geist Mono for IDs, receipt numbers, ₹ amounts."
+      },
+      "register-title": {
+        "displayName": "Register Title",
+        "purpose": "Serif; only inside the register notebook."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 1px 3px 0 rgba(0,0,0,0.05), 0 1px 2px -1px rgba(0,0,0,0.05)",
+        "purpose": "Resting cards (--shadow-card)."
+      },
+      {
+        "name": "raised-sheet",
+        "value": "0 10px 15px -3px rgba(0,0,0,0.07), 0 4px 6px -4px rgba(0,0,0,0.05)",
+        "purpose": "Hover on cards that open something (--shadow-card-hover)."
+      },
+      {
+        "name": "notebook",
+        "value": "0 4px 20px -2px rgba(0,0,0,0.08), 0 2px 6px -1px rgba(0,0,0,0.04)",
+        "purpose": "Register notebook at rest."
+      },
+      {
+        "name": "overlay",
+        "value": "0 25px 50px -12px rgba(0,0,0,0.25)",
+        "purpose": "Modals and dialogs only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state",
+        "value": "150ms ease",
+        "purpose": "Color/background changes on hover and focus."
+      },
+      {
+        "name": "shell",
+        "value": "300ms ease-in-out",
+        "purpose": "Sidebar collapse and mobile slide-in."
+      },
+      {
+        "name": "notebook-lift",
+        "value": "250ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Register notebook hover lift."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action per view.",
+      "html": "<button class=\"ds-btn-primary\">Submit Register</button>",
+      "css": ".ds-btn-primary { font-family: Geist, ui-sans-serif, system-ui, sans-serif; background:#047857; color:#fff; border:none; border-radius:12px; padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; transition:background-color .15s; } .ds-btn-primary:hover { background:#065f46; } .ds-btn-primary:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(16,185,129,.2), 0 0 0 1px #047857; } .ds-btn-primary:disabled { opacity:.5; cursor:not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Cancel, export, and supporting actions.",
+      "html": "<button class=\"ds-btn-secondary\">Cancel</button>",
+      "css": ".ds-btn-secondary { font-family: Geist, ui-sans-serif, system-ui, sans-serif; background:#fff; color:#334155; border:1px solid #e2e8f0; border-radius:12px; padding:8px 16px; font-size:12px; font-weight:700; cursor:pointer; transition:background-color .15s; } .ds-btn-secondary:hover { background:#f8fafc; } .ds-btn-secondary:focus-visible { outline:none; box-shadow:0 0 0 2px rgba(16,185,129,.2); border-color:#10b981; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "Labelled form input with green focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Admission Number</span><input class=\"ds-input\" placeholder=\"ADM-2026-0142\"></label>",
+      "css": ".ds-field { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display:flex; flex-direction:column; gap:4px; width:260px; } .ds-field-label { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#64748b; } .ds-input { font-family:'Geist Mono',ui-monospace,monospace; background:#fff; color:#1e293b; border:1px solid #e2e8f0; border-radius:12px; padding:8px 14px; font-size:12px; transition:border-color .15s, box-shadow .15s; } .ds-input::placeholder { color:#94a3b8; } .ds-input:focus { outline:none; border-color:#10b981; box-shadow:0 0 0 2px rgba(16,185,129,.2); }"
+    },
+    {
+      "name": "Status Badges",
+      "kind": "chip",
+      "refersTo": "badge-active",
+      "description": "Fixed semantic status inks.",
+      "html": "<div class=\"ds-badges\"><span class=\"ds-badge ds-badge-ok\">Submitted</span><span class=\"ds-badge ds-badge-pending\">Draft</span><span class=\"ds-badge ds-badge-alert\">Absent</span><span class=\"ds-badge\">Inactive</span></div>",
+      "css": ".ds-badges { display:flex; gap:8px; } .ds-badge { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display:inline-flex; align-items:center; border-radius:9999px; border:1px solid #e2e8f0; background:#f1f5f9; color:#334155; padding:4px 10px; font-size:12px; font-weight:600; } .ds-badge-ok { background:#ecfdf5; color:#047857; border-color:#a7f3d0; } .ds-badge-pending { background:#fffbeb; color:#92400e; border-color:#fde68a; } .ds-badge-alert { background:#fff1f2; color:#9f1239; border-color:#fecdd3; }"
+    },
+    {
+      "name": "Sidebar Nav",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Sidebar items with green active state and pill bar.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-active\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4\"/></svg><span>Take Attendance</span><i class=\"ds-pill\"></i></a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75\"/></svg><span>Student Roster</span></a></nav>",
+      "css": ".ds-nav { font-family: Geist, ui-sans-serif, system-ui, sans-serif; width:240px; background:#fff; padding:12px; display:flex; flex-direction:column; gap:4px; border-right:1px solid #e2e8f0; } .ds-nav-item { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:12px; font-size:14px; font-weight:500; color:#475569; text-decoration:none; transition:background-color .15s, color .15s; } .ds-nav-item svg { color:#64748b; flex-shrink:0; } .ds-nav-item span { flex:1; } .ds-nav-item:hover { background:rgba(241,245,249,.7); color:#0f172a; } .ds-nav-item:focus-visible { outline:2px solid #10b981; outline-offset:2px; } .ds-active { background:#ecfdf5; color:#065f46; font-weight:600; } .ds-active svg { color:#047857; } .ds-pill { width:6px; height:16px; border-radius:9999px; background:#059669; }"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Plain white sheet with caption, figure, icon tile.",
+      "html": "<div class=\"ds-stat\"><div><p class=\"ds-stat-cap\">Present Today</p><p class=\"ds-stat-val\">412<span>/ 438</span></p><p class=\"ds-stat-sub\">94.1% across 14 sections</p></div><div class=\"ds-stat-icon\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"m16 11 2 2 4-4\"/></svg></div></div>",
+      "css": ".ds-stat { font-family: Geist, ui-sans-serif, system-ui, sans-serif; width:280px; display:flex; justify-content:space-between; gap:12px; background:#fff; border:1px solid rgba(226,232,240,.8); border-radius:16px; padding:20px; box-shadow:0 1px 3px 0 rgba(0,0,0,.05),0 1px 2px -1px rgba(0,0,0,.05); } .ds-stat p { margin:0; } .ds-stat-cap { font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#64748b; } .ds-stat-val { margin-top:6px !important; font-size:24px; font-weight:900; letter-spacing:-.025em; color:#0f172a; } .ds-stat-val span { font-size:12px; font-weight:600; color:#64748b; margin-left:4px; } .ds-stat-sub { margin-top:6px !important; font-size:12px; font-weight:500; color:#64748b; } .ds-stat-icon { width:44px; height:44px; border-radius:12px; background:#f1f5f9; color:#475569; display:flex; align-items:center; justify-content:center; flex-shrink:0; }"
+    },
+    {
+      "name": "Register Notebook",
+      "kind": "custom",
+      "description": "Signature: a class register as a bound book. Register-like records only.",
+      "html": "<div class=\"ds-reg\" tabindex=\"0\"><div class=\"ds-reg-spine\"><i></i><i></i><i></i><i></i></div><div class=\"ds-reg-page\"><div class=\"ds-reg-head\"><span>Attendance Register</span><b>2026–27</b></div><h3>Class VIII · B</h3><p class=\"ds-reg-sub\">38 students enrolled</p><div class=\"ds-reg-foot\"><div><small>Class Teacher</small><strong>Meera Iyer</strong></div><span class=\"ds-reg-chip\">Take Attendance →</span></div></div></div>",
+      "css": ".ds-reg { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display:flex; width:340px; border-radius:16px; overflow:hidden; border:1px solid rgba(120,53,15,.1); background:#fffdf7; box-shadow:0 4px 20px -2px rgba(0,0,0,.08),0 2px 6px -1px rgba(0,0,0,.04); transition:transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s cubic-bezier(.16,1,.3,1); cursor:pointer; } .ds-reg:hover, .ds-reg:focus-visible { outline:none; transform:translateY(-4px); box-shadow:0 12px 28px -4px rgba(6,78,59,.16),0 4px 10px -2px rgba(0,0,0,.06); } .ds-reg-spine { width:52px; background:linear-gradient(135deg,#064e3b 0%,#065f46 50%,#047857 100%); display:flex; flex-direction:column; justify-content:space-around; align-items:center; padding:16px 0; } .ds-reg-spine i { width:10px; height:10px; border-radius:9999px; background:rgba(2,44,34,.8); } .ds-reg-page { flex:1; padding:18px; background-color:#fffdf7; background-image:linear-gradient(rgba(241,238,230,.6) 1px, transparent 1px); background-size:100% 28px; } .ds-reg-head { display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px solid rgba(120,53,15,.1); } .ds-reg-head span { font-family:ui-serif,Georgia,serif; font-size:10px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:#064e3b; } .ds-reg-head b { font-size:10px; font-weight:700; color:#065f46; background:rgba(209,250,229,.7); border:1px solid #a7f3d0; border-radius:4px; padding:2px 8px; } .ds-reg h3 { margin:12px 0 0; font-family:ui-serif,Georgia,serif; font-size:20px; font-weight:900; letter-spacing:-.025em; color:#0f172a; } .ds-reg-sub { margin:2px 0 0; font-size:12px; font-weight:600; color:#065f46; } .ds-reg-foot { margin-top:20px; padding-top:12px; border-top:1px solid rgba(120,53,15,.1); display:flex; justify-content:space-between; align-items:center; } .ds-reg-foot small { display:block; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:#64748b; } .ds-reg-foot strong { font-size:12px; color:#1e293b; } .ds-reg-chip { font-size:12px; font-weight:700; color:#065f46; background:#ecfdf5; border:1px solid rgba(167,243,208,.8); border-radius:8px; padding:4px 10px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The School Register",
+    "overview": "**Creative North Star: \"The School Register\"**\n\nClassic Giga should feel like a school office's best-kept register: paper-clear, ordered, and written in green ink that carries authority. Each screen is a page of records. Its job is to show what stands, who entered it, and what can happen next. The interface is calm because the work is serious: attendance becomes a legal record, marks reach parents, and fees have to reconcile.\n\nScreens are dense but well organized. Office staff and teachers work through lists of students, sections and invoices, so the system uses small, firm type, white sheets on a pale slate desk, and thin dividing lines rather than heavy panels. Green is used sparingly as the ink of authority: the main action, the current page, a confirmed state. The rest stays in slate.\n\nOne place breaks the plainness on purpose. The **register notebook** (cream ruled paper, serif title, green spine) marks a real record book. It belongs only to register-like records and is never used as decoration.\n\nThe dark zinc-and-indigo look on the landing, login, registration, password-reset and invitation pages, and the dark purple platform console, are **legacy drift**. They predate this system and should be brought into the light register world when they are next touched.",
+    "keyCharacteristics": [
+      "Light slate canvas, white working sheets, hairline borders.",
+      "One brand hue: register green. Amber and rose appear only as status.",
+      "Small, bold Geist Sans; Geist Mono for identifiers and amounts.",
+      "Flat by default; motion and lift only communicate state.",
+      "A single tactile signature, the paper register, kept for records."
+    ],
+    "rules": [
+      {
+        "name": "The Green Ink Rule",
+        "body": "Register Green means authority or a confirmed state. Don't use it for decoration, illustration fills, or gradients on stat cards.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Is Semantic Rule",
+        "body": "Amber always means \"not yet final\"; rose always means \"missing, owed, or undone.\" Never use either for branding, roles, or emphasis.",
+        "section": "colors"
+      },
+      {
+        "name": "The Role Badge Rule",
+        "body": "Role hues (school admin emerald, teacher blue, accountant amber, platform admin purple) appear only in role badges and avatars. They never color buttons, nav items, page chrome, or sidebar labels such as \"PRIMARY\".",
+        "section": "colors"
+      },
+      {
+        "name": "The Mono for Records Rule",
+        "body": "Any value a person might read aloud to check, such as an ID, receipt number or amount in ₹, is set in Geist Mono so digits line up and can be compared.",
+        "section": "typography"
+      },
+      {
+        "name": "The Serif Is a Book Rule",
+        "body": "Serif type appears only inside a register notebook. A serif heading anywhere else is drift.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Desk Rule",
+        "body": "Surfaces rest flat. A card lifts (at most 2px) only when clicking it opens something. Colored glows such as `shadow-emerald-glow` and `hover:scale` on buttons are retired.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep every app screen on the Canvas desk with white Surface sheets and hairline borders.",
+      "**Do** use Register Green for the one primary action per view and for confirmed states, and nothing else.",
+      "**Do** map workflow states to the fixed status inks: green for final, amber for pending or draft, rose for missing, owed or undone.",
+      "**Do** set IDs, receipt numbers and ₹ amounts in Geist Mono.",
+      "**Do** show a loading state on every async button and a visible focus ring on every control.",
+      "**Do** bring legacy dark zinc/indigo pages (landing, login, register-school, forgot-password, accept-invitation) and the purple platform console into this light register world when you next touch them."
+    ],
+    "donts": [
+      "**Don't** introduce indigo, purple or blue as interface accents. Indigo-on-zinc is the legacy look being retired.",
+      "**Don't** use role colors outside role badges and avatars.",
+      "**Don't** use the cream paper, serif type or spiral spine outside register-like records.",
+      "**Don't** add gradient stat cards, colored glow shadows, or `hover:scale` on buttons.",
+      "**Don't** use Ink Faint for information a user needs to read; it is for placeholders and decoration.",
+      "**Don't** fall back to Arial: the `body` rule in `globals.css` still names it, but the app font is Geist Sans."
+    ]
+  }
+}

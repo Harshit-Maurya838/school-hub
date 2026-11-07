@@ -6,7 +6,7 @@ import { getAuthenticatedUser } from "@/lib/auth";
 export const metadata: Metadata = {
   title: "Platform Administration",
   description:
-    "Super Administrator console for managing educational institutions and onboarding applications on CampusPlus.",
+    "Super Administrator console for managing educational institutions and onboarding applications on Classic Giga.",
 };
 import { prisma } from "@/lib/prisma";
 import {
