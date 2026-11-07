@@ -24,7 +24,7 @@ src/
 ├── components/        # Truly shared UI components (common/, layout/, dashboard/)
 ├── lib/               # Cross-cutting infrastructure (database, logging, errors, auth helpers)
 └── modules/           # Domain business logic, domain services, and domain components
-    ├── onboarding/    # Registration, school provisioning, invitations, readiness checklist
+    ├── onboarding/    # Registration, provisioning, invitations, readiness checklist, Master School Profile
     ├── auth/          # JWT sessions, bcrypt hashing, RBAC permissions matrix, role UI
     ├── academics/     # Sessions/years, classes, sections, curriculum subjects
     ├── students/      # Student profiles, guardian relationships, admissions, enrollments
@@ -264,6 +264,7 @@ For financial operations (Domain: Fees & Finance):
      - `student-management.test.ts`
      - `teaching-assignments.test.ts`
      - `tenant-isolation.test.ts`
+     - `school-profile.test.ts`
 
 ---
 

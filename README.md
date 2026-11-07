@@ -23,16 +23,16 @@ A production-grade, multi-tenant School Management SaaS application designed for
 
 The application is structured into 8 cohesive domain modules:
 
-| Module                     | Location                   | Primary Responsibilities                                                                                                                                                                    |
-| :------------------------- | :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Onboarding & Schools**   | `src/modules/onboarding`   | Public registration, email verification, super-admin review/approval, school provisioning, staff/parent invitation lifecycles, and step-by-step school readiness checklist.                 |
-| **Authentication & RBAC**  | `src/modules/auth`         | JWT session cookies (`jose`), bcrypt password hashing, canonical 6-role permission matrix, cross-tenant isolation enforcement, and assignment-scoped checks.                                |
-| **Academics**              | `src/modules/academics`    | Academic years/sessions, current session markers, class definitions, section capacities, curriculum subjects, and setup prerequisite validation.                                            |
-| **Students & Enrollments** | `src/modules/students`     | Student profiles (APAAR ID, admission number, DOB, gender), primary/secondary guardian linkages, session-based section enrollments, soft-delete, and restoration.                           |
-| **Staff & Faculty**        | `src/modules/staff`        | Teacher profiles (employee ID, qualifications, specialization, department), class teacher assignments (mentorship), and subject teacher assignments (weekly workload).                      |
-| **Attendance**             | `src/modules/attendance`   | Daily section attendance registers, present/absent/late/excused tallies, register state machine (`DRAFT` → `SUBMITTED`), audited correction audit trail, and percentage calculations.       |
-| **Examinations**           | `src/modules/examinations` | Exam creation, grading scales, subject configs, marks entry by assigned subject teachers, approval/return by class teachers/admins, publication to students/parents, and correction audits. |
-| **Fees & Finance**         | `src/modules/fees`         | Fee heads, fee structures, immutable invoice generation, offline payment receipts (Cash, Bank Transfer, Cheque, DD), fee adjustments/concessions, payment reversals, and refunds.           |
+| Module                     | Location                   | Primary Responsibilities                                                                                                                                                                                      |
+| :------------------------- | :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Onboarding & Schools**   | `src/modules/onboarding`   | Public registration, email verification, super-admin review/approval, school provisioning, staff/parent invitation lifecycles, step-by-step school readiness checklist, and the UDISE+ Master School Profile. |
+| **Authentication & RBAC**  | `src/modules/auth`         | JWT session cookies (`jose`), bcrypt password hashing, canonical 6-role permission matrix, cross-tenant isolation enforcement, and assignment-scoped checks.                                                  |
+| **Academics**              | `src/modules/academics`    | Academic years/sessions, current session markers, class definitions, section capacities, curriculum subjects, and setup prerequisite validation.                                                              |
+| **Students & Enrollments** | `src/modules/students`     | Student profiles (APAAR ID, admission number, DOB, gender), primary/secondary guardian linkages, session-based section enrollments, soft-delete, and restoration.                                             |
+| **Staff & Faculty**        | `src/modules/staff`        | Teacher profiles (employee ID, qualifications, specialization, department), class teacher assignments (mentorship), and subject teacher assignments (weekly workload).                                        |
+| **Attendance**             | `src/modules/attendance`   | Daily section attendance registers, present/absent/late/excused tallies, register state machine (`DRAFT` → `SUBMITTED`), audited correction audit trail, and percentage calculations.                         |
+| **Examinations**           | `src/modules/examinations` | Exam creation, grading scales, subject configs, marks entry by assigned subject teachers, approval/return by class teachers/admins, publication to students/parents, and correction audits.                   |
+| **Fees & Finance**         | `src/modules/fees`         | Fee heads, fee structures, immutable invoice generation, offline payment receipts (Cash, Bank Transfer, Cheque, DD), fee adjustments/concessions, payment reversals, and refunds.                             |
 
 ---
 
@@ -296,7 +296,8 @@ Every database record containing tenant-specific data stores a mandatory `school
 - `/school/[schoolSlug]/attendance` — Daily attendance registers and monthly reports.
 - `/school/[schoolSlug]/exams` — Examination schedules, marks entry, review, and publication.
 - `/school/[schoolSlug]/fees` — Fee heads, structures, student ledgers, collections, and refunds.
-- `/school/[schoolSlug]/settings` — School profile settings and readiness checklist.
+- `/school/[schoolSlug]/settings` — Master School Profile wizard (Identity & Contact → Academic Setup → HOS & Leadership), readiness checklist and platform identifiers.
+- `/print/school-profile/[schoolSlug]` — Printable Master School Profile (browser Print → Save as PDF). School admin or super admin only.
 
 ### REST API Route Conventions
 
@@ -306,6 +307,16 @@ All internal and client APIs reside under `/api/v1/`:
 - Auth: `/api/v1/auth/...` (Login, logout, session verification, invitation acceptance).
 - Platform: `/api/v1/platform/...` (Strictly `SUPER_ADMIN` scoped).
 - Tenant: `/api/v1/school/[schoolSlug]/...` (Scoped to the authenticated user's tenant).
+
+#### Master School Profile API
+
+| Method | Route                                                     | Access                                          | Notes                                                                                                                                                                                |
+| :----- | :-------------------------------------------------------- | :---------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/school/[schoolSlug]/profile/master`              | School admin, teacher (own school), super admin | Full profile view with step completion and lock state.                                                                                                                               |
+| `PUT`  | `/api/v1/school/[schoolSlug]/profile/master/steps/[step]` | School admin (own school)                       | `step` is `identity`, `academic` or `leadership`. Returns `409 SCHOOL_PROFILE_LOCKED` while locked, `409` for a U-DISE code already used by another school, `422` for invalid input. |
+| `POST` | `/api/v1/school/[schoolSlug]/profile/master/lock`         | School admin (own school), super admin          | Body `{ "locked": boolean }`. Locking requires all three steps saved (`400 SETUP_PREREQUISITE_REQUIRED` otherwise). Lock and unlock are audited.                                     |
+
+Validation rules (shared by the API and the wizard) live in `src/modules/onboarding/services/school-profile-rules.ts`: 11-digit U-DISE code, Indian mobile numbers normalised to `+91XXXXXXXXXX`, pre-primary and RTE only for class ranges starting at Class 1, RTE end class within the range, a state board name when the board is a state board, and streams required exactly when the range reaches Class 12.
 
 All JSON API responses conform to standard structures:
 
@@ -341,6 +352,7 @@ Tests are executed using Node.js's native test runner (`node --test`) with TypeS
 - `tests/attendance.test.ts` — Attendance registers, lock state, correction audits.
 - `tests/exams.test.ts` — Examination lifecycles, marks entry, review, publication.
 - `tests/fees.test.ts` — Invoices, Decimal math, collections, reversals, refunds.
+- `tests/school-profile.test.ts` — Master School Profile step saves, cross-field validation, U-DISE uniqueness, lock/unlock, audit events, tenant isolation.
 
 ### Adding New Tests
 
@@ -408,4 +420,6 @@ npm test
 
 - **Payment Gateway Integration**: Online payment gateway webhooks (Stripe, Razorpay) are not yet integrated; currently, offline collections (Cash, Cheque, Bank Transfer, DD) are supported with receipt numbers and audit logs.
 - **SMS Notifications**: Automated SMS gateways for attendance alerts are queued for future releases; audit logs and email dispatch are implemented.
+- **School Logo Upload**: The Master School Profile does not yet store a school logo; there is no file storage service configured.
+- **Server-Generated PDFs**: The profile export uses the browser's print dialog (Save as PDF) rather than a server-rendered PDF.
 - **Transportation & Hostel Modules**: Fleet tracking, bus routes, and dormitory allotments are planned for future modular expansions.

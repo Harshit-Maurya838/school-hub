@@ -7,10 +7,13 @@ import {
   ArrowRight,
   ShieldCheck,
   AlertCircle,
+  ClipboardList,
+  Lock,
 } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getAcademicSetupReadiness } from "@/lib/school-readiness";
+import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
 import { StatCard } from "@/components/common/StatCard";
 import {
   EnrollmentDistributionChart,
@@ -70,7 +73,13 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
   const isAccountant = user.role === "ACCOUNTANT";
   const isAdmin = user.role === "SUPER_ADMIN" || user.role === "SCHOOL_ADMIN";
 
-  const readiness = await getAcademicSetupReadiness(school.id, school.slug);
+  const [readiness, schoolProfile] = await Promise.all([
+    getAcademicSetupReadiness(school.id, school.slug),
+    isAdmin ? getSchoolProfile(school.id) : Promise.resolve(null),
+  ]);
+  const profileStepsSaved = schoolProfile
+    ? Object.values(schoolProfile.completion).filter(Boolean).length
+    : 0;
 
   let teacherAssignments: import("@/lib/rbac").TeacherAssignmentContext | null = null;
   if (isTeacher) {
@@ -435,6 +444,55 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
           </div>
         </div>
       ) : null}
+
+      {/* Master School Profile shortcut (admins) */}
+      {schoolProfile && (
+        <div className="shadow-card flex flex-col gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+              <ClipboardList className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-sm font-bold text-slate-900">Master school profile</h2>
+                {schoolProfile.lock.isLocked ? (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                    <Lock className="h-3 w-3" aria-hidden="true" />
+                    Locked
+                  </span>
+                ) : schoolProfile.isComplete ? (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                    Complete
+                  </span>
+                ) : (
+                  <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                    {profileStepsSaved} of 3 steps saved
+                  </span>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-slate-600">
+                UDISE+ identity, academic setup and head-of-school details
+                {schoolProfile.identity.udiseCode && (
+                  <>
+                    {" "}
+                    · U-DISE{" "}
+                    <span className="font-mono text-slate-800">
+                      {schoolProfile.identity.udiseCode}
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/school/${school.slug}/settings`}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none"
+          >
+            Open school profile
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        </div>
+      )}
 
       {/* Top Metric Cards (3 Columns) */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

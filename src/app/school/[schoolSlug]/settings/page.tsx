@@ -4,6 +4,7 @@ import { Shield } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getSchoolDetailsReadiness } from "@/lib/school-readiness";
+import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
 import { SchoolSettingsClient } from "@/components/settings/SchoolSettingsClient";
 
 interface PageProps {
@@ -76,7 +77,12 @@ export default async function SchoolSettingsPage({ params }: PageProps) {
     );
   }
 
-  const readiness = await getSchoolDetailsReadiness(school.id);
+  const [readiness, profile] = await Promise.all([
+    getSchoolDetailsReadiness(school.id),
+    getSchoolProfile(school.id),
+  ]);
+  const canEdit = user.role === "SCHOOL_ADMIN" && user.schoolId === school.id;
+  const canLock = canEdit || user.role === "SUPER_ADMIN";
 
   return (
     <div className="space-y-6">
@@ -84,7 +90,9 @@ export default async function SchoolSettingsPage({ params }: PageProps) {
         schoolSlug={school.slug}
         initialSchool={school}
         initialReadiness={readiness}
-        userRole={user.role}
+        initialProfile={profile}
+        canEdit={canEdit}
+        canLock={canLock}
       />
     </div>
   );

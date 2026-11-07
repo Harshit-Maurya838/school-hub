@@ -115,6 +115,7 @@ model School {
   payments                  Payment[]
   feeAdjustments            FeeAdjustment[]
   refunds                   Refund[]
+  profile                   SchoolProfile?
 
   @@map("schools")
 }
@@ -139,6 +140,7 @@ model User {
   teacherProfile        TeacherProfile?
   createdInvitations    Invitation[]         @relation("CreatedInvitations")
   reviewedRegistrations SchoolRegistration[] @relation("ReviewedRegistrations")
+  lockedSchoolProfiles  SchoolProfile[]      @relation("LockedSchoolProfiles")
   submittedAttendanceRegisters AttendanceRegister[] @relation("SubmittedRegisters")
   createdAttendanceRegisters   AttendanceRegister[] @relation("CreatedRegisters")
   updatedAttendanceRegisters   AttendanceRegister[] @relation("UpdatedRegisters")
@@ -1077,7 +1079,112 @@ model Refund {
   @@map("refunds")
 }
 
+// ----------------------------------------------------------------------------
+// Master School Profile (UDISE+): identity, academic setup, head of school
+// ----------------------------------------------------------------------------
 
+enum InstructionMedium {
+  ENGLISH
+  HINDI
+  BILINGUAL
+  URDU
+}
 
+enum SchoolClassRange {
+  CLASS_1_TO_5
+  CLASS_1_TO_8
+  CLASS_1_TO_10
+  CLASS_1_TO_12
+  CLASS_6_TO_8
+  CLASS_6_TO_10
+  CLASS_6_TO_12
+  CLASS_9_TO_10
+  CLASS_9_TO_12
+  CLASS_11_TO_12
+}
 
+enum RteEntryClass {
+  NURSERY
+  CLASS_1
+}
 
+enum RteExitClass {
+  CLASS_5
+  CLASS_8
+}
+
+enum BoardAffiliation {
+  CBSE
+  CISCE
+  STATE_BOARD
+  NIOS
+  IB
+  CAMBRIDGE
+}
+
+enum SchoolStream {
+  SCIENCE
+  ARTS
+  COMMERCE
+  AGRICULTURE
+  VOCATIONAL
+}
+
+enum HosDesignation {
+  PRINCIPAL
+  HEADMASTER
+  HEADMISTRESS
+  ACTING_PRINCIPAL
+  TEACHER_IN_CHARGE
+  DIRECTOR
+}
+
+model SchoolProfile {
+  id       String @id @default(cuid())
+  schoolId String @unique
+
+  // Step 1: Identity & contact (English name lives on School.name)
+  nameHindi         String?
+  udiseCode         String? @unique
+  establishmentYear Int?
+  recognitionNumber String?
+  officialEmail     String?
+  contactMobile     String?
+  postalAddress     String?
+
+  // Step 2: Academic & operational setup
+  instructionMedium  InstructionMedium?
+  classRange         SchoolClassRange?
+  includesPrePrimary Boolean            @default(false)
+  rteApplicable      Boolean            @default(false)
+  rteEntryClass      RteEntryClass?
+  rteExitClass       RteExitClass?
+  boardAffiliation   BoardAffiliation?
+  stateBoardName     String?
+  streams            SchoolStream[]     @default([])
+
+  // Step 3: Head of school & leadership
+  hosDesignation  HosDesignation?
+  hosName         String?
+  hosMobile       String?
+  hosEmail        String?
+  managementName  String?
+  managementPhone String?
+
+  identityCompletedAt   DateTime?
+  academicCompletedAt   DateTime?
+  leadershipCompletedAt DateTime?
+
+  isLocked   Boolean   @default(false)
+  lockedAt   DateTime?
+  lockedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  lockedBy User?  @relation("LockedSchoolProfiles", fields: [lockedById], references: [id], onDelete: SetNull)
+
+  @@index([schoolId])
+  @@map("school_profiles")
+}
