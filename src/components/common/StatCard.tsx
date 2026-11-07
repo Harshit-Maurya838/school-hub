@@ -26,42 +26,50 @@ export function StatCard({
   extraContent,
   className = "",
 }: StatCardProps) {
-  const variantStyles = {
-    default: "bg-white border-slate-200/80 text-slate-800 shadow-xs hover:border-slate-300",
-    emerald:
-      "bg-gradient-to-br from-emerald-50/80 via-white to-emerald-50/30 border-emerald-200/80 text-slate-900 shadow-xs",
-    boy: "bg-gradient-to-br from-[#E0F2FE] via-white to-[#F0F9FF] border-sky-200/80 text-slate-900 shadow-xs",
-    girl: "bg-gradient-to-br from-[#FCE7F3] via-white to-[#FDF2F8] border-pink-200/80 text-slate-900 shadow-xs",
-    alert:
-      "bg-gradient-to-br from-[#FEF3C7] via-white to-[#FFFBEB] border-amber-200/80 text-slate-900 shadow-xs",
-    rte: "bg-gradient-to-br from-[#D1FAE5] via-white to-[#ECFDF5] border-emerald-200/90 text-slate-900 shadow-xs",
-  };
-
+  // Cards stay plain white sheets; the variant only tints the icon tile.
   const iconStyles = {
     default: "bg-slate-100 text-slate-600",
-    emerald: "bg-emerald-600 text-white shadow-xs shadow-emerald-200",
-    boy: "bg-sky-500 text-white shadow-xs shadow-sky-200",
-    girl: "bg-pink-500 text-white shadow-xs shadow-pink-200",
-    alert: "bg-amber-500 text-white shadow-xs shadow-amber-200",
-    rte: "bg-emerald-600 text-white shadow-xs shadow-emerald-200",
+    emerald: "bg-emerald-50 text-emerald-700",
+    boy: "bg-sky-50 text-sky-700",
+    girl: "bg-pink-50 text-pink-700",
+    alert: "bg-amber-50 text-amber-700",
+    rte: "bg-emerald-50 text-emerald-700",
   };
+
+  const interactive = Boolean(onClick);
 
   return (
     <div
       onClick={onClick}
-      className={`relative overflow-hidden rounded-2xl border p-5 transition-all duration-200 ${
-        variantStyles[variant] || variantStyles.default
-      } ${onClick ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-md" : ""} ${className}`}
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      className={`shadow-card relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 text-slate-800 transition-[transform,box-shadow,border-color] duration-200 ${
+        interactive
+          ? "hover:shadow-card-hover cursor-pointer hover:-translate-y-0.5 hover:border-slate-300 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
+          : ""
+      } ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1.5">
           <p className="text-xs font-semibold tracking-wider text-slate-500 uppercase">{title}</p>
           <div className="flex flex-wrap items-baseline gap-2">
-            <h3 className="font-sans text-2xl font-black tracking-tight text-slate-900">{value}</h3>
+            <p className="font-sans text-2xl font-black tracking-tight text-slate-900 tabular-nums">
+              {value}
+            </p>
             {badgeText && (
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                  badgeColor || "bg-emerald-100 text-emerald-800"
+                  badgeColor || "bg-emerald-50 text-emerald-700"
                 }`}
               >
                 {badgeText}
@@ -81,7 +89,7 @@ export function StatCard({
               iconStyles[variant] || iconStyles.default
             }`}
           >
-            <Icon className="h-5 w-5" strokeWidth={2} />
+            <Icon className="h-5 w-5" strokeWidth={2} aria-hidden="true" />
           </div>
         )}
       </div>

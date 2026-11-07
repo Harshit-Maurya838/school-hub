@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { BookOpen } from "lucide-react";
+import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 
 /**
  * Brand lockup for surfaces outside the school workspace (landing, sign-in,
@@ -12,12 +12,8 @@ export function BrandMark({ href = "/" }: { href?: string }) {
       href={href}
       className="flex items-center gap-2.5 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-4 focus-visible:ring-offset-slate-50 focus-visible:outline-none"
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-700 text-white">
-        <BookOpen className="h-[18px] w-[18px]" strokeWidth={2.2} aria-hidden="true" />
-      </span>
-      <span className="text-lg font-extrabold tracking-tight text-slate-900">
-        Classic <span className="text-emerald-700">Giga</span>
-      </span>
+      <BrandEmblem />
+      <BrandWordmark />
     </Link>
   );
 }

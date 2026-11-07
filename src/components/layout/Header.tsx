@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Search,
   Bell,
   ChevronDown,
-  Globe,
   LifeBuoy,
   LogOut,
   Settings,
@@ -21,6 +20,33 @@ import {
   getRoleTheme,
   canManageSettings,
 } from "@/modules/auth/services/role-ui";
+import { Modal } from "@/components/common/Modal";
+
+/** Closes a popover on outside pointer-down or Escape. */
+function useDismiss(ref: React.RefObject<HTMLElement | null>, open: boolean, close: () => void) {
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) close();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [ref, open, close]);
+}
+
+const noopSubscribe = () => () => {};
+const isApplePlatform = () => /Mac|iPhone|iPad/.test(navigator.platform);
+
+const iconButtonFocus =
+  "focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none";
+const menuItemClass = `flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900 ${iconButtonFocus}`;
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -67,8 +93,13 @@ export function Header({
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
-  const [language, setLanguage] = useState<"en" | "hi">("en");
   const [loggingOut, setLoggingOut] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const isApple = useSyncExternalStore(noopSubscribe, isApplePlatform, () => false);
+
+  useDismiss(notificationsRef, showNotifications, () => setShowNotifications(false));
+  useDismiss(profileRef, showProfileMenu, () => setShowProfileMenu(false));
 
   const handleLogout = async () => {
     try {
@@ -100,10 +131,10 @@ export function Header({
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onToggleMobileMenu}
-            className="cursor-pointer rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 md:hidden"
+            className={`cursor-pointer rounded-xl p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 md:hidden ${iconButtonFocus}`}
             aria-label="Open navigation menu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-5 w-5" aria-hidden="true" />
           </button>
 
           <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-2.5">
@@ -120,7 +151,7 @@ export function Header({
                 {schoolCode}
               </span>
               <span className="hidden rounded-md border border-emerald-100/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 sm:inline">
-                {currentDateFormatted || "20 Oct 2026"}
+                {currentDateFormatted}
               </span>
             </div>
           </div>
@@ -128,67 +159,48 @@ export function Header({
 
         {/* Right: Actions & User Pill */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Language Switcher Pill */}
-          <button
-            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-            className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-100"
-            title="Toggle Language (Hindi / English)"
-            type="button"
-          >
-            <Globe className="h-3.5 w-3.5 text-emerald-600" />
-            <span className={language === "hi" ? "font-extrabold text-emerald-700" : ""}>अ</span>
-            <span className="text-slate-300">/</span>
-            <span className={language === "en" ? "font-extrabold text-emerald-700" : ""}>A</span>
-          </button>
-
           {/* Global Search Button */}
           <button
             onClick={onOpenSearch}
-            className="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-100"
-            title="Search anything (Ctrl+K)"
+            className={`flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-100 ${iconButtonFocus}`}
+            aria-label="Search"
+            aria-keyshortcuts={isApple ? "Meta+K" : "Control+K"}
             type="button"
           >
-            <Search className="h-4 w-4 text-slate-400" />
-            <span className="hidden md:inline">Search...</span>
-            <kbd className="hidden rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-400 lg:inline">
-              ⌘K
+            <Search className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            <span className="hidden md:inline">Search…</span>
+            <kbd className="hidden rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-500 lg:inline">
+              {isApple ? "⌘K" : "Ctrl K"}
             </kbd>
           </button>
 
           {/* Notification Bell Button */}
-          <div className="relative">
+          <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative cursor-pointer rounded-xl border border-slate-200/80 p-2 text-slate-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
-              title="Notifications"
+              className={`relative cursor-pointer rounded-xl border border-slate-200/80 p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 ${iconButtonFocus}`}
+              aria-label="Notifications"
+              aria-expanded={showNotifications}
+              aria-controls="header-notifications"
               type="button"
             >
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-emerald-600 ring-2 ring-white" />
+              <Bell className="h-4 w-4" aria-hidden="true" />
             </button>
 
-            {/* Notification Popover */}
             {showNotifications && (
-              <div className="animate-in fade-in absolute right-0 z-50 mt-2 w-80 rounded-2xl border border-slate-100 bg-white p-3 shadow-xl duration-150">
-                <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
-                  <span className="text-xs font-bold text-slate-800">System Notifications</span>
-                  <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-600">
-                    Active
-                  </span>
-                </div>
-                <div className="space-y-2 text-xs text-slate-600">
-                  <div className="rounded-xl bg-emerald-50/50 p-2.5 transition-colors hover:bg-emerald-50">
-                    <p className="font-bold text-slate-800">School Active</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
-                      {schoolName} verified and operational.
-                    </p>
-                  </div>
-                  <div className="rounded-xl p-2.5 transition-colors hover:bg-slate-50">
-                    <p className="font-bold text-slate-800">Multi-Tenant Routing</p>
-                    <p className="mt-0.5 text-[11px] text-slate-500">
-                      Session validated for tenant: {schoolSlug}.
-                    </p>
-                  </div>
+              <div
+                id="header-notifications"
+                className="absolute right-0 z-50 mt-2 w-72 rounded-2xl border border-slate-100 bg-white p-3 shadow-xl"
+              >
+                <p className="border-b border-slate-100 pb-2 text-xs font-bold text-slate-800">
+                  Notifications
+                </p>
+                <div className="flex flex-col items-center gap-1.5 px-2 py-6 text-center">
+                  <Bell className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                  <p className="text-xs font-semibold text-slate-700">You’re all caught up</p>
+                  <p className="text-[11px] text-slate-500">
+                    Updates about your school will appear here.
+                  </p>
                 </div>
               </div>
             )}
@@ -198,19 +210,21 @@ export function Header({
           {userRole === "SUPER_ADMIN" && (
             <Link
               href="/platform"
-              className="hidden items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-2.5 py-1.5 text-xs font-bold text-purple-700 shadow-xs transition-colors hover:border-purple-300 hover:bg-purple-100 sm:inline-flex"
-              title="Switch to Platform Administration Console"
+              className={`hidden items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:border-slate-300 hover:bg-slate-50 sm:inline-flex ${iconButtonFocus}`}
             >
-              <Shield className="h-3.5 w-3.5 text-purple-600" />
+              <Shield className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
               <span>Platform Console</span>
             </Link>
           )}
 
           {/* User Profile Pill */}
-          <div className="relative">
+          <div className="relative" ref={profileRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pr-2.5 pl-1.5 shadow-xs transition-colors hover:bg-slate-50"
+              className={`flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white py-1 pr-2.5 pl-1.5 shadow-xs transition-colors hover:bg-slate-50 ${iconButtonFocus}`}
+              aria-label={`Account menu for ${userName}`}
+              aria-expanded={showProfileMenu}
+              aria-controls="header-profile-menu"
               type="button"
             >
               <div
@@ -228,19 +242,22 @@ export function Header({
                   {roleName}
                 </span>
               </div>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+              <ChevronDown className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
             </button>
 
             {/* Profile Dropdown */}
             {showProfileMenu && (
-              <div className="animate-in fade-in absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl duration-150">
+              <div
+                id="header-profile-menu"
+                className="absolute right-0 z-50 mt-2 w-56 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl"
+              >
                 <div className="border-b border-slate-100 p-3">
                   <p className="truncate text-xs font-bold text-slate-900">{userName}</p>
-                  <p className="truncate text-[11px] text-slate-400">{userEmail}</p>
+                  <p className="truncate text-[11px] text-slate-500">{userEmail}</p>
                   <div
                     className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
                   >
-                    <Shield className="h-3 w-3" />
+                    <Shield className="h-3 w-3" aria-hidden="true" />
                     <span>{roleName}</span>
                   </div>
                 </div>
@@ -250,9 +267,9 @@ export function Header({
                     <Link
                       href="/platform"
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-purple-700 transition-colors hover:bg-purple-50"
+                      className={menuItemClass}
                     >
-                      <Shield className="h-4 w-4 text-purple-600" />
+                      <Shield className="h-4 w-4 text-slate-500" aria-hidden="true" />
                       <span>Platform Console</span>
                     </Link>
                   )}
@@ -261,9 +278,9 @@ export function Header({
                     <Link
                       href={`/school/${schoolSlug}/settings`}
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                      className={menuItemClass}
                     >
-                      <Settings className="h-4 w-4 text-slate-400" />
+                      <Settings className="h-4 w-4 text-slate-500" aria-hidden="true" />
                       <span>School Settings</span>
                     </Link>
                   )}
@@ -272,9 +289,9 @@ export function Header({
                     <Link
                       href={`/school/${schoolSlug}/attendance`}
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-blue-700 transition-colors hover:bg-blue-50"
+                      className={menuItemClass}
                     >
-                      <CalendarCheck2 className="h-4 w-4 text-blue-600" />
+                      <CalendarCheck2 className="h-4 w-4 text-slate-500" aria-hidden="true" />
                       <span>Take Attendance</span>
                     </Link>
                   )}
@@ -283,9 +300,9 @@ export function Header({
                     <Link
                       href={`/school/${schoolSlug}/fees`}
                       onClick={() => setShowProfileMenu(false)}
-                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-bold text-amber-800 transition-colors hover:bg-amber-50"
+                      className={menuItemClass}
                     >
-                      <CreditCard className="h-4 w-4 text-amber-600" />
+                      <CreditCard className="h-4 w-4 text-slate-500" aria-hidden="true" />
                       <span>Fees Management</span>
                     </Link>
                   )}
@@ -296,9 +313,9 @@ export function Header({
                       setShowSupportModal(true);
                     }}
                     type="button"
-                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 hover:text-slate-900"
+                    className={`cursor-pointer ${menuItemClass}`}
                   >
-                    <LifeBuoy className="h-4 w-4 text-slate-400" />
+                    <LifeBuoy className="h-4 w-4 text-slate-500" aria-hidden="true" />
                     <span>Help & Support</span>
                   </button>
                 </div>
@@ -308,10 +325,10 @@ export function Header({
                     onClick={handleLogout}
                     disabled={loggingOut}
                     type="button"
-                    className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-rose-600 transition-colors hover:bg-rose-50 disabled:opacity-50"
+                    className={`flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-bold text-rose-700 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50 ${iconButtonFocus}`}
                   >
-                    <LogOut className="h-4 w-4" />
-                    <span>{loggingOut ? "Signing out..." : "Sign Out"}</span>
+                    <LogOut className="h-4 w-4" aria-hidden="true" />
+                    <span>{loggingOut ? "Signing out…" : "Sign out"}</span>
                   </button>
                 </div>
               </div>
@@ -320,37 +337,32 @@ export function Header({
         </div>
       </header>
 
-      {/* Support Dialog */}
-      {showSupportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-sm space-y-4 rounded-2xl border border-slate-100 bg-white p-6 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-900">CampusPulse Support</h3>
-            <p className="text-xs leading-relaxed text-slate-500">
-              For administrative assistance with your School Management instance, email support or
-              consult the setup prerequisites.
-            </p>
-            <div className="space-y-1 rounded-xl bg-slate-50 p-3 text-xs text-slate-600">
-              <p>
-                <span className="font-semibold text-slate-800">School Code:</span> {schoolCode}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-800">Tenant:</span> {schoolSlug}
-              </p>
-              <p>
-                <span className="font-semibold text-slate-800">Support Desk:</span>{" "}
-                support@campuspulse.internal
-              </p>
-            </div>
-            <button
-              onClick={() => setShowSupportModal(false)}
-              type="button"
-              className="w-full cursor-pointer rounded-xl bg-emerald-700 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800"
-            >
-              Close
-            </button>
-          </div>
+      <Modal
+        isOpen={showSupportModal}
+        onClose={() => setShowSupportModal(false)}
+        title="Help & Support"
+        maxWidth="max-w-sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-slate-600">
+            For help with your school workspace, contact your platform administrator and share the
+            details below.
+          </p>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 rounded-xl bg-slate-50 p-3 text-xs">
+            <dt className="font-semibold text-slate-800">School code</dt>
+            <dd className="font-mono text-slate-700">{schoolCode}</dd>
+            <dt className="font-semibold text-slate-800">Workspace</dt>
+            <dd className="truncate font-mono text-slate-700">{schoolSlug}</dd>
+          </dl>
+          <button
+            onClick={() => setShowSupportModal(false)}
+            type="button"
+            className={`w-full cursor-pointer rounded-xl bg-emerald-700 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-offset-2 ${iconButtonFocus}`}
+          >
+            Close
+          </button>
         </div>
-      )}
+      </Modal>
     </>
   );
 }
