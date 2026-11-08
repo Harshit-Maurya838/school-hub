@@ -608,15 +608,8 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
           <StatCard
             href={`/school/${school.slug}/fees`}
             title="Fees collected"
-            value={
-              feeSummary ? (
-                <span className="font-mono tracking-tighter">
-                  {formatINR(feeSummary.collected)}
-                </span>
-              ) : (
-                "—"
-              )
-            }
+            value={feeSummary ? Number(feeSummary.collected.toString()) : "—"}
+            currency
             subtitle={
               !feeSummary
                 ? "Set an active session to issue invoices."

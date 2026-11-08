@@ -40,7 +40,7 @@ The application is structured into 8 cohesive domain modules:
 
 - **Framework**: [Next.js 16.4.2](https://nextjs.org/) (App Router, Turbopack, React Server Components & Server Actions)
 - **UI & Runtime**: [React 19.3.0](https://react.dev/), [TypeScript 5](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) with Lucide React icons
+- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/) with Lucide React icons; animated primitives from [Hairline UI](https://hairlineui.com/ui) (shadcn registry, MIT) in `src/components/hairline/`
 - **Database & ORM**: [PostgreSQL](https://www.postgresql.org/) with [Prisma ORM 7.10.1](https://www.prisma.io/) (`@prisma/client`, `@prisma/adapter-pg`)
 - **Caching & Ephemeral State**: [Redis](https://redis.io/) via `ioredis 6.0.0`
 - **Security & Crypto**: `jose` (JWT), `bcryptjs` (password hashing)
@@ -225,7 +225,8 @@ SchoolManagement/
 │   ├── components/                  # Truly shared UI components & layouts
 │   │   ├── common/                  # Reusable UI widgets (Badge, Modal, StatCard)
 │   │   ├── dashboard/               # School dashboard aggregate components
-│   │   └── layout/                  # Navigation Header, Sidebar, SchoolLayoutClient
+│   │   ├── hairline/                # Hairline UI components installed via shadcn CLI (see components.json)
+│   │   └── layout/                  # Full-width top bar (Header, PlatformHeader, topbar/ widgets), Sidebar below it, SchoolLayoutClient
 │   ├── lib/                         # Shared infrastructure & cross-cutting utilities
 │   │   ├── api-handler.ts           # Standardized API route wrapper
 │   │   ├── api-response.ts          # JSON response formatters

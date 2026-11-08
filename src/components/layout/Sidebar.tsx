@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useState, useEffect, useSyncExternalStore, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -16,10 +16,14 @@ import {
   ChevronRight,
   CalendarDays,
   X,
+  Search,
   Shield,
 } from "lucide-react";
-import { getRoleDisplayName, getRoleTheme } from "@/modules/auth/services/role-ui";
+import { getRoleDisplayName } from "@/modules/auth/services/role-ui";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
+
+const noopSubscribe = () => () => {};
+const isApplePlatform = () => /Mac|iPhone|iPad/.test(navigator.platform);
 
 export interface SidebarProps {
   schoolSlug: string;
@@ -27,8 +31,8 @@ export interface SidebarProps {
   setIsCollapsed: (collapsed: boolean) => void;
   isMobileOpen?: boolean;
   setIsMobileOpen?: (open: boolean) => void;
-  session?: string;
   userRole?: string;
+  onOpenSearch?: () => void;
 }
 
 export function Sidebar({
@@ -37,8 +41,8 @@ export function Sidebar({
   setIsCollapsed,
   isMobileOpen = false,
   setIsMobileOpen,
-  session = "Current Session",
   userRole = "SCHOOL_ADMIN",
+  onOpenSearch,
 }: SidebarProps) {
   const router = useRouter();
   const rawPathname = usePathname() || "";
@@ -52,7 +56,7 @@ export function Sidebar({
   }
 
   const pathname = pendingHref ?? rawPathname;
-  const roleTheme = getRoleTheme(userRole);
+  const isApple = useSyncExternalStore(noopSubscribe, isApplePlatform, () => false);
   const roleName = getRoleDisplayName(userRole);
 
   const isSuperAdmin = userRole === "SUPER_ADMIN";
@@ -240,39 +244,58 @@ export function Sidebar({
       {/* Mobile Backdrop */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs md:hidden"
+          className="fixed inset-x-0 top-16 bottom-0 z-30 bg-slate-900/50 backdrop-blur-xs md:hidden"
           onClick={() => setIsMobileOpen?.(false)}
         />
       )}
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 left-0 z-40 flex h-screen flex-col border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out ${
+        className={`fixed top-16 left-0 z-30 flex h-[calc(100dvh-4rem)] flex-col border-r border-slate-200/80 bg-white transition-all duration-300 ease-in-out ${
           isCollapsed ? "w-64 md:w-20" : "w-64"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
-        {/* Brand Header */}
-        <div className="flex h-16 items-center justify-between border-b border-slate-100 px-4">
-          <Link
-            href={`/school/${schoolSlug}`}
-            aria-label="Classic Giga dashboard"
-            className="flex items-center gap-3 overflow-hidden rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
-            onClick={() => setIsMobileOpen?.(false)}
+        {/* Sidebar toolbar: search + collapse */}
+        <div
+          className={`flex items-center gap-2 border-b border-slate-100 p-3 ${
+            isCollapsed && !isMobileOpen ? "md:flex-col" : ""
+          }`}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setIsMobileOpen?.(false);
+              onOpenSearch?.();
+            }}
+            title={isCollapsed ? "Search" : undefined}
+            aria-label="Search"
+            aria-keyshortcuts={isApple ? "Meta+K" : "Control+K"}
+            className={`flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
+              isCollapsed && !isMobileOpen ? "md:w-full md:flex-none md:justify-center md:px-2" : ""
+            }`}
           >
-            <BrandEmblem size="lg" />
-            {(!isCollapsed || isMobileOpen) && <BrandWordmark />}
-          </Link>
+            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {(!isCollapsed || isMobileOpen) && (
+              <>
+                <span className="flex-1 text-left">Search…</span>
+                <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
+                  {isApple ? "⌘K" : "Ctrl K"}
+                </kbd>
+              </>
+            )}
+          </button>
 
           {/* Collapse Button (Desktop) */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden cursor-pointer items-center justify-center rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none md:flex"
             aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            type="button"
           >
             {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             ) : (
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             )}
           </button>
 
@@ -281,8 +304,9 @@ export function Sidebar({
             onClick={() => setIsMobileOpen?.(false)}
             className="cursor-pointer rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none md:hidden"
             aria-label="Close menu"
+            type="button"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
@@ -343,49 +367,25 @@ export function Sidebar({
         </div>
 
         {/* Sidebar Footer */}
-        <div className="space-y-2 border-t border-slate-100 bg-slate-50/50 p-3">
-          {/* User Role Card */}
-          {!isCollapsed || isMobileOpen ? (
-            <div
-              className={`flex items-center justify-between rounded-xl border px-3 py-1.5 text-[11px] font-bold ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
-            >
-              <div className="flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-                <span>{roleName}</span>
-              </div>
-              <span className="text-[10px] uppercase">Role</span>
-            </div>
-          ) : (
-            <div
-              className={`flex justify-center rounded-xl p-2 text-xs font-bold ${roleTheme.badgeBg} ${roleTheme.badgeText}`}
-              title={`Role: ${roleName}`}
-            >
-              <Shield className="h-4 w-4" aria-label={`Role: ${roleName}`} />
-            </div>
-          )}
-
-          {/* Academic Session Indicator */}
-          {!isCollapsed || isMobileOpen ? (
-            <div className="flex items-center justify-between rounded-xl border border-emerald-100 bg-emerald-50/80 px-3 py-2 text-xs font-semibold text-emerald-800">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-                <span className="truncate">Session: {session}</span>
-              </div>
-            </div>
-          ) : (
-            <div
-              className="flex justify-center rounded-xl bg-emerald-50 p-2 text-emerald-700"
-              title={`Session: ${session}`}
-            >
-              <CalendarDays className="h-4 w-4" aria-label={`Session: ${session}`} />
-            </div>
-          )}
-
-          {(!isCollapsed || isMobileOpen) && (
-            <p className="pt-1 text-center text-[11px] font-medium text-slate-500">
-              © 2026 Classic Giga
-            </p>
-          )}
+        <div className="border-t border-slate-100 bg-slate-50/50 p-3">
+          <Link
+            href={`/school/${schoolSlug}`}
+            aria-label="Classic Giga dashboard"
+            onClick={() => setIsMobileOpen?.(false)}
+            className={`flex items-center gap-2.5 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
+              isCollapsed && !isMobileOpen ? "md:justify-center" : ""
+            }`}
+          >
+            <BrandEmblem />
+            {(!isCollapsed || isMobileOpen) && (
+              <span className="flex flex-col">
+                <BrandWordmark />
+                <span className="mt-0.5 text-[10px] font-medium text-slate-500">
+                  © 2026 · {roleName}
+                </span>
+              </span>
+            )}
+          </Link>
         </div>
       </aside>
     </>

@@ -3,6 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SchoolLayoutClient } from "@/components/layout/SchoolLayoutClient";
+import type { ManagementContact } from "@/components/layout/topbar/ProfileMenu";
+import { HOS_DESIGNATIONS, labelFor } from "@/modules/onboarding";
 
 interface SchoolLayoutProps {
   children: React.ReactNode;
@@ -67,17 +69,59 @@ export default async function SchoolSlugLayout({ children, params }: SchoolLayou
     );
   }
 
-  // Retrieve current active academic year for the session indicator badge
-  const currentYear = await prisma.academicYear.findFirst({
-    where: { schoolId: school.id, isCurrent: true },
-    select: { name: true },
-  });
+  // Session badge, UDISE code and leadership for the top bar
+  const [currentYear, profile, schoolAdmins] = await Promise.all([
+    prisma.academicYear.findFirst({
+      where: { schoolId: school.id, isCurrent: true },
+      select: { name: true },
+    }),
+    prisma.schoolProfile.findUnique({
+      where: { schoolId: school.id },
+      select: {
+        udiseCode: true,
+        hosDesignation: true,
+        hosName: true,
+        hosEmail: true,
+        hosMobile: true,
+        managementName: true,
+        managementPhone: true,
+      },
+    }),
+    prisma.user.findMany({
+      where: { schoolId: school.id, role: "SCHOOL_ADMIN", isActive: true },
+      select: { name: true, email: true },
+      orderBy: { createdAt: "asc" },
+      take: 3,
+    }),
+  ]);
+
+  const management: ManagementContact[] = [];
+  if (profile?.managementName) {
+    management.push({
+      title: "Management / Trust",
+      name: profile.managementName,
+      phone: profile.managementPhone,
+    });
+  }
+  if (profile?.hosName) {
+    management.push({
+      title: labelFor(HOS_DESIGNATIONS, profile.hosDesignation) || "Head of School",
+      name: profile.hosName,
+      email: profile.hosEmail,
+      phone: profile.hosMobile,
+    });
+  }
+  for (const admin of schoolAdmins) {
+    management.push({ title: "School Admin", name: admin.name, email: admin.email });
+  }
 
   return (
     <SchoolLayoutClient
       schoolSlug={school.slug}
       schoolName={school.name}
       schoolCode={school.code}
+      udiseCode={profile?.udiseCode}
+      management={management}
       userName={user.name}
       userRole={user.role}
       userEmail={user.email || ""}

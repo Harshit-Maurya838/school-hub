@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Search, Users, ChevronRight, BookOpen } from "lucide-react";
+import { Search, Users, ChevronRight } from "lucide-react";
+import { EmptyState } from "@/components/hairline/empty-state";
 
 export interface ClassSummaryItem {
   id: string;
@@ -73,38 +74,32 @@ export function DashboardClassList({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-10 text-center">
-          <BookOpen className="h-8 w-8 text-slate-300" aria-hidden="true" />
-          <p className="text-sm font-bold text-slate-700">
-            {query ? "No matching classes" : "No classes yet"}
-          </p>
-          <p className="max-w-sm text-xs text-slate-500">
-            {query
+        <EmptyState
+          scene={query ? "search" : "inbox"}
+          className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60"
+          title={query ? "No matching classes" : "No classes yet"}
+          description={
+            query
               ? `No class name contains “${searchTerm.trim()}”.`
               : canManage
                 ? "Add your school's classes and sections in Academics to start admitting students."
-                : "Classes will appear here once the school administrator sets them up."}
-          </p>
-          {query ? (
-            <button
-              type="button"
-              onClick={() => setSearchTerm("")}
-              className="mt-1 cursor-pointer rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
-            >
-              Clear search
-            </button>
-          ) : (
-            canManage && (
+                : "Classes will appear here once the school administrator sets them up."
+          }
+          secondaryAction={
+            query ? { label: "Clear search", onAction: () => setSearchTerm("") } : undefined
+          }
+          action={
+            !query && canManage ? (
               <Link
                 href={classesHref}
-                className="mt-1 inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none"
               >
                 Add classes
                 <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
               </Link>
-            )
-          )}
-        </div>
+            ) : undefined
+          }
+        />
       ) : (
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map((item) => (

@@ -56,6 +56,7 @@ Follow this decision tree when adding or modifying code:
    - If a React component is specific to one domain (e.g. `AttendanceRegisterModal`, `ExamClient`, `FeesClient`), place it in that module's `components/` directory.
 4. **Shared UI Components (`src/components/`)**:
    - Only truly shared primitives (`Badge`, `Modal`, `StatCard`) or cross-cutting layouts (`Sidebar`, `Header`) belong in `src/components/`.
+   - Hairline UI components (shadcn registry) live in `src/components/hairline/` and are added with `npx shadcn@latest add https://hairlineui.com/r/<name>.json`. They read the shadcn theme tokens in `src/app/globals.css` (mapped to the slate/emerald palette); never hard-code colours into them. Installed so far: `number-roll` (used by `StatCard` for numeric values), `segmented-control`, `empty-state`, plus their dependencies.
 5. **Shared Infrastructure (`src/lib/`)**:
    - Only cross-cutting utilities (Prisma clients, Pino logger, error classes, environment validator, email dispatcher) belong in `src/lib/`. Never place domain business logic directly in `src/lib/`.
 6. **Reusable Operations Scripts (`scripts/`)**:

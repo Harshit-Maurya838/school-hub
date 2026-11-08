@@ -959,28 +959,32 @@ export function FeesClient({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               title="Gross Invoiced"
-              value={fmt(overview?.invoicedGross || 0)}
+              value={Number(overview?.invoicedGross || 0)}
+              currency
               subtitle={`${overview?.totalInvoices || 0} active student invoices`}
               variant="default"
               icon={FileText}
             />
             <StatCard
               title="Net Collections"
-              value={fmt(overview?.netCollections || 0)}
+              value={Number(overview?.netCollections || 0)}
+              currency
               subtitle={`Gross collected: ${fmt(overview?.amountCollected || 0)}`}
               variant="emerald"
               icon={CheckCircle2}
             />
             <StatCard
               title="Outstanding Balance"
-              value={fmt(overview?.outstandingAmount || 0)}
+              value={Number(overview?.outstandingAmount || 0)}
+              currency
               subtitle={`${overview?.counts?.overdue || 0} overdue invoices`}
               variant="alert"
               icon={AlertTriangle}
             />
             <StatCard
               title="Concessions & Refunds"
-              value={fmt(overview?.concessions || 0)}
+              value={Number(overview?.concessions || 0)}
+              currency
               subtitle={`Refunds processed: ${fmt(overview?.totalRefunds || 0)}`}
               variant="default"
               icon={Percent}

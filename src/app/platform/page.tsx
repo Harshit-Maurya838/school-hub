@@ -5,14 +5,9 @@ import { Building2, Clock, GraduationCap, Plus, Users } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/common/Badge";
-import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 import { StatCard } from "@/components/common/StatCard";
-import { getRoleTheme } from "@/modules/auth/services/role-ui";
-import {
-  PlatformRegistrationsRoster,
-  PlatformSchoolsTable,
-  PlatformSignOutButton,
-} from "@/modules/onboarding";
+import { PlatformHeader } from "@/components/layout/PlatformHeader";
+import { PlatformRegistrationsRoster, PlatformSchoolsTable } from "@/modules/onboarding";
 
 export const metadata: Metadata = {
   title: "Platform Administration",
@@ -102,47 +97,13 @@ export default async function PlatformPage() {
   const totalStudents = schools.reduce((acc, s) => acc + s._count.students, 0);
   const totalStaff = schools.reduce((acc, s) => acc + s._count.users, 0);
 
-  const displayName = user.name || "Platform Admin";
-  const initials =
-    displayName
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("") || "PA";
-  const roleTheme = getRoleTheme("SUPER_ADMIN");
-
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-700">
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <BrandEmblem />
-            <BrandWordmark />
-            <span
-              className={`hidden rounded-full border px-2.5 py-0.5 text-[11px] font-semibold sm:inline-flex ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
-            >
-              Platform console
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2.5 md:flex">
-              <div className="text-right">
-                <p className="text-xs font-bold text-slate-900">{displayName}</p>
-                <p className="font-mono text-[11px] text-slate-500">{user.email}</p>
-              </div>
-              <span
-                className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white ${roleTheme.avatarBg}`}
-                aria-hidden="true"
-              >
-                {initials}
-              </span>
-            </div>
-            <PlatformSignOutButton />
-          </div>
-        </div>
-      </header>
+      <PlatformHeader
+        userName={user.name || "Platform Admin"}
+        userEmail={user.email || ""}
+        userRole={user.role}
+      />
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 pt-6 pb-24 sm:px-6 lg:px-8 lg:pt-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

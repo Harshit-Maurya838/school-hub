@@ -17,6 +17,20 @@ const inrPaise = new Intl.NumberFormat("en-IN", {
   maximumFractionDigits: 2,
 });
 
+/**
+ * Intl options for a rupee amount under the same rule as formatINR: whole rupees without
+ * paise, otherwise two decimals. For components (like NumberRoll) that format themselves.
+ */
+export function inrFormatOptions(value: number): Intl.NumberFormatOptions {
+  const whole = Number.isInteger(value);
+  return {
+    style: "currency",
+    currency: "INR",
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: whole ? 0 : 2,
+  };
+}
+
 /** Formats a rupee amount with Indian digit grouping: ₹1,25,000 or ₹480.50. */
 export function formatINR(value: number | string | { toString(): string }): string {
   const parsed = typeof value === "number" ? value : Number(value.toString());

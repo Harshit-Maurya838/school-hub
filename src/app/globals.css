@@ -3,6 +3,103 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* shadcn/ui theme tokens, read by the Hairline UI components in src/components/hairline.
+     Mapped onto the existing slate + emerald palette so they match the hand-built UI. */
+  --radius: 0.75rem;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #047857;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #ecfdf5;
+  --accent-foreground: #064e3b;
+  --destructive: #e11d48;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #059669;
+  --chart-1: #047857;
+  --chart-2: #fb7185;
+  --chart-3: #0284c7;
+  --chart-4: #d97706;
+  --chart-5: #64748b;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  @keyframes ui-col-in {
+    from {
+      max-width: 0;
+      opacity: 0;
+    }
+    to {
+      max-width: 1em;
+      opacity: 1;
+    }
+  }
+  @keyframes ui-col-out {
+    from {
+      max-width: 1em;
+      opacity: 1;
+    }
+    to {
+      max-width: 0;
+      opacity: 0;
+    }
+  }
+  @keyframes ui-empty-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+  @keyframes ui-empty-out {
+    from {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-4px);
+      filter: blur(4px);
+    }
+  }
 }
 
 @theme {

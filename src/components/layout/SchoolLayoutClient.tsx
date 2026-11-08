@@ -4,11 +4,14 @@ import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { GlobalSearchModal } from "../common/GlobalSearchModal";
+import type { ManagementContact } from "./topbar/ProfileMenu";
 
 export interface SchoolLayoutClientProps {
   schoolSlug: string;
   schoolName: string;
   schoolCode: string;
+  udiseCode?: string | null;
+  management?: ManagementContact[];
   userName: string;
   userRole: string;
   userEmail: string;
@@ -20,6 +23,8 @@ export function SchoolLayoutClient({
   schoolSlug,
   schoolName,
   schoolCode,
+  udiseCode,
+  management = [],
   userName,
   userRole,
   userEmail,
@@ -31,37 +36,38 @@ export function SchoolLayoutClient({
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC] font-sans text-slate-800 antialiased">
-      {/* 1. Collapsible & Responsive Sidebar */}
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-slate-800 antialiased">
+      {/* 1. Full-width top bar */}
+      <Header
+        schoolSlug={schoolSlug}
+        schoolName={schoolName}
+        schoolCode={schoolCode}
+        udiseCode={udiseCode}
+        currentSession={currentSession}
+        userName={userName}
+        userRole={userRole}
+        userEmail={userEmail}
+        management={management}
+        onToggleMobileMenu={() => setIsMobileOpen(true)}
+      />
+
+      {/* 2. Sidebar below the top bar */}
       <Sidebar
         schoolSlug={schoolSlug}
         isCollapsed={isSidebarCollapsed}
         setIsCollapsed={setIsSidebarCollapsed}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
-        session={currentSession}
         userRole={userRole}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
-      {/* 2. Main Content Shell */}
+      {/* 3. Page content */}
       <div
-        className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out ${
+        className={`flex min-w-0 flex-col pt-16 transition-[margin] duration-300 ease-in-out ${
           isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
         }`}
       >
-        {/* Top Header Bar */}
-        <Header
-          schoolSlug={schoolSlug}
-          schoolName={schoolName}
-          schoolCode={schoolCode}
-          userName={userName}
-          userRole={userRole}
-          userEmail={userEmail}
-          onOpenSearch={() => setIsSearchOpen(true)}
-          onToggleMobileMenu={() => setIsMobileOpen(true)}
-        />
-
-        {/* Page Content Viewport */}
         <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 pb-24 sm:p-6 lg:p-8">
           {children}
         </main>
