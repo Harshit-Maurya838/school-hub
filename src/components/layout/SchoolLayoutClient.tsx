@@ -77,6 +77,7 @@ export function SchoolLayoutClient({
       <GlobalSearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
+        onOpen={() => setIsSearchOpen(true)}
         schoolSlug={schoolSlug}
         userRole={userRole}
       />
