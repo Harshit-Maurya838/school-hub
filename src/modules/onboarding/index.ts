@@ -10,3 +10,5 @@ export * from "./services/school-profile";
 export * from "./services/school-profile-rules";
 export { SchoolSettingsClient } from "./components/SchoolSettingsClient";
 export { PlatformRegistrationsRoster } from "./components/PlatformRegistrationsRoster";
+export { PlatformSignOutButton } from "./components/PlatformSignOutButton";
+export { PlatformSchoolsTable } from "./components/PlatformSchoolsTable";

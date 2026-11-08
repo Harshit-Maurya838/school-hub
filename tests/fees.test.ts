@@ -24,6 +24,7 @@ import {
   getCollectionReport,
   getClassWiseCollectionSummary,
   getStudentFeeAccount,
+  getFeeDashboardSummary,
 } from "../src/lib/fees.js";
 import { BadRequestError, ConflictError, ForbiddenError } from "../src/lib/errors.js";
 import { AuthenticatedUser } from "../src/lib/auth.js";
@@ -869,6 +870,45 @@ describe("Phase 12: Production-Ready Fees and Finance Management Test Matrix", (
       assert.strictEqual(classSummary.length, 1);
       assert.strictEqual(classSummary[0].className, "Class 10");
       assert.ok(Number(classSummary[0].collectionPercentage) > 0);
+    });
+
+    it("should summarise the session fee position for the dashboard from the invoice ledger", async () => {
+      const summary = await getFeeDashboardSummary(school.id, accountantUser, academicYear.id);
+
+      const invoices = await prisma.invoice.findMany({
+        where: {
+          schoolId: school.id,
+          academicYearId: academicYear.id,
+          status: { not: "CANCELLED" },
+        },
+        select: { netAmount: true, paidAmount: true, refundedAmount: true },
+      });
+      const expectedNet = invoices.reduce((sum, i) => sum.plus(i.netAmount), new Prisma.Decimal(0));
+      const expectedCollected = invoices.reduce(
+        (sum, i) => sum.plus(i.paidAmount).minus(i.refundedAmount),
+        new Prisma.Decimal(0)
+      );
+
+      assert.ok(summary.collected instanceof Prisma.Decimal);
+      assert.strictEqual(summary.totalInvoices, invoices.length);
+      assert.strictEqual(summary.invoicedNet.toString(), expectedNet.toString());
+      assert.strictEqual(summary.collected.toString(), expectedCollected.toString());
+      assert.strictEqual(
+        summary.outstanding.toString(),
+        Prisma.Decimal.max(expectedNet.minus(expectedCollected), 0).toString()
+      );
+      assert.ok(summary.overdueCount >= 0);
+    });
+
+    it("should keep the dashboard fee summary to fee roles within their own school", async () => {
+      for (const user of [teacherUser, superAdminUser, foreignAdminUser]) {
+        await assert.rejects(
+          async () => {
+            await getFeeDashboardSummary(school.id, user, academicYear.id);
+          },
+          (err: unknown) => err instanceof ForbiddenError && err.statusCode === 403
+        );
+      }
     });
 
     it("should return student fee ledger with all invoices and transactions", async () => {

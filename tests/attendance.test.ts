@@ -5,8 +5,13 @@ import { prisma } from "../src/lib/prisma.js";
 import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
 import { hashPassword } from "../src/lib/password.js";
 import { Role } from "../src/generated/prisma/enums.js";
-import { normalizeAttendanceDate, saveAttendanceDraft } from "../src/lib/attendance.js";
-import { BadRequestError } from "../src/lib/errors.js";
+import {
+  normalizeAttendanceDate,
+  saveAttendanceDraft,
+  getAttendanceDaySummary,
+} from "../src/lib/attendance.js";
+import { BadRequestError, ForbiddenError } from "../src/lib/errors.js";
+import type { AuthenticatedUser } from "../src/lib/auth.js";
 import { GET as getOverviewHandler } from "../src/app/api/v1/school/[schoolSlug]/attendance/overview/route.js";
 import { GET as getRegisterHandler } from "../src/app/api/v1/school/[schoolSlug]/attendance/register/route.js";
 import { POST as postDraftHandler } from "../src/app/api/v1/school/[schoolSlug]/attendance/register/draft/route.js";
@@ -904,5 +909,81 @@ describe("Phase 10: Production-Ready Daily Student Attendance Test Matrix", () =
     assert.strictEqual(secReport.excusedCount, 1);
     // (1 present + 0 late) / 2 total = 50.0%
     assert.strictEqual(secReport.attendancePercentage, 50);
+  });
+  // --------------------------------------------------------------------------
+  // 13. Dashboard day summary: register progress and totals, scoped by role
+  // --------------------------------------------------------------------------
+  it("13. Dashboard day summary: counts submitted registers and records, scoped by role", async () => {
+    const asAuth = (u: typeof schoolAdminUser): AuthenticatedUser => ({
+      ...u,
+      phone: null,
+      isActive: true,
+    });
+    const date = new Date(Date.UTC(2026, 9, 22));
+    const registers = await prisma.attendanceRegister.findMany({
+      where: { schoolId: school.id, academicYearId: currentYear.id, date },
+      include: { records: true },
+    });
+    const submittedRecords = registers
+      .filter((r) => r.status === "SUBMITTED")
+      .flatMap((r) => r.records);
+    const countOf = (status: string) => submittedRecords.filter((r) => r.status === status).length;
+
+    const adminSummary = await getAttendanceDaySummary(
+      school.id,
+      asAuth(schoolAdminUser),
+      currentYear.id,
+      "2026-10-22"
+    );
+    assert.strictEqual(adminSummary.dateStr, "2026-10-22");
+    assert.strictEqual(
+      adminSummary.submitted,
+      registers.filter((r) => r.status === "SUBMITTED").length
+    );
+    assert.strictEqual(adminSummary.draft, registers.filter((r) => r.status === "DRAFT").length);
+    assert.ok(adminSummary.submitted >= 1);
+    assert.ok(adminSummary.totalSections >= adminSummary.submitted);
+    assert.strictEqual(adminSummary.present, countOf("PRESENT"));
+    assert.strictEqual(adminSummary.absent, countOf("ABSENT"));
+
+    // Class teacher of 10A only sees their own sections.
+    const teacherSummary = await getAttendanceDaySummary(
+      school.id,
+      asAuth(classTeacherUser),
+      currentYear.id,
+      "2026-10-22"
+    );
+    assert.ok(teacherSummary.totalSections <= adminSummary.totalSections);
+    const teacherRegisters = registers.filter(
+      (r) => r.sectionId === sec10A.id && r.status === "SUBMITTED"
+    );
+    assert.strictEqual(teacherSummary.submitted, teacherRegisters.length);
+
+    // A day with no registers reports zero progress.
+    const emptyDay = await getAttendanceDaySummary(
+      school.id,
+      asAuth(schoolAdminUser),
+      currentYear.id,
+      "2026-01-05"
+    );
+    assert.strictEqual(emptyDay.submitted, 0);
+    assert.strictEqual(emptyDay.present, 0);
+
+    // Accountants have no attendance access; foreign school admins cannot cross tenants.
+    await assert.rejects(
+      async () =>
+        getAttendanceDaySummary(school.id, asAuth(accountantUser), currentYear.id, "2026-10-22"),
+      (err: unknown) => err instanceof ForbiddenError
+    );
+    await assert.rejects(
+      async () =>
+        getAttendanceDaySummary(
+          school.id,
+          asAuth({ ...schoolAdminUser, schoolId: "foreign-school-id" }),
+          currentYear.id,
+          "2026-10-22"
+        ),
+      (err: unknown) => err instanceof ForbiddenError
+    );
   });
 });

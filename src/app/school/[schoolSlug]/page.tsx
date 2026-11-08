@@ -1,5 +1,6 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
   Users,
   IndianRupee,
@@ -9,15 +10,22 @@ import {
   AlertCircle,
   ClipboardList,
   Lock,
+  Layers,
+  CalendarRange,
 } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { formatINR } from "@/lib/utils";
 import { getAcademicSetupReadiness } from "@/lib/school-readiness";
 import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
+import { canViewSchoolFees } from "@/modules/auth";
+import { getFeeDashboardSummary, getClassWiseCollectionSummary } from "@/modules/fees";
+import { getAttendanceDaySummary } from "@/modules/attendance";
 import { StatCard } from "@/components/common/StatCard";
 import {
   EnrollmentDistributionChart,
   ClassEnrollmentData,
+  ClassFeeData,
 } from "@/components/dashboard/EnrollmentDistributionChart";
 import {
   DashboardActivityCard,
@@ -30,6 +38,70 @@ interface SchoolPageProps {
   params: Promise<{
     schoolSlug: string;
   }>;
+}
+
+const SCHOOL_TIME_ZONE = "Asia/Kolkata";
+const BIRTHDAY_LIST_LIMIT = 20;
+
+/** Today's calendar date at the school, as YYYY-MM-DD plus month/day numbers. */
+function schoolToday() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: SCHOOL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  const dateStr = `${get("year")}-${get("month")}-${get("day")}`;
+  return { dateStr, month: Number(get("month")) - 1, day: Number(get("day")) };
+}
+
+const primaryActionClass =
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none";
+const secondaryActionClass =
+  "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none";
+
+interface NoticeProps {
+  tone: "neutral" | "pending";
+  icon: LucideIcon;
+  title: string;
+  body: string;
+  action: { href: string; label: string; secondary?: boolean };
+}
+
+/** The one banner on the dashboard: what this person should do first. */
+function Notice({ tone, icon: Icon, title, body, action }: NoticeProps) {
+  const pending = tone === "pending";
+  return (
+    <div
+      className={`flex flex-col gap-4 rounded-2xl border p-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 ${
+        pending ? "border-amber-200 bg-amber-50" : "shadow-card border-slate-200/80 bg-white"
+      }`}
+    >
+      <div className="flex min-w-0 items-start gap-3.5">
+        <span
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+            pending ? "bg-white text-amber-700" : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          <Icon className="h-5 w-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0 space-y-0.5">
+          <h2 className={`text-sm font-bold ${pending ? "text-amber-950" : "text-slate-900"}`}>
+            {title}
+          </h2>
+          <p className={`text-xs ${pending ? "text-amber-900" : "text-slate-600"}`}>{body}</p>
+        </div>
+      </div>
+      <Link
+        href={action.href}
+        className={action.secondary ? secondaryActionClass : primaryActionClass}
+      >
+        {action.label}
+        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </Link>
+    </div>
+  );
 }
 
 export default async function SchoolSlugPage({ params }: SchoolPageProps) {
@@ -59,10 +131,10 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
   if (user.role !== "SUPER_ADMIN" && user.schoolId !== school.id) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center p-4">
-        <div className="max-w-md rounded-2xl border border-red-200/40 bg-red-50 p-6 text-center shadow-lg">
-          <h2 className="mb-2 text-xl font-bold text-red-700">Access Denied</h2>
-          <p className="text-xs text-red-600">
-            You do not have permission to access {school.name}. Tenant boundary violation detected.
+        <div className="max-w-md rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center">
+          <h2 className="mb-1.5 text-lg font-bold text-rose-900">Access denied</h2>
+          <p className="text-xs text-rose-800">
+            Your account does not belong to {school.name}, so its records are not available to you.
           </p>
         </div>
       </div>
@@ -71,12 +143,16 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
 
   const isTeacher = user.role === "TEACHER";
   const isAccountant = user.role === "ACCOUNTANT";
-  const isAdmin = user.role === "SUPER_ADMIN" || user.role === "SCHOOL_ADMIN";
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
+  const isAdmin = isSuperAdmin || user.role === "SCHOOL_ADMIN";
+  const canSeeFees = canViewSchoolFees(user, school.id);
+  const canSeeAttendance = isAdmin || isTeacher;
 
   const [readiness, schoolProfile] = await Promise.all([
     getAcademicSetupReadiness(school.id, school.slug),
     isAdmin ? getSchoolProfile(school.id) : Promise.resolve(null),
   ]);
+  const currentYear = readiness.summary.currentAcademicYear;
   const profileStepsSaved = schoolProfile
     ? Object.values(schoolProfile.completion).filter(Boolean).length
     : 0;
@@ -84,12 +160,9 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
   let teacherAssignments: import("@/lib/rbac").TeacherAssignmentContext | null = null;
   if (isTeacher) {
     const { getTeacherActiveAssignments } = await import("@/lib/rbac");
-    teacherAssignments = await getTeacherActiveAssignments(
-      school.id,
-      user.id,
-      readiness.summary.currentAcademicYear?.id
-    );
+    teacherAssignments = await getTeacherActiveAssignments(school.id, user.id, currentYear?.id);
   }
+  const permittedSectionIds = teacherAssignments?.allPermittedSectionIds ?? [];
 
   // Teacher student filter condition
   const studentWhere: Record<string, unknown> = {
@@ -99,10 +172,10 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
   };
 
   if (isTeacher) {
-    if (teacherAssignments && teacherAssignments.allPermittedSectionIds.length > 0) {
+    if (teacherAssignments && permittedSectionIds.length > 0) {
       studentWhere.enrollments = {
         some: {
-          sectionId: { in: teacherAssignments.allPermittedSectionIds },
+          sectionId: { in: permittedSectionIds },
           academicYearId: teacherAssignments.academicYearId,
           status: "ACTIVE",
         },
@@ -113,93 +186,85 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     }
   }
 
-  // Fetch real data concurrently
-  const [totalStudents, boysCount, girlsCount, rawClassesData, studentsForBirthdays] =
-    await Promise.all([
-      prisma.student.count({
-        where: studentWhere,
-      }),
-      prisma.student.count({
-        where: { ...studentWhere, gender: "MALE" },
-      }),
-      prisma.student.count({
-        where: { ...studentWhere, gender: "FEMALE" },
-      }),
-      prisma.class.findMany({
-        where: { schoolId: school.id },
-        select: {
-          id: true,
-          name: true,
-          numericOrder: true,
-          sections: {
-            select: {
-              id: true,
-              name: true,
-              _count: {
-                select: { enrollments: true },
-              },
-            },
-          },
-          _count: {
-            select: {
-              sections: true,
-              subjects: true,
-            },
-          },
-        },
-        orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
-      }),
-      prisma.student.findMany({
-        where: studentWhere,
-        select: {
-          id: true,
-          name: true,
-          dob: true,
-          enrollments: {
-            where: { status: "ACTIVE" },
-            take: 1,
-            select: {
-              section: {
-                select: {
-                  name: true,
-                  class: { select: { name: true } },
-                },
-              },
+  // Enrollment counts reflect the current session only.
+  const activeEnrollmentWhere = {
+    status: "ACTIVE" as const,
+    academicYearId: currentYear?.id,
+    student: { isActive: true, deletedAt: null },
+  };
+
+  const today = schoolToday();
+
+  const [
+    totalStudents,
+    boysCount,
+    girlsCount,
+    rawClassesData,
+    studentDobs,
+    feeSummary,
+    classFees,
+    attendanceToday,
+  ] = await Promise.all([
+    prisma.student.count({ where: studentWhere }),
+    prisma.student.count({ where: { ...studentWhere, gender: "MALE" } }),
+    prisma.student.count({ where: { ...studentWhere, gender: "FEMALE" } }),
+    prisma.class.findMany({
+      where: { schoolId: school.id },
+      select: {
+        id: true,
+        name: true,
+        numericOrder: true,
+        sections: {
+          select: {
+            id: true,
+            name: true,
+            _count: {
+              select: { enrollments: { where: activeEnrollmentWhere } },
             },
           },
         },
-        take: 60,
-      }),
-    ]);
+        _count: {
+          select: {
+            sections: true,
+            subjects: true,
+          },
+        },
+      },
+      orderBy: [{ numericOrder: "asc" }, { name: "asc" }],
+    }),
+    prisma.student.findMany({
+      where: studentWhere,
+      select: { id: true, dob: true },
+    }),
+    canSeeFees && currentYear
+      ? getFeeDashboardSummary(school.id, user, currentYear.id)
+      : Promise.resolve(null),
+    canSeeFees && currentYear
+      ? getClassWiseCollectionSummary(school.id, user, currentYear.id)
+      : Promise.resolve(null),
+    canSeeAttendance && currentYear
+      ? getAttendanceDaySummary(school.id, user, currentYear.id, today.dateStr)
+      : Promise.resolve(null),
+  ]);
 
   // If teacher, filter classesData to only assigned classes and sections
   const classesData = isTeacher
     ? rawClassesData
-        .filter((cls) =>
-          cls.sections.some((sec) => teacherAssignments?.allPermittedSectionIds.includes(sec.id))
-        )
+        .filter((cls) => cls.sections.some((sec) => permittedSectionIds.includes(sec.id)))
         .map((cls) => ({
           ...cls,
-          sections: cls.sections.filter((sec) =>
-            teacherAssignments?.allPermittedSectionIds.includes(sec.id)
-          ),
+          sections: cls.sections.filter((sec) => permittedSectionIds.includes(sec.id)),
         }))
     : rawClassesData;
 
-  // Aggregate classes and enrollment numbers
-  const classSummaryList: ClassSummaryItem[] = classesData.map((cls) => {
-    const studentsInClass = cls.sections.reduce(
-      (sum, sec) => sum + (sec._count?.enrollments || 0),
-      0
-    );
-    return {
-      id: cls.id,
-      name: cls.name,
-      sectionsCount: cls.sections.length,
-      subjectsCount: cls._count.subjects,
-      studentsCount: studentsInClass,
-    };
-  });
+  const classSummaryList: ClassSummaryItem[] = classesData.map((cls) => ({
+    id: cls.id,
+    name: cls.name,
+    sectionsCount: cls.sections.length,
+    subjectsCount: cls._count.subjects,
+    studentsCount: cls.sections.reduce((sum, sec) => sum + (sec._count?.enrollments || 0), 0),
+  }));
+  const totalSections = classSummaryList.reduce((sum, c) => sum + c.sectionsCount, 0);
 
   const chartData: ClassEnrollmentData[] = classSummaryList.map((cls) => ({
     className: cls.name,
@@ -207,51 +272,71 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     sectionsCount: cls.sectionsCount,
   }));
 
-  // Build real reminders list
+  // Display-only conversion: the ledger maths stays in Decimal inside the fee service.
+  const feeChartData: ClassFeeData[] | null = classFees
+    ? classFees.map((c) => ({
+        className: c.className,
+        collected: c.collected.toNumber(),
+        outstanding: c.outstanding.toNumber(),
+      }))
+    : null;
+
+  // Build reminders list
   const reminders: ReminderItem[] = [];
 
   if (isAdmin) {
     if (!readiness.schoolDetails.isReady) {
       reminders.push({
         id: "school-profile",
-        title: "School Profile Setup Required",
+        title: "Complete the school profile",
         description:
           readiness.schoolDetails.reason ||
-          "Complete official school details and admin verification.",
+          "Add the official school details and verify the administrator.",
         priority: "high",
         actionUrl: `/school/${school.slug}/settings`,
-        actionLabel: "Complete Profile",
+        actionLabel: "Complete profile",
       });
     }
 
-    if (!readiness.summary.currentAcademicYear) {
+    if (!currentYear) {
       reminders.push({
         id: "academic-year",
-        title: "Active Academic Year Missing",
-        description: "Configure and set an active academic calendar session.",
+        title: "No active session",
+        description: "Create an academic session and set it as current.",
         priority: "high",
         actionUrl: `/school/${school.slug}/settings/academic`,
-        actionLabel: "Configure Year",
+        actionLabel: "Set up session",
       });
     }
 
     if (readiness.summary.counts.classes === 0) {
       reminders.push({
         id: "classes",
-        title: "Create Class Cohorts",
-        description: "Define standard classes (e.g. Nursery, Class 1-10).",
+        title: "Add classes",
+        description: "Define the classes your school runs, for example Nursery to Class 10.",
         priority: "normal",
         actionUrl: `/school/${school.slug}/academics/classes`,
-        actionLabel: "Add Classes",
+        actionLabel: "Add classes",
       });
     } else if (readiness.summary.counts.sections === 0) {
       reminders.push({
         id: "sections",
-        title: "Create Section Divisions",
-        description: "Add sections with seating capacity for student enrollment.",
+        title: "Add sections",
+        description: "Add sections with seating capacity so students can be enrolled.",
         priority: "normal",
         actionUrl: `/school/${school.slug}/academics/sections`,
-        actionLabel: "Add Sections",
+        actionLabel: "Add sections",
+      });
+    }
+
+    if (attendanceToday && attendanceToday.draft > 0) {
+      reminders.push({
+        id: "attendance-drafts",
+        title: `${attendanceToday.draft} ${attendanceToday.draft === 1 ? "register is" : "registers are"} still in draft`,
+        description: "Draft registers are not part of the record until they are submitted.",
+        priority: "normal",
+        actionUrl: `/school/${school.slug}/attendance`,
+        actionLabel: "Review registers",
       });
     }
   } else if (isTeacher) {
@@ -261,189 +346,201 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
         .join(", ");
       reminders.push({
         id: "teacher-attendance",
-        title: "Class Teacher Daily Attendance",
-        description: `Mark or verify daily student roll call register for your section: ${sectionNames}.`,
+        title: "Take today's attendance",
+        description: `You are class teacher for ${sectionNames}.`,
         priority: "high",
         actionUrl: `/school/${school.slug}/attendance`,
-        actionLabel: "Open Register",
+        actionLabel: "Open register",
       });
     } else if (teacherAssignments && teacherAssignments.isSubjectTeacher) {
       reminders.push({
         id: "teacher-subjects",
-        title: "Subject Teaching Workload",
-        description: `You are assigned to ${teacherAssignments.subjectAssignments.length} course sections. Browse your class rosters.`,
+        title: "Your subject sections",
+        description: `You teach ${teacherAssignments.subjectAssignments.length} subject ${
+          teacherAssignments.subjectAssignments.length === 1 ? "section" : "sections"
+        } this session.`,
         priority: "normal",
         actionUrl: `/school/${school.slug}/students`,
-        actionLabel: "View Roster",
+        actionLabel: "View students",
       });
     } else {
       reminders.push({
         id: "teacher-no-assignments",
-        title: "No Active Teaching Assignments",
+        title: "No teaching assignments yet",
         description:
-          "You currently have no class-teacher or subject-teacher assignments for this session. Contact your School Administrator.",
+          "You have no class-teacher or subject assignments this session. Ask your school administrator to assign you.",
         priority: "normal",
         actionUrl: `/school/${school.slug}/academics`,
-        actionLabel: "View Curriculum",
+        actionLabel: "View academics",
       });
     }
   } else if (isAccountant) {
-    reminders.push({
-      id: "accountant-fees",
-      title: "Student Fee Roll Review",
-      description: "Review active enrolled student rosters and prepare term fee demand schedules.",
-      priority: "high",
-      actionUrl: `/school/${school.slug}/fees`,
-      actionLabel: "Open Fees",
-    });
+    if (feeSummary && feeSummary.overdueCount > 0) {
+      reminders.push({
+        id: "accountant-overdue",
+        title: `${feeSummary.overdueCount} overdue ${feeSummary.overdueCount === 1 ? "invoice" : "invoices"}`,
+        description: "These invoices are past their due date with a balance still owed.",
+        priority: "high",
+        actionUrl: `/school/${school.slug}/fees`,
+        actionLabel: "Open fees",
+      });
+    } else if (feeSummary && feeSummary.totalInvoices === 0) {
+      reminders.push({
+        id: "accountant-invoices",
+        title: "No invoices this session",
+        description: "Generate invoices from a fee structure to start collecting fees.",
+        priority: "normal",
+        actionUrl: `/school/${school.slug}/fees`,
+        actionLabel: "Open fees",
+      });
+    }
   }
 
-  // Filter real student birthdays in current month
-  const currentMonth = new Date().getMonth();
-  const birthdays: BirthdayItem[] = studentsForBirthdays
-    .filter((st) => {
-      const bMonth = new Date(st.dob).getMonth();
-      return bMonth === currentMonth;
-    })
-    .slice(0, 5)
-    .map((st) => {
-      const d = new Date(st.dob);
-      const dobFormatted = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-      const sec = st.enrollments[0]?.section;
-      const classInfo = sec ? `${sec.class.name} (${sec.name})` : undefined;
-      return {
-        id: st.id,
-        name: st.name,
-        dobFormatted,
-        className: classInfo,
-      };
-    });
+  // Birthdays this month at the school's local date. Dates of birth are stored as
+  // calendar dates (UTC midnight), so read their UTC month and day.
+  const monthBirthdays = studentDobs
+    .filter((st) => st.dob && new Date(st.dob).getUTCMonth() === today.month)
+    .sort((a, b) => new Date(a.dob).getUTCDate() - new Date(b.dob).getUTCDate());
+  const upcomingFirst = [
+    ...monthBirthdays.filter((st) => new Date(st.dob).getUTCDate() >= today.day),
+    ...monthBirthdays.filter((st) => new Date(st.dob).getUTCDate() < today.day),
+  ].slice(0, BIRTHDAY_LIST_LIMIT);
 
-  const sessionName = readiness.summary.currentAcademicYear?.name || "No Active Session";
+  const birthdayStudents = upcomingFirst.length
+    ? await prisma.student.findMany({
+        where: { schoolId: school.id, id: { in: upcomingFirst.map((s) => s.id) } },
+        select: {
+          id: true,
+          name: true,
+          enrollments: {
+            where: { status: "ACTIVE", academicYearId: currentYear?.id },
+            take: 1,
+            select: {
+              section: { select: { name: true, class: { select: { name: true } } } },
+            },
+          },
+        },
+      })
+    : [];
+  const birthdayById = new Map(birthdayStudents.map((s) => [s.id, s]));
+
+  const birthdays: BirthdayItem[] = upcomingFirst.flatMap((st) => {
+    const student = birthdayById.get(st.id);
+    if (!student) return [];
+    const d = new Date(st.dob);
+    const sec = student.enrollments[0]?.section;
+    return [
+      {
+        id: st.id,
+        name: student.name,
+        dobFormatted: d.toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          timeZone: "UTC",
+        }),
+        className: sec ? `${sec.class.name} - ${sec.name}` : undefined,
+        isToday: d.getUTCDate() === today.day,
+      },
+    ];
+  });
+
+  // Banner: one, the most important thing for this person right now.
+  let notice: NoticeProps | null = null;
+  if (isSuperAdmin) {
+    notice = {
+      tone: "neutral",
+      icon: ShieldCheck,
+      title: `Viewing ${school.name} as platform admin`,
+      body: "You are signed in with platform credentials. Finance records stay with the school's own staff.",
+      action: { href: "/platform", label: "Platform console", secondary: true },
+    };
+  } else if (isAdmin && !readiness.schoolDetails.isReady) {
+    notice = {
+      tone: "pending",
+      icon: AlertCircle,
+      title: "Finish the school profile",
+      body:
+        readiness.schoolDetails.reason ||
+        "Complete the school profile before setting up the session and admitting students.",
+      action: { href: `/school/${school.slug}/settings`, label: "Complete profile" },
+    };
+  } else if (isAdmin && !currentYear) {
+    notice = {
+      tone: "neutral",
+      icon: CalendarRange,
+      title: "Next: set up the academic session",
+      body: "Create and activate a session before adding classes and admitting students.",
+      action: { href: `/school/${school.slug}/settings/academic`, label: "Set up session" },
+    };
+  }
+
+  const sessionName = currentYear?.name ?? null;
+  const roleLine = isTeacher
+    ? "Your sections and today's registers"
+    : isAccountant
+      ? "Fee position and students on roll"
+      : "Today across the school";
+
+  // Attendance card content
+  const attendanceCard = (() => {
+    if (!canSeeAttendance) return null;
+    if (!attendanceToday) {
+      return {
+        value: "—",
+        subtitle: "Set an active session to start taking attendance.",
+        badge: undefined as { text: string; className: string } | undefined,
+      };
+    }
+    const { submitted, totalSections: sections, draft, present, absent, late } = attendanceToday;
+    const allIn = sections > 0 && submitted >= sections;
+    const marked = present + absent + late + attendanceToday.excused;
+    return {
+      value: (
+        <>
+          {submitted}
+          <span className="text-base font-bold text-slate-400"> / {sections}</span>
+        </>
+      ),
+      subtitle:
+        sections === 0
+          ? "No sections with enrolled students yet."
+          : marked > 0
+            ? `${present + late} present · ${absent} absent on submitted registers`
+            : "Registers submitted today",
+      badge: allIn
+        ? {
+            text: "All submitted",
+            className: "border border-emerald-200 bg-emerald-50 text-emerald-800",
+          }
+        : draft > 0
+          ? {
+              text: `${draft} in draft`,
+              className: "border border-amber-200 bg-amber-50 text-amber-800",
+            }
+          : sections > 0
+            ? { text: "Pending", className: "border border-amber-200 bg-amber-50 text-amber-800" }
+            : undefined,
+    };
+  })();
 
   return (
-    <div className="animate-in fade-in space-y-6 duration-200">
-      {/* 1. Role-specific Welcome / Action Banner */}
-      {user.role === "SUPER_ADMIN" ? (
-        <div className="rounded-2xl border border-purple-200 bg-purple-50/80 p-5 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-purple-700" />
-                <h2 className="text-sm font-bold text-purple-950">
-                  Platform Admin Mode • Viewing {school.name}
-                </h2>
-              </div>
-              <p className="text-xs text-purple-800">
-                You are operating with Super Administrator platform credentials. You can inspect and
-                manage all tenant records.
-              </p>
-            </div>
-            <Link
-              href="/platform"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-purple-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-purple-800"
-            >
-              <span>Platform Console</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      ) : isTeacher ? (
-        <div className="rounded-2xl border border-blue-200 bg-blue-50/80 p-5 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <CalendarCheck2 className="h-4 w-4 text-blue-700" />
-                <h2 className="text-sm font-bold text-blue-950">
-                  Teacher Desk • Welcome back, {user.name}
-                </h2>
-              </div>
-              <p className="text-xs text-blue-800">
-                Manage today&apos;s physical attendance register, view student rosters, and check
-                upcoming birthdays.
-              </p>
-            </div>
-            <Link
-              href={`/school/${school.slug}/attendance`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-blue-800"
-            >
-              <span>Take Daily Attendance</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      ) : isAccountant ? (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <IndianRupee className="h-4 w-4 text-amber-700" />
-                <h2 className="text-sm font-bold text-amber-950">
-                  Accounts & Finance Desk • Welcome, {user.name}
-                </h2>
-              </div>
-              <p className="text-xs text-amber-800">
-                Cross-reference student admission rosters, parent contacts, and fee ledger
-                structures.
-              </p>
-            </div>
-            <Link
-              href={`/school/${school.slug}/fees`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-amber-800"
-            >
-              <span>Open Fees Desk</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      ) : !readiness.schoolDetails.isReady ? (
-        <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-5 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <h2 className="text-sm font-bold text-amber-900">
-                  Action Required: School Profile Incomplete
-                </h2>
-              </div>
-              <p className="text-xs text-amber-800">
-                {readiness.schoolDetails.reason ||
-                  "Complete your school profile before configuring the academic year and student rosters."}
-              </p>
-            </div>
-            <Link
-              href={`/school/${school.slug}/settings`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-amber-600 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-amber-700"
-            >
-              <span>Complete Profile</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      ) : !readiness.summary.currentAcademicYear ? (
-        <div className="rounded-2xl border border-emerald-300 bg-emerald-50/80 p-5 shadow-xs">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                <h2 className="text-sm font-bold text-emerald-900">
-                  Next Setup Step: Configure Academic Calendar
-                </h2>
-              </div>
-              <p className="text-xs text-emerald-800">
-                Set up and activate an academic year before creating classes and admitting students.
-              </p>
-            </div>
-            <Link
-              href={`/school/${school.slug}/settings/academic`}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-xs transition-colors hover:bg-emerald-800"
-            >
-              <span>Configure Academic Year</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          </div>
-        </div>
-      ) : null}
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-black tracking-tight text-slate-900">Dashboard</h2>
+        <p className="mt-1 text-xs font-medium text-slate-500">
+          {roleLine}
+          {" · "}
+          {sessionName ? (
+            <>
+              Session <span className="font-mono text-slate-700">{sessionName}</span>
+            </>
+          ) : (
+            "No active session"
+          )}
+        </p>
+      </div>
+
+      {notice && <Notice {...notice} />}
 
       {/* Master School Profile shortcut (admins) */}
       {schoolProfile && (
@@ -486,7 +583,9 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
           </div>
           <Link
             href={`/school/${school.slug}/settings`}
-            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none"
+            className={
+              notice && !notice.action.secondary ? secondaryActionClass : primaryActionClass
+            }
           >
             Open school profile
             <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
@@ -494,74 +593,95 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
         </div>
       )}
 
-      {/* Top Metric Cards (3 Columns) */}
+      {/* Key figures */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {/* 1. Total Students */}
-        <Link href={`/school/${school.slug}/students`} className="block">
-          <StatCard
-            title={isAccountant ? "Students on Roll" : "Total Students"}
-            value={totalStudents}
-            subtitle={`${boysCount} Boys • ${girlsCount} Girls enrolled`}
-            icon={Users}
-            variant="emerald"
-            badgeText={`Session ${sessionName}`}
-            badgeColor="bg-emerald-100 text-emerald-800"
-          />
-        </Link>
+        <StatCard
+          href={`/school/${school.slug}/students`}
+          title={isTeacher ? "Your students" : "Students on roll"}
+          value={totalStudents}
+          subtitle={`${boysCount} boys · ${girlsCount} girls`}
+          icon={Users}
+          variant="emerald"
+        />
 
-        {/* 2. Middle Card: Fees or Curriculum depending on role */}
-        {isTeacher ? (
-          <Link href={`/school/${school.slug}/academics`} className="block">
-            <StatCard
-              title="Curriculum Classes"
-              value={classSummaryList.length}
-              subtitle="Active grade levels and section divisions"
-              icon={IndianRupee}
-              variant="default"
-              badgeText="Curriculum"
-              badgeColor="bg-blue-100 text-blue-800"
-            />
-          </Link>
-        ) : (
+        {canSeeFees && (
           <StatCard
-            title="Fees Collected"
-            value="Not Configured"
-            subtitle="Financial ledger & billing module awaiting backend integration"
-            icon={IndianRupee}
-            variant="default"
-            badgeText={isAccountant ? "In Roadmap" : "Module Pending"}
-            badgeColor={
-              isAccountant ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-500"
+            href={`/school/${school.slug}/fees`}
+            title="Fees collected"
+            value={
+              feeSummary ? (
+                <span className="font-mono tracking-tighter">
+                  {formatINR(feeSummary.collected)}
+                </span>
+              ) : (
+                "—"
+              )
             }
+            subtitle={
+              !feeSummary
+                ? "Set an active session to issue invoices."
+                : feeSummary.totalInvoices === 0
+                  ? "No invoices issued this session."
+                  : `${formatINR(feeSummary.outstanding)} outstanding on ${feeSummary.totalInvoices} ${
+                      feeSummary.totalInvoices === 1 ? "invoice" : "invoices"
+                    }`
+            }
+            icon={IndianRupee}
+            badgeText={
+              feeSummary && feeSummary.overdueCount > 0
+                ? `${feeSummary.overdueCount} overdue`
+                : undefined
+            }
+            badgeColor="border border-rose-200 bg-rose-50 text-rose-800"
           />
         )}
 
-        {/* 3. Daily Attendance or Student Records */}
-        <Link href={`/school/${school.slug}/attendance`} className="block">
+        {attendanceCard && (
           <StatCard
-            title="Daily Attendance"
-            value="Register Ready"
-            subtitle="Physical notebook register preview ready for class rosters"
+            href={`/school/${school.slug}/attendance`}
+            title="Registers submitted today"
+            value={attendanceCard.value}
+            subtitle={attendanceCard.subtitle}
             icon={CalendarCheck2}
-            variant="rte"
-            badgeText={isTeacher ? "Your Primary Action" : "UI Reference"}
-            badgeColor={isTeacher ? "bg-blue-100 text-blue-800" : "bg-emerald-100 text-emerald-800"}
+            variant="emerald"
+            badgeText={attendanceCard.badge?.text}
+            badgeColor={attendanceCard.badge?.className}
           />
-        </Link>
+        )}
+
+        {(!canSeeFees || !attendanceCard) && (
+          <StatCard
+            href={`/school/${school.slug}/academics`}
+            title={isTeacher ? "Your classes" : "Classes"}
+            value={classSummaryList.length}
+            subtitle={`${totalSections} ${totalSections === 1 ? "section" : "sections"}`}
+            icon={Layers}
+          />
+        )}
       </div>
 
-      {/* Middle Section (2 Columns: Left 2/3, Right 1/3) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <EnrollmentDistributionChart data={chartData} />
+          <EnrollmentDistributionChart data={chartData} feeData={feeChartData} />
         </div>
         <div className="lg:col-span-1">
-          <DashboardActivityCard reminders={reminders} birthdays={birthdays} />
+          <DashboardActivityCard
+            reminders={reminders}
+            birthdays={birthdays}
+            birthdaysTotal={monthBirthdays.length}
+            allClearMessage={
+              isAdmin ? "School profile, session, classes and sections are all set up." : undefined
+            }
+          />
         </div>
       </div>
 
-      {/* Bottom Section - "Your Classes" */}
-      <DashboardClassList schoolSlug={school.slug} classes={classSummaryList} />
+      <DashboardClassList
+        schoolSlug={school.slug}
+        classes={classSummaryList}
+        canManage={isAdmin}
+        title={isTeacher ? "Your classes" : "Classes"}
+      />
     </div>
   );
 }

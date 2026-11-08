@@ -332,6 +332,86 @@ export async function getAttendanceOverview(schoolId: string, user: Authenticate
 }
 
 /**
+ * Today's register progress for the dashboard: how many sections with enrolled
+ * students have a submitted register, how many are still in draft, and the
+ * attendance totals recorded on submitted registers. Teachers only see the
+ * sections they are assigned to; accountants have no access to attendance.
+ */
+export async function getAttendanceDaySummary(
+  schoolId: string,
+  user: AuthenticatedUser,
+  academicYearId: string,
+  dateInput: string | Date = new Date()
+) {
+  if (user.role !== "SCHOOL_ADMIN" && user.role !== "SUPER_ADMIN" && user.role !== "TEACHER") {
+    throw new ForbiddenError("Access denied: Not authorized to view attendance");
+  }
+  if (user.role !== "SUPER_ADMIN" && user.schoolId !== schoolId) {
+    throw new ForbiddenError("Access denied: School boundary violation");
+  }
+
+  const { date, dateStr } = normalizeAttendanceDate(dateInput);
+
+  let permittedSectionIds: string[] | undefined;
+  if (user.role === "TEACHER") {
+    const assignments = await getTeacherActiveAssignments(schoolId, user.id, academicYearId);
+    permittedSectionIds = assignments?.allPermittedSectionIds ?? [];
+  }
+
+  const sectionFilter = permittedSectionIds ? { in: permittedSectionIds } : undefined;
+
+  const [sectionsWithStudents, registers, recordCounts] = await Promise.all([
+    prisma.section.count({
+      where: {
+        schoolId,
+        id: sectionFilter,
+        enrollments: {
+          some: {
+            academicYearId,
+            status: "ACTIVE",
+            student: { isActive: true, deletedAt: null },
+          },
+        },
+      },
+    }),
+    prisma.attendanceRegister.groupBy({
+      by: ["status"],
+      where: { schoolId, academicYearId, date, sectionId: sectionFilter },
+      _count: { _all: true },
+    }),
+    prisma.attendanceRecord.groupBy({
+      by: ["status"],
+      where: {
+        register: {
+          schoolId,
+          academicYearId,
+          date,
+          sectionId: sectionFilter,
+          status: RegisterStatus.SUBMITTED,
+        },
+      },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const registerCount = (status: RegisterStatus) =>
+    registers.find((r) => r.status === status)?._count._all ?? 0;
+  const recordCount = (status: AttendanceStatus) =>
+    recordCounts.find((r) => r.status === status)?._count._all ?? 0;
+
+  return {
+    dateStr,
+    totalSections: sectionsWithStudents,
+    submitted: registerCount(RegisterStatus.SUBMITTED),
+    draft: registerCount(RegisterStatus.DRAFT),
+    present: recordCount(AttendanceStatus.PRESENT),
+    absent: recordCount(AttendanceStatus.ABSENT),
+    late: recordCount(AttendanceStatus.LATE),
+    excused: recordCount(AttendanceStatus.EXCUSED),
+  };
+}
+
+/**
  * Retrieves daily register and enrolled roster for a section on a specific date.
  */
 export async function getDailyRegister(

@@ -1,26 +1,26 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { Building2, Clock, GraduationCap, Plus, Users } from "lucide-react";
 import { getAuthenticatedUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { Badge } from "@/components/common/Badge";
+import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
+import { StatCard } from "@/components/common/StatCard";
+import { getRoleTheme } from "@/modules/auth/services/role-ui";
+import {
+  PlatformRegistrationsRoster,
+  PlatformSchoolsTable,
+  PlatformSignOutButton,
+} from "@/modules/onboarding";
 
 export const metadata: Metadata = {
   title: "Platform Administration",
   description:
     "Super Administrator console for managing educational institutions and onboarding applications on Classic Giga.",
 };
-import { prisma } from "@/lib/prisma";
-import {
-  Building2,
-  Users,
-  GraduationCap,
-  Clock,
-  Sparkles,
-  School,
-  Layers,
-  ChevronRight,
-} from "lucide-react";
 
-import { PlatformRegistrationsRoster } from "@/modules/onboarding";
+const REGISTRATION_LIMIT = 20;
 
 export default async function PlatformPage() {
   const user = await getAuthenticatedUser();
@@ -28,18 +28,27 @@ export default async function PlatformPage() {
     redirect("/login");
   }
 
-  const [schools, registrations] = await Promise.all([
+  const [schools, registrations, pendingCount] = await Promise.all([
     prisma.school.findMany({
       orderBy: { createdAt: "desc" },
       include: {
         _count: {
           select: { users: true, students: true },
         },
+        profile: {
+          select: {
+            isLocked: true,
+            lockedAt: true,
+            identityCompletedAt: true,
+            academicCompletedAt: true,
+            leadershipCompletedAt: true,
+          },
+        },
       },
     }),
     prisma.schoolRegistration.findMany({
       orderBy: { createdAt: "desc" },
-      take: 20,
+      take: REGISTRATION_LIMIT,
       include: {
         school: {
           select: {
@@ -47,6 +56,9 @@ export default async function PlatformPage() {
           },
         },
       },
+    }),
+    prisma.schoolRegistration.count({
+      where: { status: { in: ["PENDING_VERIFICATION", "PENDING_REVIEW"] } },
     }),
   ]);
 
@@ -67,267 +79,152 @@ export default async function PlatformPage() {
     createdAt: r.createdAt.toISOString(),
   }));
 
-  const pendingCount = registrations.filter(
-    (r) => r.status === "PENDING_VERIFICATION" || r.status === "PENDING_REVIEW"
-  ).length;
+  const schoolRows = schools.map((s) => ({
+    id: s.id,
+    name: s.name,
+    code: s.code,
+    slug: s.slug,
+    status: s.status,
+    staffCount: s._count.users,
+    studentCount: s._count.students,
+    profile: {
+      isComplete: Boolean(
+        s.profile?.identityCompletedAt &&
+        s.profile.academicCompletedAt &&
+        s.profile.leadershipCompletedAt
+      ),
+      isLocked: s.profile?.isLocked ?? false,
+      lockedAt: s.profile?.lockedAt?.toISOString() ?? null,
+    },
+  }));
 
+  const activeSchools = schools.filter((s) => s.status === "ACTIVE").length;
   const totalStudents = schools.reduce((acc, s) => acc + s._count.students, 0);
   const totalStaff = schools.reduce((acc, s) => acc + s._count.users, 0);
 
+  const displayName = user.name || "Platform Admin";
+  const initials =
+    displayName
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "PA";
+  const roleTheme = getRoleTheme("SUPER_ADMIN");
+
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 selection:bg-purple-500 selection:text-white">
-      {/* Top Platform Bar */}
-      <div className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-700">
+      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandEmblem />
+            <BrandWordmark />
+            <span
+              className={`hidden rounded-full border px-2.5 py-0.5 text-[11px] font-semibold sm:inline-flex ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
+            >
+              Platform console
+            </span>
+          </div>
+
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/20">
-              <Layers className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold tracking-tight text-white">
-                  CampusPulse Cloud
-                </span>
-                <span className="rounded-md border border-purple-500/30 bg-purple-500/10 px-2 py-0.5 text-[10px] font-black tracking-wider text-purple-300 uppercase">
-                  Platform Console
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Multi-Tenant School SaaS Administration</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 px-3 py-1.5 text-xs text-slate-400 sm:flex">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-              <span>Multi-Tenant DB Connected</span>
-            </div>
-
-            <div className="flex items-center gap-3 border-l border-slate-800 pl-2">
+            <div className="hidden items-center gap-2.5 md:flex">
               <div className="text-right">
-                <p className="text-xs font-bold text-white">{user.name || "Platform Admin"}</p>
-                <p className="font-mono text-[11px] text-purple-400">{user.email}</p>
+                <p className="text-xs font-bold text-slate-900">{displayName}</p>
+                <p className="font-mono text-[11px] text-slate-500">{user.email}</p>
               </div>
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-700 text-xs font-black text-white shadow-md">
-                SA
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto max-w-7xl space-y-8 px-6 py-8">
-        {/* Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-r from-purple-950/40 via-slate-900 to-indigo-950/40 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="pointer-events-none absolute -top-10 -right-10 h-64 w-64 rounded-full bg-purple-600/10 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-10 -left-10 h-64 w-64 rounded-full bg-indigo-600/10 blur-3xl" />
-
-          <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
-            <div className="max-w-2xl space-y-2">
-              <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-bold text-purple-300">
-                <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-                <span>Super Administrator Oversight</span>
-              </div>
-              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-                Global Platform Infrastructure
-              </h1>
-              <p className="text-sm leading-relaxed text-slate-300">
-                Oversee institution onboarding, inspect active tenant school databases, and access
-                any school workspace with administrative authority.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/register-school"
-                className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-600/30 transition-all hover:bg-purple-500 hover:shadow-purple-600/50"
+              <span
+                className={`flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br text-xs font-bold text-white ${roleTheme.avatarBg}`}
+                aria-hidden="true"
               >
-                <School className="h-4 w-4" />
-                <span>Provision New School</span>
-              </Link>
+                {initials}
+              </span>
             </div>
+            <PlatformSignOutButton />
           </div>
         </div>
+      </header>
 
-        {/* Global KPI Metrics */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-sm transition-all hover:border-slate-700 hover:bg-slate-900/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                Customer Schools
-              </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 text-purple-400">
-                <Building2 className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="mt-3 text-3xl font-black tracking-tight text-white">{schools.length}</p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="inline-flex items-center font-bold text-purple-400">100%</span>
-              <span>isolated tenant schemas</span>
-            </div>
+      <main className="mx-auto max-w-7xl space-y-6 px-4 pt-6 pb-24 sm:px-6 lg:px-8 lg:pt-8">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              Platform administration
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">
+              Review school registrations, check on provisioned schools, and open any school
+              workspace as a platform admin.
+            </p>
           </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-sm transition-all hover:border-slate-700 hover:bg-slate-900/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                Total Enrolled
-              </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400">
-                <GraduationCap className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="mt-3 text-3xl font-black tracking-tight text-white">{totalStudents}</p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="font-bold text-emerald-400">Active</span>
-              <span>across all institutions</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-sm transition-all hover:border-slate-700 hover:bg-slate-900/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                Staff & Educators
-              </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-blue-500/20 bg-blue-500/10 text-blue-400">
-                <Users className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="mt-3 text-3xl font-black tracking-tight text-white">{totalStaff}</p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span className="font-bold text-blue-400">RBAC</span>
-              <span>Admins, Teachers & Accountants</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 backdrop-blur-sm transition-all hover:border-slate-700 hover:bg-slate-900/80">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                Pending Onboarding
-              </span>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400">
-                <Clock className="h-5 w-5" />
-              </div>
-            </div>
-            <p className="mt-3 text-3xl font-black tracking-tight text-amber-400">{pendingCount}</p>
-            <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-              <span>Awaiting applicant verification</span>
-            </div>
-          </div>
+          <Link
+            href="/register-school"
+            className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl bg-emerald-700 px-4 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none sm:self-auto"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>Register new school</span>
+          </Link>
         </div>
 
-        {/* Customer Schools Table */}
-        <section className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-sm">
-          <div className="flex flex-col justify-between gap-4 border-b border-slate-800 px-6 py-5 sm:flex-row sm:items-center">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard
+            title="Schools"
+            value={schools.length}
+            subtitle={`${activeSchools} active`}
+            icon={Building2}
+          />
+          <StatCard
+            title="Students enrolled"
+            value={totalStudents}
+            subtitle="Across all schools"
+            icon={GraduationCap}
+          />
+          <StatCard
+            title="Staff accounts"
+            value={totalStaff}
+            subtitle="Admins, teachers and accountants"
+            icon={Users}
+          />
+          <StatCard
+            title="Pending registrations"
+            value={pendingCount}
+            subtitle={
+              pendingCount === 0
+                ? "Nothing waiting for review"
+                : "Awaiting email verification or review"
+            }
+            icon={Clock}
+            variant={pendingCount > 0 ? "alert" : "default"}
+          />
+        </div>
+
+        <PlatformRegistrationsRoster
+          initialRegistrations={serializedRegistrations}
+          limit={REGISTRATION_LIMIT}
+        />
+
+        <section
+          aria-labelledby="schools-heading"
+          className="shadow-card overflow-hidden rounded-2xl border border-slate-200 bg-white"
+        >
+          <div className="flex flex-col justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center">
             <div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-purple-400" />
-                <h2 className="text-lg font-black tracking-tight text-white">
-                  Tenant Schools Roster ({schools.length})
-                </h2>
-              </div>
-              <p className="mt-0.5 text-xs text-slate-400">
-                Click any school to enter its workspace with Super Admin privileges
+              <h2 id="schools-heading" className="text-lg font-bold text-slate-900">
+                Schools
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Open a school&apos;s workspace, or lock and unlock its school profile for editing.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs font-bold text-purple-300">
-                {schools.length} Active Deployments
-              </span>
-            </div>
+            <Badge
+              variant={activeSchools > 0 ? "emerald" : "default"}
+              className="self-start sm:self-auto"
+            >
+              {activeSchools} of {schools.length} active
+            </Badge>
           </div>
 
-          {schools.length === 0 ? (
-            <div className="p-16 text-center">
-              <Building2 className="mx-auto h-12 w-12 text-slate-700" />
-              <p className="mt-3 text-sm font-semibold text-slate-400">
-                No customer schools provisioned yet.
-              </p>
-              <Link
-                href="/register-school"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs font-bold text-white hover:bg-purple-500"
-              >
-                Register First School
-              </Link>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm text-slate-300">
-                <thead className="border-b border-slate-800/80 bg-slate-950/40 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-                  <tr>
-                    <th className="px-6 py-4">School Name</th>
-                    <th className="px-6 py-4">School Code</th>
-                    <th className="px-6 py-4">URL Route</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-center">Staff Accounts</th>
-                    <th className="px-6 py-4 text-center">Students</th>
-                    <th className="px-6 py-4 text-right">Access Console</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {schools.map((school) => (
-                    <tr key={school.id} className="group transition-colors hover:bg-slate-800/40">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-purple-500/20 bg-purple-500/10 font-black text-purple-300">
-                            {school.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-bold text-white transition-colors group-hover:text-purple-300">
-                              {school.name}
-                            </p>
-                            <p className="text-[11px] text-slate-500">ID: {school.id}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1 font-mono text-xs font-bold text-indigo-300">
-                          {school.code}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-mono text-xs text-slate-400">
-                        /school/{school.slug}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                            school.status === "ACTIVE"
-                              ? "border border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-                              : "border border-slate-700 bg-slate-800 text-slate-400"
-                          }`}
-                        >
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${
-                              school.status === "ACTIVE" ? "bg-emerald-400" : "bg-slate-500"
-                            }`}
-                          />
-                          {school.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-200">
-                        {school._count.users}
-                      </td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-200">
-                        {school._count.students}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <Link
-                          href={`/school/${school.slug}`}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-purple-500/30 bg-purple-500/10 px-3.5 py-1.5 text-xs font-bold text-purple-300 transition-all hover:border-purple-500 hover:bg-purple-600 hover:text-white"
-                        >
-                          <span>Open Workspace</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <PlatformSchoolsTable initialSchools={schoolRows} />
         </section>
-
-        {/* Public SaaS Registrations Applications */}
-        <PlatformRegistrationsRoster initialRegistrations={serializedRegistrations} />
-      </div>
+      </main>
     </div>
   );
 }

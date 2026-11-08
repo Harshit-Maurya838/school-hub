@@ -1610,6 +1610,52 @@ export async function getFinancialOverview(
   };
 }
 
+/**
+ * Compact fee position for one academic session, used on the school dashboard.
+ * Amounts follow the per-invoice ledger: collected = paid - refunded, and
+ * outstanding = net payable - collected. Cancelled invoices are excluded.
+ */
+export async function getFeeDashboardSummary(
+  schoolId: string,
+  user: AuthenticatedUser,
+  academicYearId: string
+) {
+  assertCanViewSchoolFees(user, schoolId);
+
+  const activeInvoices: Prisma.InvoiceWhereInput = {
+    schoolId,
+    academicYearId,
+    status: { not: "CANCELLED" },
+  };
+
+  const [totals, overdueCount] = await Promise.all([
+    prisma.invoice.aggregate({
+      where: activeInvoices,
+      _sum: { netAmount: true, paidAmount: true, refundedAmount: true },
+      _count: { _all: true },
+    }),
+    prisma.invoice.count({
+      where: {
+        ...activeInvoices,
+        status: { in: ["ISSUED", "PARTIALLY_PAID", "OVERDUE"] },
+        dueDate: { lt: new Date() },
+      },
+    }),
+  ]);
+
+  const invoicedNet = toDecimal(totals._sum.netAmount);
+  const collected = toDecimal(totals._sum.paidAmount).minus(toDecimal(totals._sum.refundedAmount));
+  const outstanding = invoicedNet.minus(collected);
+
+  return {
+    totalInvoices: totals._count._all,
+    invoicedNet,
+    collected,
+    outstanding: outstanding.isNegative() ? new Prisma.Decimal(0) : outstanding,
+    overdueCount,
+  };
+}
+
 export async function getCollectionReport(
   schoolId: string,
   user: AuthenticatedUser,
