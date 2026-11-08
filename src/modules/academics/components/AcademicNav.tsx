@@ -3,16 +3,7 @@
 import { useState, useEffect, useTransition, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutGrid,
-  Layers,
-  Grid,
-  BookOpen,
-  AlertTriangle,
-  Shield,
-  GraduationCap,
-} from "lucide-react";
-import { getRoleDisplayName, getRoleTheme } from "@/modules/auth/services/role-ui";
+import { LayoutGrid, Layers, Grid, AlertTriangle, GraduationCap } from "lucide-react";
 
 interface AcademicNavProps {
   schoolSlug: string;
@@ -42,8 +33,6 @@ export function AcademicNav({
   const pathname = usePathname() || "";
   const basePath = `/school/${schoolSlug}/academics`;
   const isTeacher = userRole === "TEACHER";
-  const roleName = getRoleDisplayName(userRole);
-  const roleTheme = getRoleTheme(userRole);
 
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [prevPathname, setPrevPathname] = useState(pathname);
@@ -58,15 +47,10 @@ export function AcademicNav({
   const navItems = useMemo(
     () => [
       { label: "Overview", href: basePath, exact: true, icon: LayoutGrid },
-      {
-        label: isTeacher ? "Curriculum Classes" : "Classes",
-        href: `${basePath}/classes`,
-        icon: Layers,
-      },
-      { label: "Sections", href: `${basePath}/sections`, icon: Grid },
-      { label: "Subjects", href: `${basePath}/subjects`, icon: BookOpen },
+      { label: "Classes & Subjects", href: `${basePath}/classes`, icon: Layers },
+      { label: "Sections & Teachers", href: `${basePath}/sections`, icon: Grid },
     ],
-    [basePath, isTeacher]
+    [basePath]
   );
 
   // Pre-warm router cache for all academic tabs so clicks are instantaneous
@@ -86,24 +70,11 @@ export function AcademicNav({
       {/* Top Bar */}
       <div className="flex flex-col justify-between gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center">
         <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-            <Link
-              href={`/school/${schoolSlug}`}
-              prefetch={true}
-              className="transition-colors hover:text-emerald-700"
-            >
-              {schoolName} ({schoolCode})
-            </Link>
-            <span>/</span>
-            <span className="text-slate-800">Class & Subjects</span>
-          </div>
-          <h2 className="mt-1 font-sans text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
-            {isTeacher ? "Curriculum & Syllabus Directory" : "Class & Subject Directory"}
-          </h2>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <h2 className="font-sans text-xl font-black tracking-tight text-slate-900">Academics</h2>
+          <p className="mt-0.5 text-xs text-slate-500">
             {isTeacher
-              ? "Browse grade-level standards, section allocations, and subject course syllabi"
-              : "Manage grade standards, student sections, curriculum subjects, and teaching allocations"}
+              ? `Classes, sections and subjects at ${schoolName}`
+              : `Classes, sections, subjects and fees for ${schoolName} (${schoolCode})`}
           </p>
         </div>
 
@@ -142,13 +113,6 @@ export function AcademicNav({
               )}
             </div>
           )}
-
-          <div
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold ${roleTheme.badgeBg} ${roleTheme.badgeText} ${roleTheme.badgeBorder}`}
-          >
-            <Shield className="h-3.5 w-3.5" />
-            <span>{roleName}</span>
-          </div>
         </div>
       </div>
 

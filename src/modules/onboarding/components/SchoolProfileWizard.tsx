@@ -39,6 +39,36 @@ import {
   offersSeniorSecondary,
   type ProfileStep,
 } from "../services/school-profile-rules";
+import { classesForRange } from "../services/class-structure-template";
+
+interface ProvisioningResult {
+  createdSession: string | null;
+  createdClasses: string[];
+  createdSections: number;
+  createdSubjects: number;
+  outsideRange: string[];
+  skippedReason: string | null;
+}
+
+/** One sentence on what saving the academic step did to the class structure. */
+function describeProvisioning(p: ProvisioningResult): string {
+  if (p.skippedReason) return `Academic setup saved. Classes were not created: ${p.skippedReason}`;
+  const parts: string[] = [];
+  if (p.createdSession) parts.push(`started session ${p.createdSession}`);
+  if (p.createdClasses.length) {
+    parts.push(
+      `created ${p.createdClasses.length} ${p.createdClasses.length === 1 ? "class" : "classes"} (${p.createdClasses[0]} to ${p.createdClasses[p.createdClasses.length - 1]}) with Section A`
+    );
+  }
+  if (p.createdSubjects) parts.push(`added ${p.createdSubjects} default subjects`);
+  let text = parts.length
+    ? `Academic setup saved: ${parts.join(", ")}. Fine-tune them under Academics → Classes & Subjects.`
+    : "Academic setup saved. Every class in this range already exists.";
+  if (p.outsideRange.length) {
+    text += ` ${p.outsideRange.join(", ")} ${p.outsideRange.length === 1 ? "is" : "are"} outside the new range and ${p.outsideRange.length === 1 ? "was" : "were"} kept.`;
+  }
+  return text;
+}
 
 // ---------------------------------------------------------------------------
 // Form state
@@ -380,10 +410,12 @@ export function SchoolProfileWizard({
       setProfile(next);
       if (step === "identity") setIdentity(identityFrom(next));
       if (step === "academic") setAcademic(academicFrom(next));
+      const provisioning: ProvisioningResult | null = json.data.provisioning ?? null;
       if (step === "leadership") setLeadership(leadershipFrom(next));
 
       if (stepIndex < STEPS.length - 1) {
         setStep(STEPS[stepIndex + 1].id);
+        if (provisioning) setNotice(describeProvisioning(provisioning));
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setNotice(
@@ -437,6 +469,7 @@ export function SchoolProfileWizard({
     (c) => c.value !== "NURSERY" || academic.includesPrePrimary
   );
   const activeRange = describeActiveRange(academic.classRange, academic.includesPrePrimary);
+  const plannedClasses = classesForRange(academic.classRange, academic.includesPrePrimary);
 
   const setClassRange = (value: string) => {
     setAcademic((a) => {
@@ -863,6 +896,28 @@ export function SchoolProfileWizard({
                         {activeRange}
                       </span>
                     </p>
+                  )}
+
+                  {plannedClasses.length > 0 && !readOnly && (
+                    <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                      <p className="text-xs font-semibold text-slate-700">
+                        Saving creates these {plannedClasses.length} classes, each with Section A
+                        and default subjects. Classes that already exist are kept as they are.
+                      </p>
+                      <ul
+                        className="mt-2 flex flex-wrap gap-1.5"
+                        aria-label="Classes to be created"
+                      >
+                        {plannedClasses.map((c) => (
+                          <li
+                            key={c.name}
+                            className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-700"
+                          >
+                            {c.name}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </Panel>
 

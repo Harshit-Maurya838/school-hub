@@ -241,6 +241,8 @@ model Section {
   classId     String
   name        String
   capacity    Int?
+  /// Medium of instruction for this section; null means the school profile's medium.
+  medium      InstructionMedium?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 

@@ -162,6 +162,10 @@ export const createSectionSchema = z.object({
     .max(500, "Capacity exceeds maximum allowed")
     .optional()
     .nullable(),
+  medium: z
+    .enum(["ENGLISH", "HINDI", "BILINGUAL", "URDU"], { error: "Select a valid medium" })
+    .optional()
+    .nullable(),
 });
 
 export const updateSectionSchema = z.object({
@@ -177,6 +181,10 @@ export const updateSectionSchema = z.object({
     .int("Capacity must be an integer")
     .positive("Capacity must be a positive integer")
     .max(500, "Capacity exceeds maximum allowed")
+    .optional()
+    .nullable(),
+  medium: z
+    .enum(["ENGLISH", "HINDI", "BILINGUAL", "URDU"], { error: "Select a valid medium" })
     .optional()
     .nullable(),
 });
@@ -750,6 +758,7 @@ export async function createSection(
       classId,
       name,
       capacity: input.capacity ?? null,
+      medium: input.medium ?? null,
     },
     include: {
       class: {
@@ -772,6 +781,7 @@ export async function createSection(
       classId: section.classId,
       className: parentClass.name,
       capacity: section.capacity,
+      medium: section.medium,
     },
   });
 
@@ -823,6 +833,7 @@ export async function updateSection(
       ...(input.name ? { name: targetName } : {}),
       ...(input.classId ? { classId: targetClassId } : {}),
       ...(input.capacity !== undefined ? { capacity: input.capacity } : {}),
+      ...(input.medium !== undefined ? { medium: input.medium } : {}),
     },
     include: {
       class: {

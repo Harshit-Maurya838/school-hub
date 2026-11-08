@@ -3,9 +3,9 @@
 // ============================================================================
 
 export * from "./services/academics";
-export { AcademicClassesClient } from "./components/AcademicClassesClient";
+export * from "./services/class-setup";
 export { AcademicHubClient } from "./components/AcademicHubClient";
 export { AcademicNav } from "./components/AcademicNav";
 export { AcademicSectionsClient } from "./components/AcademicSectionsClient";
 export { AcademicSessionsClient } from "./components/AcademicSessionsClient";
-export { AcademicSubjectsClient } from "./components/AcademicSubjectsClient";
+export { ClassSubjectSetupClient } from "./components/ClassSubjectSetupClient";

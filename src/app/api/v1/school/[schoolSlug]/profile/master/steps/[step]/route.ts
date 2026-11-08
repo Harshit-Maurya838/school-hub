@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { NotFoundError } from "@/lib/errors";
-import { resolveSchoolAndAuthorize } from "@/modules/academics";
+import { provisionClassStructure, resolveSchoolAndAuthorize } from "@/modules/academics";
 import { isProfileStep, saveSchoolProfileStep } from "@/modules/onboarding/services/school-profile";
 
 type Context = RouteContext<{ schoolSlug: string; step: string }>;
@@ -27,5 +27,18 @@ export const PUT = apiHandler(async (req: NextRequest, context?: Context) => {
     input: body,
   });
 
-  return successResponse({ profile });
+  // The academic step's class range decides the class structure: create what it implies.
+  const provisioning =
+    params.step === "academic"
+      ? await provisionClassStructure({
+          schoolId: school.id,
+          actorUserId: user.id,
+          classRange: profile.academic.classRange,
+          includesPrePrimary: profile.academic.includesPrePrimary,
+          medium: profile.academic.instructionMedium,
+          streams: profile.academic.streams,
+        })
+      : null;
+
+  return successResponse({ profile, provisioning });
 });

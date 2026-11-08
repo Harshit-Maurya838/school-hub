@@ -3,8 +3,9 @@ import Link from "next/link";
 import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AcademicNav } from "@/components/academics/AcademicNav";
-import { AcademicClassesClient } from "@/components/academics/AcademicClassesClient";
-import { listClasses } from "@/lib/academics";
+import { ClassSubjectSetupClient } from "@/modules/academics/components/ClassSubjectSetupClient";
+import { getClassSetupOverview } from "@/modules/academics";
+import { canViewSchoolFees } from "@/modules/auth";
 import { getAcademicSetupReadiness } from "@/lib/school-readiness";
 
 interface PageProps {
@@ -72,8 +73,8 @@ export default async function AcademicClassesPage({ params }: PageProps) {
 
   const isTeacher = user.role === "TEACHER";
 
-  const [classes, readiness] = await Promise.all([
-    listClasses(school.id),
+  const [overview, readiness] = await Promise.all([
+    getClassSetupOverview(school.id, { includeFees: canViewSchoolFees(user, school.id) }),
     getAcademicSetupReadiness(school.id, school.slug),
   ]);
 
@@ -90,17 +91,16 @@ export default async function AcademicClassesPage({ params }: PageProps) {
       />
 
       <main>
-        <AcademicClassesClient
+        <ClassSubjectSetupClient
           schoolSlug={school.slug}
-          initialClasses={classes}
-          canCreate={isTeacher ? false : readiness.summary.canCreateClasses}
+          schoolName={school.name}
+          initialOverview={overview}
+          canManage={!isTeacher && user.role === "SCHOOL_ADMIN" && user.schoolId === school.id}
           blockedReason={
-            isTeacher
-              ? "Teachers have read-only curriculum access. Grade cohort definitions are configured by School Administrators."
+            isTeacher || readiness.summary.canCreateClasses
+              ? undefined
               : readiness.steps.classes.message
           }
-          actionUrl={isTeacher ? undefined : readiness.steps.classes.actionUrl}
-          actionLabel={isTeacher ? undefined : readiness.steps.classes.actionLabel}
         />
       </main>
     </div>

@@ -248,8 +248,10 @@ For financial operations (Domain: Fees & Finance):
 1. **Every New Feature Requires Tests**:
    - Add integration tests covering happy paths, unauthorized attempts, cross-tenant isolation, and invalid payloads.
 2. **Preserve Existing Tests**:
-   - All 16 existing test suites in `tests/` must continue to pass with 0 failures:
+   - All 19 existing test suites in `tests/` must continue to pass with 0 failures:
      - `academic-setup.test.ts`
+     - `class-setup.test.ts`
+     - `class-fee-plan.test.ts`
      - `api-auth.test.ts`
      - `attendance.test.ts`
      - `auth.test.ts`

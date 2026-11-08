@@ -317,6 +317,23 @@ All internal and client APIs reside under `/api/v1/`:
 | `PUT`  | `/api/v1/school/[schoolSlug]/profile/master/steps/[step]` | School admin (own school)                       | `step` is `identity`, `academic` or `leadership`. Returns `409 SCHOOL_PROFILE_LOCKED` while locked, `409` for a U-DISE code already used by another school, `422` for invalid input. |
 | `POST` | `/api/v1/school/[schoolSlug]/profile/master/lock`         | School admin (own school), super admin          | Body `{ "locked": boolean }`. Locking requires all three steps saved (`400 SETUP_PREREQUISITE_REQUIRED` otherwise). Lock and unlock are audited.                                     |
 
+Saving the `academic` step also builds the class structure from the selected range (response field `provisioning`): every class it implies (Nursery/LKG/UKG when pre-primary is on, then `Class n`), each with Section A in the school's medium and the default subjects for its level. If the school has no session yet, the current April–March session is created first. It only adds: existing classes, sections and subjects are never renamed or removed, and classes with subjects keep their list. The template lives in `src/modules/onboarding/services/class-structure-template.ts`; the service is `provisionClassStructure` in `src/modules/academics/services/class-setup.ts`.
+
+#### Classes & Subjects API
+
+| Method | Route                                                       | Access                                | Notes                                                                                                                                  |
+| :----- | :---------------------------------------------------------- | :------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/school/[schoolSlug]/academics/setup`               | School admin, teacher (own school)    | Per class: sections (medium, students, class teacher), subjects, fee plan (admins/accountants only), exam scheme, and what is missing. |
+| `POST` | `/api/v1/school/[schoolSlug]/academics/setup`               | School admin (own school)             | Creates a class with `sections` (e.g. `["A","B"]`), an optional `medium`, and default subjects (`applySubjectTemplate`).               |
+| `POST` | `/api/v1/school/[schoolSlug]/academics/setup/provision`     | School admin (own school)             | Re-runs the profile-driven class creation (the "Create from profile" button). `400` until the academic step is saved.                  |
+| `POST` | `/api/v1/school/[schoolSlug]/academics/setup/copy-subjects` | School admin (own school)             | Body `{ fromClassId, toClassIds }`; copies subjects a target class does not already have. Both sides must be in the school.            |
+| `GET`  | `/api/v1/school/[schoolSlug]/fees/class-plans/[classId]`    | School admin, accountant (own school) | The class's fee plan for the active session: `monthlyFee`, `admissionFee`, `additional` costs, and the school's fee heads.             |
+| `PUT`  | `/api/v1/school/[schoolSlug]/fees/class-plans/[classId]`    | School admin (own school)             | Body `{ monthlyFee, admissionFee, additional: [{ feeHeadId \| newHeadName, amount, frequency }] }`; amounts are rupee strings.         |
+
+The class fee plan (the "Set fees" dialog on Classes & Subjects) is stored as ordinary fee structures, one per frequency (`MONTHLY`, `TERM`, `ANNUAL`, `ONE_TIME`), named `<Class> · <kind>`. The monthly fee uses the `Tuition Fee` head (`TUIT`) and the admission fee the `Admission Fee` head (`ADMN`); both are created on first use. Re-saving updates those structures in place and retires a frequency that is emptied, so Fees management, invoicing and reports see the same data. `CUSTOM` structures are only edited in Fees management. Issued invoices keep their item snapshot. Service: `src/modules/fees/services/class-fee-plan.ts`.
+
+Sections carry an optional `medium` (`ENGLISH`, `HINDI`, `BILINGUAL`, `URDU`); `null` means the school profile's medium. The Academics area's Classes & Subjects tab (`/school/[schoolSlug]/academics/classes`) replaces the separate Classes and Subjects tabs; `/academics/subjects` redirects there.
+
 Validation rules (shared by the API and the wizard) live in `src/modules/onboarding/services/school-profile-rules.ts`: 11-digit U-DISE code, Indian mobile numbers normalised to `+91XXXXXXXXXX`, pre-primary and RTE only for class ranges starting at Class 1, RTE end class within the range, a state board name when the board is a state board, and streams required exactly when the range reaches Class 12.
 
 All JSON API responses conform to standard structures:
@@ -348,6 +365,8 @@ Tests are executed using Node.js's native test runner (`node --test`) with TypeS
 - `tests/authorization.test.ts` — Comprehensive 16-scenario permission matrix.
 - `tests/tenant-isolation.test.ts` — Multi-tenant data segregation and foreign tenant block.
 - `tests/academic-setup.test.ts` — Sessions, classes, sections, subjects, cascade checks.
+- `tests/class-fee-plan.test.ts` — Class fee plan: monthly/admission/additional costs saved as one structure per frequency, in-place re-save, duplicate heads and invalid amounts, accountant read-only, teacher overview without fees, tenant isolation.
+- `tests/class-setup.test.ts` — Class structure template, provisioning from the school profile (idempotent, additive), class creation with sections and medium, subject copying, setup overview, RBAC and tenant isolation.
 - `tests/student-management.test.ts` — Admissions, enrollments, student editing, soft-delete.
 - `tests/teaching-assignments.test.ts` — Teacher profiles, class/subject assignments.
 - `tests/attendance.test.ts` — Attendance registers, lock state, correction audits.
