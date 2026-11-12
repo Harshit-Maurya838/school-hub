@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { LogIn, School } from "lucide-react";
+import { ClipboardCheck, LogIn, ReceiptText, School, ShieldCheck } from "lucide-react";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 
 /**
@@ -77,67 +77,127 @@ export function PublicSheetHeader({
 
 export default PublicShell;
 
+const AUTH_TABS = [
+  { key: "login", href: "/login", label: "Sign in", icon: LogIn },
+  { key: "register", href: "/register-school", label: "Register school", icon: School },
+] as const;
+
+/** What a school gets, stated as the product's own guarantees (see PRODUCT.md). */
+const AUTH_GUARANTEES = [
+  {
+    icon: ClipboardCheck,
+    title: "Registers lock once submitted",
+    body: "Attendance becomes a record. Corrections are audited, never silent.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Marks are reviewed before parents see them",
+    body: "Entry, review and publication are separate steps with a clear owner.",
+  },
+  {
+    icon: ReceiptText,
+    title: "Every payment gets a numbered receipt",
+    body: (
+      <>
+        Sequential receipts like <span className="font-mono text-slate-700">REC-20260412-0007</span>
+        , with reversals and refunds on the record.
+      </>
+    ),
+  },
+];
+
 /**
- * Sign-in / registration card: centred brand header, a two-tab switch between
- * /login and /register-school, then the active form.
+ * Sign-in / registration page: a brand column stating what the school gets, beside a
+ * sheet with the Sign in / Register school switch and the active form.
  */
 export function AuthShell({
   active,
+  title,
+  description,
   children,
 }: {
   active: "login" | "register";
+  title: string;
+  description?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const tabs = [
-    { key: "login", href: "/login", label: "Sign In", icon: LogIn },
-    { key: "register", href: "/register-school", label: "Register School", icon: School },
-  ] as const;
-
   return (
-    <div className="flex min-h-screen items-start justify-center bg-slate-50 px-4 py-10 font-sans text-slate-800 antialiased sm:items-center sm:px-6">
-      <div className="shadow-card w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
-        <div className="flex flex-col items-center gap-3 border-b border-slate-100 bg-gradient-to-b from-emerald-50/70 to-white px-6 pt-8 pb-6 text-center">
-          <Link
-            href="/"
-            aria-label="Classic Giga home"
-            className="rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-4 focus-visible:outline-none"
-          >
-            <BrandEmblem size="lg" />
-          </Link>
-          <div>
-            <BrandWordmark />
-            <p className="mt-1.5 text-xs font-semibold text-emerald-700">
-              School ERP &amp; Management
-            </p>
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+      <div className="mx-auto grid max-w-6xl content-start lg:min-h-screen lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:content-stretch lg:gap-16 lg:px-8">
+        <aside className="px-4 pt-6 sm:px-6 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between lg:px-0 lg:py-12">
+          <BrandMark />
+          <div className="hidden lg:block">
+            <h2 className="max-w-sm text-3xl leading-tight font-black tracking-tight text-balance text-slate-900">
+              Your school&apos;s records, kept like a well-run register.
+            </h2>
+            <ul className="mt-8 max-w-sm divide-y divide-slate-200 border-y border-slate-200">
+              {AUTH_GUARANTEES.map(({ icon: Icon, title, body }) => (
+                <li key={title} className="flex gap-3.5 py-4">
+                  <Icon
+                    className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700"
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{title}</p>
+                    <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
+          <p className="hidden text-xs text-slate-500 lg:block">
+            For CBSE and state-board schools across India.
+          </p>
+        </aside>
 
-        <nav
-          aria-label="Account"
-          className="grid grid-cols-2 gap-2 border-b border-slate-100 bg-slate-50/60 p-2"
-        >
-          {tabs.map(({ key, href, label, icon: Icon }) => {
-            const isActive = key === active;
-            return (
-              <Link
-                key={key}
-                href={href}
-                aria-current={isActive ? "page" : undefined}
-                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
-                  isActive
-                    ? "bg-emerald-700 text-white shadow-sm"
-                    : "text-slate-600 hover:bg-white hover:text-emerald-700"
-                }`}
+        <main className="flex items-start px-4 pt-6 pb-16 sm:px-6 lg:items-center lg:px-0 lg:py-12">
+          <div className="shadow-card w-full rounded-2xl border border-slate-200/80 bg-white">
+            <div className="border-b border-slate-100 p-2">
+              <nav
+                aria-label="Account"
+                className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1"
               >
-                <Icon className="h-4 w-4" aria-hidden="true" />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
+                {AUTH_TABS.map(({ key, href, label, icon: Icon }) => {
+                  const isActive = key === active;
+                  return (
+                    <Link
+                      key={key}
+                      href={href}
+                      aria-current={isActive ? "page" : undefined}
+                      className={`inline-flex h-9 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-[background-color,color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
+                        isActive
+                          ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(15,23,42,0.04)]"
+                          : "text-slate-600 hover:text-slate-900"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-4 w-4 ${isActive ? "text-emerald-700" : ""}`}
+                        aria-hidden="true"
+                      />
+                      {label}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
 
-        <div className="p-6 sm:p-8">{children}</div>
+            <div className="px-5 pt-6 pb-7 sm:px-8 sm:pt-8 sm:pb-9">
+              <h1 className="text-2xl font-black tracking-tight text-balance text-slate-900">
+                {title}
+              </h1>
+              {description && (
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p>
+              )}
+              <div className="mt-7">{children}</div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
+
+/** Pill primary action used with the Hairline controls on the sign-in and registration sheets. */
+export const authPrimaryButtonClass =
+  "inline-flex h-10 w-full items-center justify-center gap-2 rounded-full bg-emerald-700 px-5 text-sm font-bold text-white transition-colors hover:bg-emerald-800 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50";

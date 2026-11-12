@@ -104,6 +104,23 @@
       filter: blur(4px);
     }
   }
+  @keyframes ui-blink {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes ui-sheen {
+    from {
+      mask-position: 150% 0;
+    }
+    to {
+      mask-position: -50% 0;
+    }
+  }
 }
 
 @theme {

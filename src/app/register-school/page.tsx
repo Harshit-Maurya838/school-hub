@@ -2,24 +2,25 @@
 
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MailCheck, Send, ShieldCheck } from "lucide-react";
-import { AuthShell } from "@/components/layout/PublicShell";
-import {
-  Notice,
-  PasswordToggle,
-  Spinner,
-  inputClass,
-  labelClass,
-  primaryButtonClass,
-  textLinkClass,
-} from "@/components/common/FormControls";
+import { Mail, PencilLine, Send } from "lucide-react";
+import { AuthShell, authPrimaryButtonClass } from "@/components/layout/PublicShell";
+import { Notice, Spinner, textLinkClass } from "@/components/common/FormControls";
+import { Input } from "@/components/hairline/input";
+import { PasswordInput } from "@/components/hairline/password-input";
+import { Select } from "@/components/hairline/select";
+import { Switch } from "@/components/hairline/switch";
+import { Checkbox } from "@/components/hairline/checkbox";
+import { SegmentedControl } from "@/components/hairline/segmented-control";
+import { CodeInput } from "@/components/hairline/code-input";
 import { CLASS_RANGES } from "@/modules/onboarding/services/school-profile-rules";
 
-const MEDIUMS = [
+const CLASS_RANGE_OPTIONS = CLASS_RANGES.map((r) => ({ value: r.value, label: r.label }));
+
+const MEDIUM_OPTIONS = [
   { value: "ENGLISH", label: "English" },
   { value: "HINDI", label: "Hindi" },
   { value: "BILINGUAL", label: "Both" },
-] as const;
+];
 
 const initialForm = {
   adminName: "",
@@ -38,6 +39,30 @@ const initialForm = {
 };
 
 type FormState = typeof initialForm;
+type FieldErrors = Partial<Record<keyof FormState, string>>;
+
+/** Mirrors the server rules so mistakes show beside the field before a round trip. */
+function validate(form: FormState): FieldErrors {
+  const errors: FieldErrors = {};
+  if (form.adminName.trim().length < 2) errors.adminName = "Enter your full name";
+  if (form.schoolName.trim().length < 2) errors.schoolName = "Enter the school's name";
+  if (!/^\d{11}$/.test(form.udiseCode)) errors.udiseCode = "U-DISE+ code is 11 digits";
+  if (!form.classRange) errors.classRange = "Choose the classes your school runs";
+  if (form.principalName.trim().length < 2) errors.principalName = "Enter the principal's name";
+  if (!/^[6-9]\d{9}$/.test(form.mobile)) errors.mobile = "Enter a 10 digit mobile number";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) errors.email = "Enter a valid email";
+  if (
+    form.password.length < 8 ||
+    form.password.length > 72 ||
+    !/[A-Z]/.test(form.password) ||
+    !/[0-9]/.test(form.password)
+  ) {
+    errors.password = "Use 8 or more characters with an uppercase letter and a number";
+  }
+  if (form.confirmPassword !== form.password) errors.confirmPassword = "Passwords do not match";
+  if (!form.acceptTerms) errors.acceptTerms = "Accept the terms to continue";
+  return errors;
+}
 
 async function postJson(url: string, body: unknown) {
   const res = await fetch(url, {
@@ -52,375 +77,312 @@ async function postJson(url: string, body: unknown) {
   return data?.data;
 }
 
-function ToggleRow({
-  id,
-  label,
-  hint,
-  checked,
-  disabled,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  hint: string;
-  checked: boolean;
-  disabled: boolean;
-  onChange: (value: boolean) => void;
-}) {
+function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const id = `section-${title.toLowerCase()}`;
   return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
-      <div>
-        <p id={`${id}-label`} className="text-sm font-semibold text-slate-800">
-          {label}
-        </p>
-        <p className="text-xs text-emerald-700">{hint}</p>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-labelledby={`${id}-label`}
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className="flex shrink-0 items-center gap-2 rounded-full text-xs font-semibold text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50"
-      >
-        <span
-          className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-emerald-600" : "bg-slate-300"}`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : ""}`}
-          />
-        </span>
-        <span className="w-6 text-left">{checked ? "Yes" : "No"}</span>
-      </button>
-    </div>
+    <section
+      aria-labelledby={id}
+      className="space-y-4 border-t border-slate-100 pt-6 first:border-t-0 first:pt-0"
+    >
+      <h2 id={id} className="text-base font-bold text-slate-900">
+        {title}
+      </h2>
+      {children}
+    </section>
   );
 }
 
 export default function RegisterSchoolPage() {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialForm);
-  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [step, setStep] = useState<"form" | "otp">("form");
-  const [otp, setOtp] = useState("");
-  const [info, setInfo] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
 
-  const run = (action: () => Promise<void>) => {
+  const requestOtp = () => postJson("/api/v1/public/register-school", form);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorMessage(null);
+    const found = validate(form);
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
+
     startTransition(async () => {
       try {
-        await action();
+        await requestOtp();
+        setStep("otp");
       } catch (err) {
         setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
       }
     });
   };
 
-  const sendOtp = () =>
-    run(async () => {
-      if (form.password !== form.confirmPassword) throw new Error("Passwords do not match");
-      const data = await postJson("/api/v1/public/register-school", form);
-      setInfo(data?.message ?? `We sent a 6-digit code to ${form.email}.`);
-      setOtp("");
-      setStep("otp");
-    });
-
-  const verifyOtp = () =>
-    run(async () => {
-      const data = await postJson("/api/v1/public/register-school/verify", {
-        email: form.email,
-        otp,
-      });
-      router.push(`/school/${data.school.slug}`);
-      router.refresh();
-    });
-
   if (step === "otp") {
     return (
-      <AuthShell active="register">
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-          <p className="flex items-center gap-2 text-lg font-black text-slate-900">
-            <MailCheck className="h-5 w-5 text-emerald-700" aria-hidden="true" />
-            Verify your email
-          </p>
-          <p className="mt-1 text-xs font-medium text-emerald-800">{info}</p>
-        </div>
-
-        <form
-          className="mt-6 space-y-5"
-          onSubmit={(e) => {
-            e.preventDefault();
-            verifyOtp();
-          }}
-        >
+      <AuthShell
+        active="register"
+        title="Verify your email"
+        description={
+          <>
+            We sent a 6-digit code to{" "}
+            <span className="font-semibold break-all text-slate-900">{form.email}</span>. It expires
+            in 10 minutes.
+          </>
+        }
+      >
+        <div className="space-y-6">
           {errorMessage && <Notice>{errorMessage}</Notice>}
-          <div>
-            <label htmlFor="otp" className={labelClass}>
-              Enter OTP
-            </label>
-            <input
-              id="otp"
-              required
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="\d{6}"
-              maxLength={6}
-              disabled={isPending}
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-              placeholder="6 digit code"
-              className={inputClass(false, "text-center font-mono text-lg tracking-[0.5em]")}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={isPending || otp.length !== 6}
-            className={`w-full ${primaryButtonClass}`}
-          >
-            {isPending ? <Spinner /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
-            {isPending ? "Verifying…" : "Verify & Register School"}
-          </button>
-          <div className="flex items-center justify-between text-sm">
+          <CodeInput
+            autoFocus
+            groups={[3, 3]}
+            label="Enter the code from your email"
+            onComplete={async (otp) => {
+              setErrorMessage(null);
+              try {
+                const data = await postJson("/api/v1/public/register-school/verify", {
+                  email: form.email,
+                  otp,
+                });
+                // Let "Verified" land before leaving the page.
+                window.setTimeout(() => {
+                  router.push(`/school/${data.school.slug}`);
+                  router.refresh();
+                }, 900);
+                return true;
+              } catch (err) {
+                const message = err instanceof Error ? err.message : "";
+                // A wrong code is shown by the boxes; anything else needs words.
+                if (!/^Incorrect OTP/.test(message)) setErrorMessage(message);
+                return false;
+              }
+            }}
+            onResend={async () => {
+              setErrorMessage(null);
+              await requestOtp();
+            }}
+          />
+          <div className="flex items-center gap-2 border-t border-slate-100 pt-5 text-sm text-slate-600">
+            <Mail className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            Wrong email or details?
             <button
               type="button"
-              disabled={isPending}
-              onClick={() => setStep("form")}
-              className={textLinkClass}
+              onClick={() => {
+                setErrorMessage(null);
+                setStep("form");
+              }}
+              className={`inline-flex items-center gap-1 ${textLinkClass}`}
             >
+              <PencilLine className="h-3.5 w-3.5" aria-hidden="true" />
               Edit details
             </button>
-            <button type="button" disabled={isPending} onClick={sendOtp} className={textLinkClass}>
-              Resend OTP
-            </button>
           </div>
-        </form>
+        </div>
       </AuthShell>
     );
   }
 
-  const textField = (
-    key: "adminName" | "schoolName" | "principalName",
-    label: string,
-    placeholder: string,
-    autoComplete?: string
-  ) => (
-    <div>
-      <label htmlFor={key} className={labelClass}>
-        {label}
-      </label>
-      <input
-        id={key}
-        type="text"
-        required
-        autoComplete={autoComplete}
-        disabled={isPending}
-        value={form[key]}
-        onChange={(e) => set(key, e.target.value)}
-        placeholder={placeholder}
-        className={inputClass()}
-      />
-    </div>
-  );
-
   return (
-    <AuthShell active="register">
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
-        <h1 className="text-lg font-black text-slate-900">Register Your School</h1>
-        <p className="mt-1 text-xs font-medium text-emerald-800">
-          Register now for instant access to your school dashboard.
-        </p>
-      </div>
+    <AuthShell
+      active="register"
+      title="Register your school"
+      description="Fill in your school's details and verify your email. Your dashboard opens as soon as the code checks out."
+    >
+      <form className="space-y-6" onSubmit={handleSubmit} noValidate>
+        {errorMessage && <Notice title="We couldn’t send the code">{errorMessage}</Notice>}
 
-      <form
-        className="mt-6 space-y-5"
-        onSubmit={(e) => {
-          e.preventDefault();
-          sendOtp();
-        }}
-      >
-        {errorMessage && <Notice title="We couldn’t continue">{errorMessage}</Notice>}
-
-        {textField("adminName", "Admin Name", "Your full name", "name")}
-        {textField("schoolName", "School Name", "e.g. Sunrise Public School", "organization")}
-
-        <div>
-          <label htmlFor="udiseCode" className={labelClass}>
-            U-DISE+ Code
-          </label>
-          <input
-            id="udiseCode"
+        <FormSection title="School">
+          <Input
+            id="schoolName"
+            label="School name"
             required
-            inputMode="numeric"
-            maxLength={11}
+            autoComplete="organization"
             disabled={isPending}
-            value={form.udiseCode}
-            onChange={(e) => set("udiseCode", e.target.value.replace(/\D/g, ""))}
-            placeholder="11 digit U-DISE+ code"
-            className={inputClass(false, "font-mono")}
+            value={form.schoolName}
+            onValueChange={(v) => set("schoolName", v)}
+            error={errors.schoolName}
+            placeholder="e.g. Sunrise Public School"
           />
-        </div>
-
-        <div>
-          <label htmlFor="classRange" className={labelClass}>
-            Select Class Range
-          </label>
-          <select
-            id="classRange"
-            required
-            disabled={isPending}
-            value={form.classRange}
-            onChange={(e) => set("classRange", e.target.value)}
-            className={inputClass()}
-          >
-            <option value="" disabled>
-              Select class range
-            </option>
-            {CLASS_RANGES.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <ToggleRow
-          id="hasPrePrimary"
-          label="Has Pre-Primary Section?"
-          hint="(Nursery, LKG, UKG)"
-          checked={form.hasPrePrimary}
-          disabled={isPending}
-          onChange={(v) => set("hasPrePrimary", v)}
-        />
-        <ToggleRow
-          id="hasPlayGroup"
-          label="Has Play Group / Playway?"
-          hint="(Toddler Care)"
-          checked={form.hasPlayGroup}
-          disabled={isPending}
-          onChange={(v) => set("hasPlayGroup", v)}
-        />
-
-        <fieldset>
-          <legend className={labelClass}>Medium</legend>
-          <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-2 rounded-xl border border-slate-200 px-4 py-2.5">
-            {MEDIUMS.map((m) => (
-              <label key={m.value} className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="radio"
-                  name="medium"
-                  value={m.value}
-                  disabled={isPending}
-                  checked={form.medium === m.value}
-                  onChange={() => set("medium", m.value)}
-                  className="h-4 w-4 accent-emerald-700"
-                />
-                {m.label}
-              </label>
-            ))}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              id="udiseCode"
+              label="U-DISE+ code"
+              required
+              inputMode="numeric"
+              maxLength={11}
+              disabled={isPending}
+              value={form.udiseCode}
+              onValueChange={(v) => set("udiseCode", v.replace(/\D/g, ""))}
+              error={errors.udiseCode}
+              placeholder="11 digits"
+              inputClassName="font-mono tabular-nums placeholder:font-sans"
+            />
+            <Select
+              id="classRange"
+              label="Class range"
+              options={CLASS_RANGE_OPTIONS}
+              placeholder="Choose classes"
+              disabled={isPending}
+              value={form.classRange || null}
+              onValueChange={(v) => set("classRange", v)}
+              error={errors.classRange}
+            />
           </div>
-        </fieldset>
 
-        {textField("principalName", "Principal Name", "Principal name")}
+          <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 px-4">
+            <div className="py-3.5">
+              <Switch
+                label="Pre-primary section"
+                description="Nursery, LKG and UKG"
+                labelPosition="start"
+                className="w-full"
+                disabled={isPending}
+                checked={form.hasPrePrimary}
+                onCheckedChange={(v) => set("hasPrePrimary", v)}
+              />
+            </div>
+            <div className="py-3.5">
+              <Switch
+                label="Play group / playway"
+                description="Toddler care before nursery"
+                labelPosition="start"
+                className="w-full"
+                disabled={isPending}
+                checked={form.hasPlayGroup}
+                onCheckedChange={(v) => set("hasPlayGroup", v)}
+              />
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="mobile" className={labelClass}>
-            Mobile Number
-          </label>
-          <div className="mt-1.5 flex">
-            <span className="inline-flex items-center rounded-l-xl border border-r-0 border-slate-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800">
-              +91
-            </span>
-            <input
+          <div>
+            <p aria-hidden="true" className="px-3 pb-1.5 text-[13px] font-medium text-slate-900">
+              Medium of instruction
+            </p>
+            <SegmentedControl
+              label="Medium of instruction"
+              options={MEDIUM_OPTIONS}
+              value={form.medium}
+              onValueChange={(v) => set("medium", v)}
+              block
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="People">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              id="adminName"
+              label="Admin name"
+              hint="You will manage the school account"
+              required
+              autoComplete="name"
+              disabled={isPending}
+              value={form.adminName}
+              onValueChange={(v) => set("adminName", v)}
+              error={errors.adminName}
+              placeholder="Your full name"
+            />
+            <Input
+              id="principalName"
+              label="Principal name"
+              required
+              disabled={isPending}
+              value={form.principalName}
+              onValueChange={(v) => set("principalName", v)}
+              error={errors.principalName}
+              placeholder="Principal's full name"
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
               id="mobile"
               type="tel"
+              label="Mobile number"
               required
               inputMode="numeric"
               autoComplete="tel-national"
               maxLength={10}
               disabled={isPending}
               value={form.mobile}
-              onChange={(e) => set("mobile", e.target.value.replace(/\D/g, ""))}
+              leading={<span className="text-[13px] font-semibold text-slate-700">+91</span>}
+              onValueChange={(v) => set("mobile", v.replace(/\D/g, ""))}
+              error={errors.mobile}
               placeholder="10 digit mobile"
-              className={inputClass(false, "mt-0 rounded-l-none")}
+              inputClassName="tabular-nums"
+            />
+            <Input
+              id="email"
+              type="email"
+              label="Email"
+              hint="We'll send the verification code here"
+              required
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              disabled={isPending}
+              value={form.email}
+              onValueChange={(v) => set("email", v)}
+              error={errors.email}
+              placeholder="you@yourschool.in"
             />
           </div>
-        </div>
+        </FormSection>
 
-        <div>
-          <label htmlFor="email" className={labelClass}>
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            disabled={isPending}
-            value={form.email}
-            onChange={(e) => set("email", e.target.value)}
-            placeholder="Verified account email"
-            className={inputClass()}
-          />
-        </div>
+        <FormSection title="Password">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <PasswordInput
+              id="password"
+              label="Password"
+              strength
+              required
+              autoComplete="new-password"
+              disabled={isPending}
+              value={form.password}
+              onValueChange={(v) => set("password", v)}
+              error={errors.password}
+              hint="8+ characters, an uppercase letter and a number"
+            />
+            <PasswordInput
+              id="confirmPassword"
+              label="Confirm password"
+              required
+              autoComplete="new-password"
+              disabled={isPending}
+              value={form.confirmPassword}
+              onValueChange={(v) => set("confirmPassword", v)}
+              error={errors.confirmPassword}
+            />
+          </div>
+        </FormSection>
 
-        {(["password", "confirmPassword"] as const).map((key) => (
-          <div key={key}>
-            <label htmlFor={key} className={labelClass}>
-              {key === "password" ? "Password" : "Confirm Password"}
-            </label>
-            <div className="relative">
-              <input
-                id={key}
-                type={showPassword ? "text" : "password"}
-                required
-                autoComplete="new-password"
-                disabled={isPending}
-                value={form[key]}
-                onChange={(e) => set(key, e.target.value)}
-                aria-describedby={key === "password" ? "password-hint" : undefined}
-                className={inputClass(false, "pr-11")}
-              />
-              <PasswordToggle
-                shown={showPassword}
-                onToggle={() => setShowPassword(!showPassword)}
-              />
-            </div>
-            {key === "password" && (
-              <p id="password-hint" className="mt-1.5 text-xs text-slate-500">
-                At least 8 characters, with one uppercase letter and one number.
+        <div className="space-y-5 border-t border-slate-100 pt-6">
+          <div>
+            <Checkbox
+              label="I agree to the Terms & Conditions and Privacy Policy"
+              disabled={isPending}
+              checked={form.acceptTerms}
+              onCheckedChange={(v) => set("acceptTerms", v)}
+              aria-describedby={errors.acceptTerms ? "acceptTerms-error" : undefined}
+            />
+            {errors.acceptTerms && (
+              <p id="acceptTerms-error" className="mt-1.5 pl-7 text-[12.5px] text-rose-700">
+                {errors.acceptTerms}
               </p>
             )}
           </div>
-        ))}
 
-        <label className="flex items-start gap-2.5 text-sm text-slate-600">
-          <input
-            type="checkbox"
-            required
-            disabled={isPending}
-            checked={form.acceptTerms}
-            onChange={(e) => set("acceptTerms", e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-emerald-700"
-          />
-          <span>
-            I agree to the{" "}
-            <span className="font-semibold text-emerald-700">Terms &amp; Conditions</span> &amp;{" "}
-            <span className="font-semibold text-emerald-700">Privacy Policy</span>
-          </span>
-        </label>
-
-        <button type="submit" disabled={isPending} className={`w-full ${primaryButtonClass}`}>
-          {isPending ? <Spinner /> : <Send className="h-4 w-4" aria-hidden="true" />}
-          {isPending ? "Sending OTP…" : "Send OTP & Verify Email"}
-        </button>
+          <button type="submit" disabled={isPending} className={authPrimaryButtonClass}>
+            {isPending ? <Spinner /> : <Send className="h-4 w-4" aria-hidden="true" />}
+            {isPending ? "Sending code…" : "Send OTP & verify email"}
+          </button>
+        </div>
       </form>
     </AuthShell>
   );
