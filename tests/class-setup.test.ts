@@ -18,6 +18,10 @@ import {
   nextSectionName,
 } from "../src/modules/onboarding/services/class-structure-template.js";
 import { currentIndianSession, provisionClassStructure } from "../src/modules/academics/index.js";
+import {
+  classRangeOptions,
+  sectionsForRange,
+} from "../src/modules/onboarding/services/school-profile-rules.js";
 
 const CODES = ["CSETUP_A", "CSETUP_B", "CSETUP_C"];
 const EMAILS = [
@@ -97,6 +101,44 @@ describe("Class structure template", () => {
       ["Class 6", "Class 7", "Class 8"]
     );
     assert.deepStrictEqual(classesForRange("NOT_A_RANGE", true), []);
+  });
+
+  it("builds preschool-only ranges from their own sections, whatever the switch says", () => {
+    assert.deepStrictEqual(
+      classesForRange("PLAYWAY_ONLY", false).map((c) => c.name),
+      ["Play Group"]
+    );
+    assert.deepStrictEqual(
+      classesForRange("PRE_PRIMARY_ONLY", false).map((c) => c.name),
+      ["Nursery", "LKG", "UKG"]
+    );
+    assert.deepStrictEqual(
+      classesForRange("PLAYWAY_AND_PRE_PRIMARY", false).map((c) => c.name),
+      ["Play Group", "Nursery", "LKG", "UKG"]
+    );
+  });
+
+  it("sets the preschool switches from the range and keeps them editable for Class 1 ranges", () => {
+    const chosen = { prePrimary: true, playGroup: false };
+    assert.deepStrictEqual(sectionsForRange("PLAYWAY_ONLY", chosen), {
+      prePrimary: false,
+      playGroup: true,
+    });
+    assert.deepStrictEqual(sectionsForRange("PLAYWAY_AND_PRE_PRIMARY", chosen), {
+      prePrimary: true,
+      playGroup: true,
+    });
+    assert.deepStrictEqual(sectionsForRange("CLASS_1_TO_12", chosen), chosen);
+    assert.deepStrictEqual(sectionsForRange("CLASS_6_TO_10", chosen), {
+      prePrimary: false,
+      playGroup: false,
+    });
+  });
+
+  it("offers the seven current ranges, plus a school's saved legacy range", () => {
+    assert.strictEqual(classRangeOptions().length, 7);
+    assert.ok(!classRangeOptions().some((o) => o.value === "CLASS_9_TO_12"));
+    assert.ok(classRangeOptions("CLASS_9_TO_12").some((o) => o.value === "CLASS_9_TO_12"));
   });
 
   it("gives senior-secondary subjects for the chosen streams", () => {

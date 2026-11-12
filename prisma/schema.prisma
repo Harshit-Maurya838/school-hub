@@ -1114,6 +1114,9 @@ enum InstructionMedium {
 }
 
 enum SchoolClassRange {
+  PLAYWAY_ONLY
+  PRE_PRIMARY_ONLY
+  PLAYWAY_AND_PRE_PRIMARY
   CLASS_1_TO_5
   CLASS_1_TO_8
   CLASS_1_TO_10

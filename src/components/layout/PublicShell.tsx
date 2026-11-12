@@ -1,6 +1,5 @@
 import React from "react";
 import Link from "next/link";
-import { ClipboardCheck, ReceiptText, ShieldCheck } from "lucide-react";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 
 /**
@@ -77,33 +76,9 @@ export function PublicSheetHeader({
 
 export default PublicShell;
 
-/** What a school gets, stated as the product's own guarantees (see PRODUCT.md). */
-const AUTH_GUARANTEES = [
-  {
-    icon: ClipboardCheck,
-    title: "Registers lock once submitted",
-    body: "Attendance becomes a record. Corrections are audited, never silent.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Marks are reviewed before parents see them",
-    body: "Entry, review and publication are separate steps with a clear owner.",
-  },
-  {
-    icon: ReceiptText,
-    title: "Every payment gets a numbered receipt",
-    body: (
-      <>
-        Sequential receipts like <span className="font-mono text-slate-700">REC-20260412-0007</span>
-        , with reversals and refunds on the record.
-      </>
-    ),
-  },
-];
-
 /**
- * Sign-in / registration page: a brand column stating what the school gets, beside a
- * sheet whose header holds the Sign in / Register school switch.
+ * Sign-in / registration page: one centred sheet carrying the brand, then the
+ * Sign in / Register school switch, then the active form.
  */
 export function AuthShell({
   switcher,
@@ -114,42 +89,16 @@ export function AuthShell({
 }) {
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
-      <div className="mx-auto grid max-w-6xl content-start lg:min-h-screen lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:content-stretch lg:gap-16 lg:px-8">
-        <aside className="px-4 pt-6 sm:px-6 lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:justify-between lg:px-0 lg:py-12">
-          <BrandMark />
-          <div className="hidden lg:block">
-            <h2 className="max-w-sm text-3xl leading-tight font-black tracking-tight text-balance text-slate-900">
-              Your school&apos;s records, kept like a well-run register.
-            </h2>
-            <ul className="mt-8 max-w-sm divide-y divide-slate-200 border-y border-slate-200">
-              {AUTH_GUARANTEES.map(({ icon: Icon, title, body }) => (
-                <li key={title} className="flex gap-3.5 py-4">
-                  <Icon
-                    className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700"
-                    strokeWidth={1.75}
-                    aria-hidden="true"
-                  />
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">{title}</p>
-                    <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{body}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+      <main className="flex min-h-screen items-start justify-center px-4 py-8 sm:px-6 sm:py-12">
+        <div className="shadow-card w-full max-w-xl rounded-2xl border border-slate-200/80 bg-white">
+          <div className="flex justify-center px-5 pt-7 pb-5">
+            <BrandMark />
           </div>
-          <p className="hidden text-xs text-slate-500 lg:block">
-            For CBSE and state-board schools across India.
-          </p>
-        </aside>
+          <div className="border-y border-slate-100 p-2">{switcher}</div>
 
-        <main className="flex items-start px-4 pt-6 pb-16 sm:px-6 lg:px-0 lg:pt-24 lg:pb-12">
-          <div className="shadow-card w-full rounded-2xl border border-slate-200/80 bg-white">
-            <div className="border-b border-slate-100 p-2">{switcher}</div>
-
-            <div className="px-5 pt-6 pb-7 sm:px-8 sm:pt-8 sm:pb-9">{children}</div>
-          </div>
-        </main>
-      </div>
+          <div className="px-5 pt-6 pb-7 sm:px-8 sm:pt-8 sm:pb-9">{children}</div>
+        </div>
+      </main>
     </div>
   );
 }

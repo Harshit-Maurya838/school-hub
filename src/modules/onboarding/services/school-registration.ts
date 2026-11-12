@@ -9,7 +9,7 @@ import { env } from "@/lib/env";
 import { hashPassword, passwordSchema } from "@/modules/auth";
 import { normalizeCode, normalizeSlug } from "./provisioning";
 import { hashToken } from "./invitations";
-import { CLASS_RANGES } from "./school-profile-rules";
+import { CLASS_RANGES, sectionsForRange } from "./school-profile-rules";
 
 export const REGISTRATION_OTP_EXPIRY_MINUTES = 10;
 export const REGISTRATION_OTP_MAX_ATTEMPTS = 5;
@@ -17,7 +17,8 @@ export const REGISTRATION_OTP_MAX_ATTEMPTS = 5;
 /** Mediums offered on the public form; "Both" maps to BILINGUAL. */
 export const REGISTRATION_MEDIUMS = ["ENGLISH", "HINDI", "BILINGUAL"] as const;
 
-const classRangeValues = CLASS_RANGES.map((r) => r.value) as [
+/** New schools pick from the current ranges only; legacy ranges are kept for existing profiles. */
+const classRangeValues = CLASS_RANGES.filter((r) => !r.legacy).map((r) => r.value) as [
   (typeof CLASS_RANGES)[number]["value"],
   ...(typeof CLASS_RANGES)[number]["value"][],
 ];
@@ -50,6 +51,14 @@ export const schoolRegistrationSchema = z
   .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
+  })
+  // The range decides the preschool sections it can have; store what it allows.
+  .transform((d) => {
+    const sections = sectionsForRange(d.classRange, {
+      prePrimary: d.hasPrePrimary,
+      playGroup: d.hasPlayGroup,
+    });
+    return { ...d, hasPrePrimary: sections.prePrimary, hasPlayGroup: sections.playGroup };
   });
 
 const verifyOtpSchema = z.object({

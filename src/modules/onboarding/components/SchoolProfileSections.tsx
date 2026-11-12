@@ -12,7 +12,6 @@ import {
 import type { SchoolProfileView } from "../services/school-profile";
 import {
   BOARD_AFFILIATIONS,
-  CLASS_RANGES,
   HOS_DESIGNATIONS,
   INSTRUCTION_MEDIUMS,
   RTE_ENTRY_CLASSES,
@@ -21,10 +20,13 @@ import {
   allowedRteExitClasses,
   canApplyRte,
   canIncludePrePrimary,
+  classRangeOptions,
   describeActiveRange,
   fieldErrorsFrom,
   formatIndianPhone,
+  isPreschoolRange,
   offersSeniorSecondary,
+  sectionsForRange,
   type ProfileStep,
 } from "../services/school-profile-rules";
 import { classesForRange } from "../services/class-structure-template";
@@ -469,7 +471,10 @@ export function SchoolProfileSections({
   const setClassRange = (value: string) => {
     setAcademic((a) => {
       const next = { ...a, classRange: value };
-      if (!canIncludePrePrimary(value)) next.includesPrePrimary = false;
+      next.includesPrePrimary = sectionsForRange(value, {
+        prePrimary: a.includesPrePrimary,
+        playGroup: false,
+      }).prePrimary;
       if (!canApplyRte(value)) {
         next.rteApplicable = false;
         next.rteEntryClass = "";
@@ -662,7 +667,7 @@ export function SchoolProfileSections({
               id={id("range")}
               value={academic.classRange}
               onChange={setClassRange}
-              options={CLASS_RANGES}
+              options={classRangeOptions(academic.classRange)}
               placeholder="Select class range"
               error={errors.classRange}
             />
@@ -674,9 +679,11 @@ export function SchoolProfileSections({
                 Include pre-primary section
               </p>
               <p id={id("pp-hint")} className="mt-0.5 text-xs text-slate-500">
-                {preprimaryAllowed || !academic.classRange
-                  ? "Adds Nursery, LKG and UKG to the active class structure"
-                  : "Available only when the class range starts at Class 1"}
+                {isPreschoolRange(academic.classRange)
+                  ? "Set by the class range"
+                  : preprimaryAllowed || !academic.classRange
+                    ? "Adds Nursery, LKG and UKG to the active class structure"
+                    : "Available only when the class range starts at Class 1"}
               </p>
             </div>
             <Switch

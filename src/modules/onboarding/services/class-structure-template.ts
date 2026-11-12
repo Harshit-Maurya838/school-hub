@@ -10,7 +10,7 @@ import { getClassRange } from "./school-profile-rules";
 export interface TemplateClass {
   /** Stored class name, e.g. "Nursery" or "Class 7". */
   name: string;
-  /** Sort order: Nursery 0, LKG 1, UKG 2, Class n → n + 2. */
+  /** Sort order: Play Group -1, Nursery 0, LKG 1, UKG 2, Class n → n + 2. */
   numericOrder: number;
   /** 0 for pre-primary, otherwise the grade number. */
   grade: number;
@@ -21,6 +21,9 @@ export const PRE_PRIMARY_CLASSES: TemplateClass[] = [
   { name: "LKG", numericOrder: 1, grade: 0 },
   { name: "UKG", numericOrder: 2, grade: 0 },
 ];
+
+/** Sorts before Nursery. */
+export const PLAY_GROUP_CLASS: TemplateClass = { name: "Play Group", numericOrder: -1, grade: 0 };
 
 export function gradeClass(grade: number): TemplateClass {
   return { name: `Class ${grade}`, numericOrder: grade + 2, grade };
@@ -33,6 +36,13 @@ export function classesForRange(
 ): TemplateClass[] {
   const range = getClassRange(classRange);
   if (!range) return [];
+  // Preschool-only ranges are made of their sections; the switch is not consulted.
+  if (range.start === 0) {
+    return [
+      ...(range.playGroup ? [PLAY_GROUP_CLASS] : []),
+      ...(range.prePrimary ? PRE_PRIMARY_CLASSES : []),
+    ];
+  }
   const grades = Array.from({ length: range.end - range.start + 1 }, (_, i) =>
     gradeClass(range.start + i)
   );

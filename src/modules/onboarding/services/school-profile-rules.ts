@@ -20,18 +20,90 @@ export const INSTRUCTION_MEDIUMS = [
   { value: "URDU", label: "Urdu Medium" },
 ] as const;
 
+/**
+ * Recognised class ranges. Preschool ranges (start 0) run no numbered classes; their
+ * `playGroup` / `prePrimary` say which preschool sections the range itself is made of.
+ * Legacy ranges stay valid for schools that saved them but are no longer offered.
+ */
 export const CLASS_RANGES = [
-  { value: "CLASS_1_TO_5", label: "Class 1 to Class 5 (Primary)", start: 1, end: 5 },
-  { value: "CLASS_1_TO_8", label: "Class 1 to Class 8 (Upper Primary)", start: 1, end: 8 },
-  { value: "CLASS_1_TO_10", label: "Class 1 to Class 10 (Secondary)", start: 1, end: 10 },
-  { value: "CLASS_1_TO_12", label: "Class 1 to Class 12 (Senior Secondary)", start: 1, end: 12 },
-  { value: "CLASS_6_TO_8", label: "Class 6 to Class 8", start: 6, end: 8 },
-  { value: "CLASS_6_TO_10", label: "Class 6 to Class 10", start: 6, end: 10 },
-  { value: "CLASS_6_TO_12", label: "Class 6 to Class 12", start: 6, end: 12 },
-  { value: "CLASS_9_TO_10", label: "Class 9 to Class 10", start: 9, end: 10 },
-  { value: "CLASS_9_TO_12", label: "Class 9 to Class 12", start: 9, end: 12 },
-  { value: "CLASS_11_TO_12", label: "Class 11 to Class 12", start: 11, end: 12 },
+  {
+    value: "PLAYWAY_ONLY",
+    label: "Playway / Play Group Only",
+    start: 0,
+    end: 0,
+    playGroup: true,
+    prePrimary: false,
+    legacy: false,
+  },
+  {
+    value: "PRE_PRIMARY_ONLY",
+    label: "Pre-Primary Only (Nursery, LKG, UKG)",
+    start: 0,
+    end: 0,
+    playGroup: false,
+    prePrimary: true,
+    legacy: false,
+  },
+  {
+    value: "PLAYWAY_AND_PRE_PRIMARY",
+    label: "Playway & Pre-Primary (Nursery, LKG, UKG)",
+    start: 0,
+    end: 0,
+    playGroup: true,
+    prePrimary: true,
+    legacy: false,
+  },
+  ...(
+    [
+      ["CLASS_1_TO_5", "Classes 1 to 5 (Primary)", 1, 5, false],
+      ["CLASS_1_TO_8", "Classes 1 to 8 (Upper Primary)", 1, 8, false],
+      ["CLASS_1_TO_10", "Classes 1 to 10 (Secondary)", 1, 10, false],
+      ["CLASS_1_TO_12", "Classes 1 to 12 (Senior Secondary)", 1, 12, false],
+      ["CLASS_6_TO_8", "Classes 6 to 8", 6, 8, true],
+      ["CLASS_6_TO_10", "Classes 6 to 10", 6, 10, true],
+      ["CLASS_6_TO_12", "Classes 6 to 12", 6, 12, true],
+      ["CLASS_9_TO_10", "Classes 9 to 10", 9, 10, true],
+      ["CLASS_9_TO_12", "Classes 9 to 12", 9, 12, true],
+      ["CLASS_11_TO_12", "Classes 11 to 12", 11, 12, true],
+    ] as const
+  ).map(([value, label, start, end, legacy]) => ({
+    value,
+    label,
+    start,
+    end,
+    playGroup: false,
+    prePrimary: false,
+    legacy,
+  })),
 ] as const;
+
+/** The ranges a picker offers: every current range, plus `current` when it is a legacy one. */
+export function classRangeOptions(current?: string | null) {
+  return CLASS_RANGES.filter((r) => !r.legacy || r.value === current).map((r) => ({
+    value: r.value,
+    label: r.label,
+  }));
+}
+
+/** True for the preschool-only ranges, whose sections come from the range itself. */
+export function isPreschoolRange(range?: string | null) {
+  return getClassRange(range)?.start === 0;
+}
+
+/**
+ * The pre-primary and play group switches a range implies: preschool ranges fix them;
+ * Class 1 ranges keep the school's own choice; other ranges allow neither.
+ */
+export function sectionsForRange(
+  range: string | null | undefined,
+  chosen: { prePrimary: boolean; playGroup: boolean }
+) {
+  const r = getClassRange(range);
+  if (!r) return chosen;
+  if (r.start === 0) return { prePrimary: r.prePrimary, playGroup: r.playGroup };
+  if (r.start === 1) return chosen;
+  return { prePrimary: false, playGroup: false };
+}
 
 export const RTE_ENTRY_CLASSES = [
   { value: "NURSERY", label: "Nursery" },
@@ -116,6 +188,10 @@ export function allowedRteExitClasses(range?: string | null) {
 export function describeActiveRange(range?: string | null, includesPrePrimary?: boolean) {
   const r = getClassRange(range);
   if (!r) return "";
+  if (r.start === 0) {
+    if (r.playGroup && r.prePrimary) return "Play Group to UKG";
+    return r.playGroup ? "Play Group" : "Nursery to UKG";
+  }
   const from = includesPrePrimary && r.start === 1 ? "Nursery" : `Class ${r.start}`;
   return `${from} to Class ${r.end}`;
 }
@@ -227,7 +303,11 @@ export const academicStepSchema = z
   .superRefine((v, ctx) => {
     const range = getClassRange(v.classRange);
 
-    if (v.includesPrePrimary && !canIncludePrePrimary(v.classRange)) {
+    if (
+      v.includesPrePrimary &&
+      !canIncludePrePrimary(v.classRange) &&
+      !isPreschoolRange(v.classRange)
+    ) {
       ctx.addIssue({
         code: "custom",
         path: ["includesPrePrimary"],
@@ -300,7 +380,10 @@ export const academicStepSchema = z
   })
   .transform((v) => ({
     ...v,
-    includesPrePrimary: canIncludePrePrimary(v.classRange) ? v.includesPrePrimary : false,
+    includesPrePrimary: sectionsForRange(v.classRange, {
+      prePrimary: v.includesPrePrimary,
+      playGroup: false,
+    }).prePrimary,
     rteEntryClass: v.rteApplicable ? (v.rteEntryClass ?? null) : null,
     rteExitClass: v.rteApplicable ? (v.rteExitClass ?? null) : null,
     stateBoardName: v.boardAffiliation === "STATE_BOARD" ? (v.stateBoardName ?? null) : null,

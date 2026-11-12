@@ -12,9 +12,13 @@ import { Switch } from "@/components/hairline/switch";
 import { Checkbox } from "@/components/hairline/checkbox";
 import { SegmentedControl } from "@/components/hairline/segmented-control";
 import { CodeInput } from "@/components/hairline/code-input";
-import { CLASS_RANGES } from "../services/school-profile-rules";
+import {
+  classRangeOptions,
+  isPreschoolRange,
+  sectionsForRange,
+} from "../services/school-profile-rules";
 
-const CLASS_RANGE_OPTIONS = CLASS_RANGES.map((r) => ({ value: r.value, label: r.label }));
+const CLASS_RANGE_OPTIONS = classRangeOptions();
 
 const MEDIUM_OPTIONS = [
   { value: "ENGLISH", label: "English" },
@@ -104,6 +108,26 @@ export function RegisterSchoolForm() {
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const sectionsFixed = isPreschoolRange(form.classRange);
+
+  // A range turns the preschool switches on or off to match it; Class 1 ranges keep them
+  // editable, starting off when the previous range had fixed them.
+  const chooseClassRange = (value: string) => {
+    const sections = sectionsForRange(
+      value,
+      sectionsFixed
+        ? { prePrimary: false, playGroup: false }
+        : { prePrimary: form.hasPrePrimary, playGroup: form.hasPlayGroup }
+    );
+    setForm((prev) => ({
+      ...prev,
+      classRange: value,
+      hasPrePrimary: sections.prePrimary,
+      hasPlayGroup: sections.playGroup,
+    }));
+    if (errors.classRange) setErrors((prev) => ({ ...prev, classRange: undefined }));
   };
 
   const requestOtp = () => postJson("/api/v1/public/register-school", form);
@@ -210,40 +234,38 @@ export function RegisterSchoolForm() {
             error={errors.schoolName}
             placeholder="e.g. Sunrise Public School"
           />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              id="udiseCode"
-              label="U-DISE+ code"
-              required
-              inputMode="numeric"
-              maxLength={11}
-              disabled={isPending}
-              value={form.udiseCode}
-              onValueChange={(v) => set("udiseCode", v.replace(/\D/g, ""))}
-              error={errors.udiseCode}
-              placeholder="11 digits"
-              inputClassName="font-mono tabular-nums placeholder:font-sans"
-            />
-            <Select
-              id="classRange"
-              label="Class range"
-              options={CLASS_RANGE_OPTIONS}
-              placeholder="Choose classes"
-              disabled={isPending}
-              value={form.classRange || null}
-              onValueChange={(v) => set("classRange", v)}
-              error={errors.classRange}
-            />
-          </div>
+          <Input
+            id="udiseCode"
+            label="U-DISE+ code"
+            required
+            inputMode="numeric"
+            maxLength={11}
+            disabled={isPending}
+            value={form.udiseCode}
+            onValueChange={(v) => set("udiseCode", v.replace(/\D/g, ""))}
+            error={errors.udiseCode}
+            placeholder="11 digits"
+            inputClassName="font-mono tabular-nums placeholder:font-sans"
+          />
+          <Select
+            id="classRange"
+            label="Select class range"
+            options={CLASS_RANGE_OPTIONS}
+            placeholder="Choose the classes your school runs"
+            disabled={isPending}
+            value={form.classRange || null}
+            onValueChange={chooseClassRange}
+            error={errors.classRange}
+          />
 
           <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 px-4">
             <div className="py-3.5">
               <Switch
                 label="Pre-primary section"
-                description="Nursery, LKG and UKG"
+                description={sectionsFixed ? "Set by the class range" : "Nursery, LKG and UKG"}
                 labelPosition="start"
                 className="w-full"
-                disabled={isPending}
+                disabled={isPending || sectionsFixed}
                 checked={form.hasPrePrimary}
                 onCheckedChange={(v) => set("hasPrePrimary", v)}
               />
@@ -251,10 +273,12 @@ export function RegisterSchoolForm() {
             <div className="py-3.5">
               <Switch
                 label="Play group / playway"
-                description="Toddler care before nursery"
+                description={
+                  sectionsFixed ? "Set by the class range" : "Toddler care before nursery"
+                }
                 labelPosition="start"
                 className="w-full"
-                disabled={isPending}
+                disabled={isPending || sectionsFixed}
                 checked={form.hasPlayGroup}
                 onCheckedChange={(v) => set("hasPlayGroup", v)}
               />
@@ -280,7 +304,6 @@ export function RegisterSchoolForm() {
             <Input
               id="adminName"
               label="Admin name"
-              hint="You will manage the school account"
               required
               autoComplete="name"
               disabled={isPending}
@@ -321,7 +344,6 @@ export function RegisterSchoolForm() {
               id="email"
               type="email"
               label="Email"
-              hint="We'll send the verification code here"
               required
               inputMode="email"
               autoComplete="email"
@@ -337,7 +359,7 @@ export function RegisterSchoolForm() {
         </FormSection>
 
         <FormSection title="Password">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-4">
             <PasswordInput
               id="password"
               label="Password"
