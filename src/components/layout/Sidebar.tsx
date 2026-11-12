@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useSyncExternalStore, useTransition } from "react";
+import React, { useState, useEffect, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -16,14 +16,11 @@ import {
   ChevronRight,
   CalendarDays,
   X,
-  Search,
   Shield,
 } from "lucide-react";
 import { getRoleDisplayName } from "@/modules/auth/services/role-ui";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
-
-const noopSubscribe = () => () => {};
-const isApplePlatform = () => /Mac|iPhone|iPad/.test(navigator.platform);
+import { useT } from "@/lib/i18n";
 
 export interface SidebarProps {
   schoolSlug: string;
@@ -32,7 +29,6 @@ export interface SidebarProps {
   isMobileOpen?: boolean;
   setIsMobileOpen?: (open: boolean) => void;
   userRole?: string;
-  onOpenSearch?: () => void;
 }
 
 export function Sidebar({
@@ -42,9 +38,9 @@ export function Sidebar({
   isMobileOpen = false,
   setIsMobileOpen,
   userRole = "SCHOOL_ADMIN",
-  onOpenSearch,
 }: SidebarProps) {
   const router = useRouter();
+  const { t } = useT();
   const rawPathname = usePathname() || "";
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [prevPathname, setPrevPathname] = useState(rawPathname);
@@ -56,8 +52,7 @@ export function Sidebar({
   }
 
   const pathname = pendingHref ?? rawPathname;
-  const isApple = useSyncExternalStore(noopSubscribe, isApplePlatform, () => false);
-  const roleName = getRoleDisplayName(userRole);
+  const roleName = t(getRoleDisplayName(userRole));
 
   const isSuperAdmin = userRole === "SUPER_ADMIN";
   const isTeacher = userRole === "TEACHER";
@@ -211,7 +206,7 @@ export function Sidebar({
           });
           setIsMobileOpen?.(false);
         }}
-        title={isCollapsed ? item.label : undefined}
+        title={isCollapsed ? t(item.label) : undefined}
         aria-current={item.isActive ? "page" : undefined}
         className={`group relative flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
           item.isActive
@@ -228,7 +223,7 @@ export function Sidebar({
         />
 
         {(!isCollapsed || isMobileOpen) && (
-          <span className="flex-1 truncate text-left">{item.label}</span>
+          <span className="flex-1 truncate text-left">{t(item.label)}</span>
         )}
 
         {/* Active Pill Bar */}
@@ -255,41 +250,17 @@ export function Sidebar({
           isCollapsed ? "w-64 md:w-20" : "w-64"
         } ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}
       >
-        {/* Sidebar toolbar: search + collapse */}
+        {/* Sidebar toolbar: collapse (desktop only) */}
         <div
-          className={`flex items-center gap-2 border-b border-slate-100 p-3 ${
+          className={`hidden items-center justify-end gap-2 border-b border-slate-100 p-3 md:flex ${
             isCollapsed && !isMobileOpen ? "md:flex-col" : ""
           }`}
         >
-          <button
-            type="button"
-            onClick={() => {
-              setIsMobileOpen?.(false);
-              onOpenSearch?.();
-            }}
-            title={isCollapsed ? "Search" : undefined}
-            aria-label="Search"
-            aria-keyshortcuts={isApple ? "Meta+K" : "Control+K"}
-            className={`flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
-              isCollapsed && !isMobileOpen ? "md:w-full md:flex-none md:justify-center md:px-2" : ""
-            }`}
-          >
-            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-            {(!isCollapsed || isMobileOpen) && (
-              <>
-                <span className="flex-1 text-left">Search…</span>
-                <kbd className="rounded border border-slate-200 bg-white px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
-                  {isApple ? "⌘K" : "Ctrl K"}
-                </kbd>
-              </>
-            )}
-          </button>
-
           {/* Collapse Button (Desktop) */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="hidden cursor-pointer items-center justify-center rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none md:flex"
-            aria-label={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            aria-label={t(isCollapsed ? "Expand Sidebar" : "Collapse Sidebar")}
             type="button"
           >
             {isCollapsed ? (
@@ -303,7 +274,7 @@ export function Sidebar({
           <button
             onClick={() => setIsMobileOpen?.(false)}
             className="cursor-pointer rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none md:hidden"
-            aria-label="Close menu"
+            aria-label={t("Close menu")}
             type="button"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -321,11 +292,11 @@ export function Sidebar({
                 className={`group flex w-full items-center gap-3 rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
                   isCollapsed ? "md:justify-center md:px-2" : ""
                 }`}
-                title={isCollapsed ? "Platform Console" : undefined}
+                title={isCollapsed ? t("Platform Console") : undefined}
               >
                 <Shield className="h-5 w-5 shrink-0 text-slate-500" aria-hidden="true" />
                 {(!isCollapsed || isMobileOpen) && (
-                  <span className="flex-1 truncate">Platform Console</span>
+                  <span className="flex-1 truncate">{t("Platform Console")}</span>
                 )}
               </Link>
             </div>
@@ -335,7 +306,7 @@ export function Sidebar({
           <div>
             {(!isCollapsed || isMobileOpen) && (
               <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                {isTeacher ? "Teaching Desk" : isAccountant ? "Accounts Desk" : "Main Modules"}
+                {t(isTeacher ? "Teaching Desk" : isAccountant ? "Accounts Desk" : "Main Modules")}
               </p>
             )}
             <nav className="space-y-1">{mainModules.map(renderNavItem)}</nav>
@@ -346,7 +317,7 @@ export function Sidebar({
             <div>
               {(!isCollapsed || isMobileOpen) && (
                 <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                  Exam & Results
+                  {t("Exam & Results")}
                 </p>
               )}
               <nav className="space-y-1">{examModules.map(renderNavItem)}</nav>
@@ -358,7 +329,7 @@ export function Sidebar({
             <div>
               {(!isCollapsed || isMobileOpen) && (
                 <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                  Management
+                  {t("Management")}
                 </p>
               )}
               <nav className="space-y-1">{managementModules.map(renderNavItem)}</nav>

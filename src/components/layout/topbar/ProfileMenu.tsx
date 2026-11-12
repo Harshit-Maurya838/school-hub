@@ -4,6 +4,7 @@ import React, { useCallback, useRef, useState } from "react";
 import { ChevronDown, Landmark, Mail, Phone, Shield } from "lucide-react";
 import { getRoleDisplayName, getRoleTheme } from "@/modules/auth/services/role-ui";
 import { focusRing, useDismiss } from "./TopBarWidgets";
+import { useT } from "@/lib/i18n";
 
 export interface ManagementContact {
   /** e.g. "Principal", "Management / Trust", "School Admin" */
@@ -43,12 +44,13 @@ export function ProfileMenu({
   managementHeading = "School Management",
   actions,
 }: ProfileMenuProps) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const close = useCallback(() => setOpen(false), []);
   useDismiss(ref, open, close);
 
-  const roleName = getRoleDisplayName(userRole);
+  const roleName = t(getRoleDisplayName(userRole));
   const roleTheme = getRoleTheme(userRole);
   const initials = getInitials(userName);
 
@@ -84,7 +86,7 @@ export function ProfileMenu({
         <div
           id="topbar-profile-menu"
           role="dialog"
-          aria-label="Account"
+          aria-label={t("Account")}
           className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
         >
           {/* Identity */}
@@ -112,11 +114,11 @@ export function ProfileMenu({
             <div className="max-h-[50vh] overflow-y-auto p-3">
               <p className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
                 <Landmark className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
-                {managementHeading}
+                {t(managementHeading)}
               </p>
               {management.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-slate-200 px-3 py-4 text-center text-[11px] text-slate-500">
-                  Leadership details have not been added to the school profile yet.
+                  {t("Leadership details have not been added to the school profile yet.")}
                 </p>
               ) : (
                 <ul className="space-y-2">
@@ -126,7 +128,7 @@ export function ProfileMenu({
                       className="rounded-xl border border-slate-200 px-3 py-2.5"
                     >
                       <p className="text-[10px] font-bold tracking-wide text-emerald-700 uppercase">
-                        {m.title}
+                        {t(m.title)}
                       </p>
                       <p className="truncate text-xs font-bold text-slate-900">{m.name}</p>
                       {m.email && (

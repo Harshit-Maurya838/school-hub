@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { LANGUAGES, setLanguage, useT } from "@/lib/i18n";
 import {
   Calculator,
   CalendarDays,
@@ -313,13 +314,14 @@ function CalculatorPad() {
 }
 
 export function CalculatorTool({ className }: { className?: string }) {
+  const { t } = useT();
   return (
     <ToolPopover
       id="topbar-calculator"
-      label="Open calculator"
-      title="Quick Calculator"
+      label={t("Open calculator")}
+      title={t("Quick Calculator")}
       icon={Calculator}
-      triggerText="Calc"
+      triggerText={t("Calc")}
       className={className}
       panelClassName="w-72"
     >
@@ -348,6 +350,7 @@ function useCurrentMinute(): Date | null {
 }
 
 function MonthGrid({ today }: { today: Date }) {
+  const { t, locale } = useT();
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
@@ -367,7 +370,7 @@ function MonthGrid({ today }: { today: Date }) {
     <div className="p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-bold text-slate-900" aria-live="polite">
-          {cursor.toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+          {cursor.toLocaleDateString(locale, { month: "long", year: "numeric" })}
         </p>
         <div className="flex items-center gap-1.5">
           {!isCurrentMonth && (
@@ -376,14 +379,14 @@ function MonthGrid({ today }: { today: Date }) {
               onClick={() => setCursor(new Date(today.getFullYear(), today.getMonth(), 1))}
               className={`cursor-pointer rounded-lg px-2 py-1 text-[11px] font-semibold text-emerald-700 hover:bg-emerald-50 ${focusRing}`}
             >
-              Today
+              {t("Today")}
             </button>
           )}
           <button
             type="button"
             onClick={() => shift(-1)}
             className={navClass}
-            aria-label="Previous month"
+            aria-label={t("Previous month")}
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -391,7 +394,7 @@ function MonthGrid({ today }: { today: Date }) {
             type="button"
             onClick={() => shift(1)}
             className={navClass}
-            aria-label="Next month"
+            aria-label={t("Next month")}
           >
             <ChevronRight className="h-4 w-4" aria-hidden="true" />
           </button>
@@ -430,24 +433,26 @@ function MonthGrid({ today }: { today: Date }) {
 }
 
 export function CalendarTool({ className }: { className?: string }) {
+  const { t, locale } = useT();
   const now = useCurrentMinute();
-  const triggerText = now
-    ? now.toLocaleString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : undefined;
+  const triggerText = now && (
+    <span className="inline-flex flex-col items-start leading-tight">
+      <span className="text-sm font-bold text-slate-900">
+        {now.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })}
+      </span>
+      <span className="font-mono text-[10px] text-slate-500">
+        {now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
+      </span>
+    </span>
+  );
 
   return (
     <ToolPopover
       id="topbar-calendar"
-      label="Open calendar"
-      title="Calendar"
+      label={t("Open calendar")}
+      title={t("Calendar")}
       icon={CalendarDays}
-      triggerText={triggerText && <span className="font-mono">{triggerText}</span>}
+      triggerText={triggerText}
       className={className}
       panelClassName="w-80"
     >
@@ -460,40 +465,8 @@ export function CalendarTool({ className }: { className?: string }) {
 // Language
 // ---------------------------------------------------------------------------
 
-export const LANGUAGES = [
-  { code: "en", label: "English", native: "English" },
-  { code: "hi", label: "Hindi", native: "हिन्दी" },
-] as const;
-
-const LANGUAGE_STORAGE_KEY = "cg-language";
-const languageListeners = new Set<() => void>();
-
-function readLanguage(): string {
-  try {
-    return window.localStorage.getItem(LANGUAGE_STORAGE_KEY) ?? "en";
-  } catch (err) {
-    console.error("Unable to read language preference", err);
-    return "en";
-  }
-}
-
-function subscribeLanguage(callback: () => void) {
-  languageListeners.add(callback);
-  return () => languageListeners.delete(callback);
-}
-
-function writeLanguage(code: string) {
-  try {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
-  } catch (err) {
-    console.error("Unable to save language preference", err);
-  }
-  document.documentElement.lang = code;
-  languageListeners.forEach((l) => l());
-}
-
 export function LanguageTool({ className }: { className?: string }) {
-  const language = useSyncExternalStore(subscribeLanguage, readLanguage, () => "en");
+  const { t, language } = useT();
   const current = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
 
   useEffect(() => {
@@ -503,15 +476,14 @@ export function LanguageTool({ className }: { className?: string }) {
   return (
     <ToolPopover
       id="topbar-language"
-      label={`Language: ${current.label}`}
-      title="Language"
+      label={`${t("Language")}: ${current.native}`}
+      title={t("Language")}
       icon={Languages}
-      triggerText={current.native}
       className={className}
       panelClassName="w-56"
     >
       {(close) => (
-        <ul className="p-2" role="listbox" aria-label="Choose language">
+        <ul className="p-2" role="listbox" aria-label={t("Choose language")}>
           {LANGUAGES.map((l) => {
             const selected = l.code === current.code;
             return (
@@ -521,7 +493,7 @@ export function LanguageTool({ className }: { className?: string }) {
                   role="option"
                   aria-selected={selected}
                   onClick={() => {
-                    writeLanguage(l.code);
+                    setLanguage(l.code);
                     close();
                   }}
                   className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold transition-colors ${focusRing} ${
@@ -546,6 +518,7 @@ export function LanguageTool({ className }: { className?: string }) {
 
 export function LogoutIconButton({ redirectTo = "/login" }: { redirectTo?: string }) {
   const router = useRouter();
+  const { t } = useT();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -565,8 +538,8 @@ export function LogoutIconButton({ redirectTo = "/login" }: { redirectTo?: strin
       type="button"
       onClick={handleLogout}
       disabled={loggingOut}
-      aria-label={loggingOut ? "Signing out" : "Sign out"}
-      title="Sign out"
+      aria-label={t(loggingOut ? "Signing out" : "Sign out")}
+      title={t("Sign out")}
       className={`inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition-colors hover:border-rose-300 hover:bg-rose-100 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60`}
     >
       {loggingOut ? (

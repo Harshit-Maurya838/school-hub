@@ -49,6 +49,7 @@ export function SchoolLayoutClient({
         userEmail={userEmail}
         management={management}
         onToggleMobileMenu={() => setIsMobileOpen(true)}
+        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       {/* 2. Sidebar below the top bar */}
@@ -59,7 +60,6 @@ export function SchoolLayoutClient({
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         userRole={userRole}
-        onOpenSearch={() => setIsSearchOpen(true)}
       />
 
       {/* 3. Page content */}
