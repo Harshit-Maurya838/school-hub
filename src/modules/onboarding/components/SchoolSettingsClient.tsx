@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
-  ArrowRight,
-  CalendarDays,
+  ArrowDown,
+  ArrowUpRight,
   CheckCircle2,
-  ClipboardList,
-  Save,
-  ShieldCheck,
+  FileText,
+  Lock,
+  LockOpen,
 } from "lucide-react";
 import {
   FieldError,
@@ -21,7 +21,7 @@ import {
 } from "@/components/common/FormControls";
 import { SchoolDetailsReadiness } from "../services/school-readiness";
 import type { SchoolProfileView } from "../services/school-profile";
-import { SchoolProfileWizard } from "./SchoolProfileWizard";
+import { STEPS, SchoolProfileSections, SectionState } from "./SchoolProfileSections";
 
 interface SchoolData {
   id: string;
@@ -49,6 +49,41 @@ const MISSING_FIELD_LABELS: Record<string, string> = {
   registrationApproval: "Platform administrator approval of the registration is pending.",
 };
 
+const INDEX = [
+  ...STEPS.map((s) => ({ id: `section-${s.id}`, label: s.label, step: s.id })),
+  { id: "section-identifiers", label: "School code", step: null },
+  { id: "section-account", label: "Account status", step: null },
+];
+
+const focusRing = "focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none";
+
+/** Id of the index section currently at the top of the viewport. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState(ids[0]);
+  useEffect(() => {
+    const visible = new Set<string>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) =>
+          e.isIntersecting ? visible.add(e.target.id) : visible.delete(e.target.id)
+        );
+        const first = ids.find((id) => visible.has(id));
+        if (first) setActive(first);
+      },
+      // A band just under the fixed top bar: the section crossing it is the one being read.
+      { rootMargin: "-96px 0px -60% 0px" }
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [ids]);
+  return active;
+}
+
+const INDEX_IDS = INDEX.map((i) => i.id);
+
 export function SchoolSettingsClient({
   schoolSlug,
   initialSchool,
@@ -57,15 +92,25 @@ export function SchoolSettingsClient({
   canEdit,
   canLock,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<"profile" | "readiness">("profile");
   const [school, setSchool] = useState<SchoolData>(initialSchool);
   const [readiness, setReadiness] = useState<SchoolDetailsReadiness>(initialReadiness);
+  const [profile, setProfile] = useState<SchoolProfileView>(initialProfile);
 
   const [code, setCode] = useState(initialSchool.code);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const [locking, setLocking] = useState(false);
+  const [lockMessage, setLockMessage] = useState<{ kind: "error" | "ok"; text: string } | null>(
+    null
+  );
+
+  const activeSection = useActiveSection(INDEX_IDS);
+  const isLocked = profile.lock.isLocked;
+  const savedCount = STEPS.filter((s) => profile.completion[s.id]).length;
+  const nextStep = STEPS.find((s) => !profile.completion[s.id]);
 
   const handleCodeUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,286 +139,405 @@ export function SchoolSettingsClient({
       setReadiness(data.data.readiness);
       setCode(data.data.school.code);
       setSuccess("School code updated.");
-    } catch {
+    } catch (err) {
+      console.error("Updating school code failed", err);
       setError("Network error while saving. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const tabs = [
-    { id: "profile" as const, label: "Master Profile", icon: ClipboardList },
-    { id: "readiness" as const, label: "Readiness & Identifiers", icon: ShieldCheck },
-  ];
+  async function toggleLock() {
+    setLockMessage(null);
+    setLocking(true);
+    try {
+      const res = await fetch(`/api/v1/school/${schoolSlug}/profile/master/lock`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locked: !isLocked }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        setLockMessage({
+          kind: "error",
+          text: json?.error?.message || "Could not change the lock. Please try again.",
+        });
+        return;
+      }
+      setProfile(json.data.profile);
+      setLockMessage({
+        kind: "ok",
+        text: json.data.profile.lock.isLocked
+          ? "Profile locked. It is now read-only for everyone until it is unlocked."
+          : "Profile unlocked. Administrators can edit it again.",
+      });
+    } catch (err) {
+      console.error("Changing profile lock failed", err);
+      setLockMessage({
+        kind: "error",
+        text: "Network error while changing the lock. Please try again.",
+      });
+    } finally {
+      setLocking(false);
+    }
+  }
+
+  const lockedOn =
+    profile.lock.lockedAt &&
+    new Date(profile.lock.lockedAt).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
 
   return (
     <div className="space-y-6">
       {/* Page header */}
-      <div className="flex flex-col justify-between gap-3 border-b border-slate-200/80 pb-4 sm:flex-row sm:items-center">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+      <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div className="min-w-0">
+          <nav aria-label="Breadcrumb" className="text-xs font-semibold text-slate-500">
             <Link
               href={`/school/${schoolSlug}`}
-              className="rounded transition-colors hover:text-emerald-700 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none"
+              className={`rounded transition-colors hover:text-emerald-700 ${focusRing}`}
             >
               {school.name}
             </Link>
-            <span aria-hidden="true">/</span>
+            <span aria-hidden="true"> / </span>
             <span className="text-slate-800">Settings</span>
-          </div>
+          </nav>
           <h1 className="mt-1 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
-            School Profile & Settings
+            School settings
           </h1>
-          <p className="mt-0.5 text-xs text-slate-500">
-            Official UDISE+ profile, academic structure, leadership and verification status
+          <p className="mt-0.5 text-sm text-slate-500">
+            The official UDISE+ profile, school code and account status for{" "}
+            <span className="font-semibold text-slate-700">{school.name}</span>.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <Link
-            href={`/school/${schoolSlug}/settings/academic`}
-            prefetch={true}
-            className={`${secondaryButtonClass} px-3.5 py-1.5 text-xs`}
+          <a
+            href={`/print/school-profile/${schoolSlug}`}
+            target="_blank"
+            rel="noopener"
+            className={secondaryButtonClass}
           >
-            <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-            Academic Sessions
-          </Link>
-          <Link
-            href={`/school/${schoolSlug}/academics`}
-            prefetch={true}
-            className={`${secondaryButtonClass} px-3.5 py-1.5 text-xs`}
-          >
-            Class & Subjects
-            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div
-        role="tablist"
-        aria-label="Settings sections"
-        className="flex items-center gap-2 overflow-x-auto border-b border-slate-200/80 pb-1"
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
+            <FileText className="h-4 w-4" aria-hidden="true" />
+            View &amp; export PDF
+          </a>
+          {canLock && (
             <button
-              key={tab.id}
               type="button"
-              role="tab"
-              id={`settings-tab-${tab.id}`}
-              aria-selected={isActive}
-              aria-controls={`settings-panel-${tab.id}`}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
-                isActive
-                  ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
-                  : "border border-transparent text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-              }`}
+              onClick={toggleLock}
+              disabled={locking || (!isLocked && !profile.isComplete)}
+              title={
+                !isLocked && !profile.isComplete
+                  ? "Save all three profile sections before locking"
+                  : undefined
+              }
+              className={`${secondaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
             >
-              <Icon className="h-4 w-4" aria-hidden="true" />
-              <span>{tab.label}</span>
+              {locking ? (
+                <Spinner />
+              ) : isLocked ? (
+                <LockOpen className="h-4 w-4" aria-hidden="true" />
+              ) : (
+                <Lock className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isLocked ? "Unlock profile" : "Lock profile"}
             </button>
-          );
-        })}
-      </div>
-
-      {activeTab === "profile" && (
-        <div role="tabpanel" id="settings-panel-profile" aria-labelledby="settings-tab-profile">
-          <SchoolProfileWizard
-            schoolSlug={schoolSlug}
-            initialProfile={initialProfile}
-            canEdit={canEdit}
-            canLock={canLock}
-          />
+          )}
         </div>
+      </header>
+
+      {lockMessage?.kind === "error" && <Notice>{lockMessage.text}</Notice>}
+      {lockMessage?.kind === "ok" && (
+        <p
+          role="status"
+          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-sm text-emerald-900"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
+          {lockMessage.text}
+        </p>
       )}
 
-      {activeTab === "readiness" && (
-        <div
-          role="tabpanel"
-          id="settings-panel-readiness"
-          aria-labelledby="settings-tab-readiness"
-          className="space-y-5"
-        >
-          {/* Readiness status */}
-          <div
-            className={`rounded-2xl border p-5 ${
-              readiness.isReady
-                ? "border-emerald-200 bg-emerald-50/60"
-                : "border-amber-200 bg-amber-50/80"
-            }`}
-          >
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-              <div className="flex items-start gap-3">
-                <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    readiness.isReady
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {readiness.isReady ? (
-                    <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-                  ) : (
-                    <AlertTriangle className="h-5 w-5" aria-hidden="true" />
-                  )}
-                </span>
-                <div>
-                  <h2
-                    className={`text-sm font-extrabold ${
-                      readiness.isReady ? "text-emerald-950" : "text-amber-950"
-                    }`}
-                  >
-                    {readiness.isReady ? "School details verified" : "School setup incomplete"}
-                  </h2>
-                  <p
-                    className={`mt-0.5 text-xs ${
-                      readiness.isReady ? "text-emerald-800" : "text-amber-800"
-                    }`}
-                  >
-                    {readiness.isReady
-                      ? "School details and administrator identity are verified. Academic setup is unlocked."
-                      : readiness.reason ||
-                        "Complete the required details to unlock academic configuration."}
-                  </p>
-                </div>
-              </div>
-
-              <span
-                className={`inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-bold ${
-                  readiness.isReady
-                    ? "border-emerald-300 bg-emerald-100 text-emerald-800"
-                    : "border-amber-300 bg-amber-100 text-amber-800"
-                }`}
-              >
-                {readiness.isReady ? "Ready for academics" : "Action required"}
-              </span>
-            </div>
-
-            {!readiness.isReady && readiness.missingFields.length > 0 && (
-              <div className="mt-4 rounded-xl border border-amber-200 bg-white p-3.5 text-xs">
-                <p className="font-bold text-amber-950">Needs attention before activation:</p>
-                <ul className="mt-1.5 list-inside list-disc space-y-1 text-slate-600">
-                  {readiness.missingFields.map((field) => (
-                    <li key={field}>{MISSING_FIELD_LABELS[field] ?? field}</li>
-                  ))}
-                </ul>
-              </div>
+      {/* Status strip: where the school stands and what to do next */}
+      <section
+        aria-label="Setup status"
+        className="shadow-card rounded-2xl border border-slate-200/80 bg-white"
+      >
+        <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="flex min-w-0 items-start gap-3">
+            {readiness.isReady ? (
+              <CheckCircle2
+                className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700"
+                aria-hidden="true"
+              />
+            ) : (
+              <AlertTriangle
+                className="mt-0.5 h-5 w-5 shrink-0 text-amber-600"
+                aria-hidden="true"
+              />
             )}
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-slate-900">
+                {readiness.isReady ? "Ready for academics" : "Setup incomplete"}
+              </p>
+              <p className="mt-0.5 text-sm text-slate-600">
+                {readiness.isReady
+                  ? "School details and administrator identity are verified. Academic setup is unlocked."
+                  : readiness.reason ||
+                    "Complete the required details to unlock academic configuration."}
+              </p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-            {/* Platform identifiers */}
-            <form
-              onSubmit={handleCodeUpdate}
-              noValidate
-              className="shadow-card space-y-4 rounded-2xl border border-slate-200/80 bg-white p-5 lg:col-span-2"
-            >
-              <div className="border-b border-slate-100 pb-3">
-                <h2 className="text-sm font-extrabold text-slate-900">Platform identifiers</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  The school code appears on receipts and records. The URL slug is permanent.
-                </p>
-              </div>
+          <dl className="flex shrink-0 flex-wrap items-center gap-x-6 gap-y-2 text-sm sm:justify-end">
+            <div>
+              <dt className="text-xs text-slate-500">Profile</dt>
+              <dd className="font-bold text-slate-900 tabular-nums">{savedCount} of 3 saved</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Editing</dt>
+              <dd className="flex items-center gap-1 font-bold text-slate-900">
+                {isLocked ? (
+                  <>
+                    <Lock className="h-3.5 w-3.5 text-emerald-700" aria-hidden="true" />
+                    Locked
+                  </>
+                ) : (
+                  <>
+                    <LockOpen className="h-3.5 w-3.5 text-amber-600" aria-hidden="true" />
+                    Open
+                  </>
+                )}
+              </dd>
+            </div>
+          </dl>
+        </div>
 
-              {error && <Notice>{error}</Notice>}
-              {success && (
-                <div
-                  role="status"
-                  className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900"
-                >
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-                  {success}
-                </div>
-              )}
+        {(nextStep || isLocked || (!readiness.isReady && readiness.missingFields.length > 0)) && (
+          <div className="space-y-2 border-t border-slate-100 bg-slate-50/60 px-5 py-3.5 text-sm sm:px-6">
+            {isLocked && (
+              <p className="text-slate-700">
+                Locked{profile.lock.lockedByName && <> by {profile.lock.lockedByName}</>}
+                {lockedOn && <> on {lockedOn}</>}.{" "}
+                {canLock
+                  ? "Unlock it to make changes."
+                  : "Ask a school administrator to unlock it."}
+              </p>
+            )}
+            {!isLocked && nextStep && canEdit && (
+              <a
+                href={`#section-${nextStep.id}`}
+                className={`inline-flex items-center gap-1.5 rounded font-semibold text-emerald-700 hover:text-emerald-800 ${focusRing}`}
+              >
+                <ArrowDown className="h-4 w-4" aria-hidden="true" />
+                Next: fill in {nextStep.title.toLowerCase()}
+              </a>
+            )}
+            {!readiness.isReady && readiness.missingFields.length > 0 && (
+              <ul className="list-inside list-disc space-y-0.5 text-slate-600">
+                {readiness.missingFields.map((field) => (
+                  <li key={field}>{MISSING_FIELD_LABELS[field] ?? field}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </section>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="school-code"
-                    className="block text-sm font-semibold text-slate-700"
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[12.5rem_minmax(0,1fr)] lg:gap-8">
+        {/* Section index */}
+        <nav aria-label="Settings sections" className="lg:sticky lg:top-24 lg:self-start">
+          <ol className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
+            {INDEX.map((item) => {
+              const active = activeSection === item.id;
+              return (
+                <li key={item.id} className="shrink-0">
+                  <a
+                    href={`#${item.id}`}
+                    aria-current={active ? "location" : undefined}
+                    className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${focusRing} ${
+                      active
+                        ? "bg-emerald-50 font-semibold text-emerald-800"
+                        : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
+                    }`}
                   >
-                    School code
-                  </label>
-                  <input
-                    id="school-code"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
-                    disabled={!canEdit || saving}
-                    aria-invalid={Boolean(codeError)}
-                    aria-describedby={codeError ? "school-code-error" : undefined}
-                    className={inputClass(Boolean(codeError), "font-mono uppercase")}
-                  />
-                  <FieldError id="school-code-error">{codeError}</FieldError>
-                </div>
-                <div>
-                  <label
-                    htmlFor="school-slug"
-                    className="block text-sm font-semibold text-slate-700"
+                    {item.label}
+                    {item.step && (
+                      <span
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          profile.completion[item.step] ? "bg-emerald-600" : "bg-amber-500"
+                        }`}
+                        aria-hidden="true"
+                      />
+                    )}
+                    {item.step && (
+                      <span className="sr-only">
+                        ({profile.completion[item.step] ? "saved" : "not saved yet"})
+                      </span>
+                    )}
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+
+          <div className="mt-6 hidden border-t border-slate-200 pt-4 lg:block">
+            <p className="px-3 text-xs font-semibold text-slate-500">Elsewhere in setup</p>
+            <ul className="mt-1.5">
+              {[
+                { href: `/school/${schoolSlug}/settings/academic`, label: "Academic sessions" },
+                { href: `/school/${schoolSlug}/academics`, label: "Classes & subjects" },
+              ].map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    prefetch={true}
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100/70 hover:text-slate-900 ${focusRing}`}
                   >
-                    URL slug
-                  </label>
-                  <input
-                    id="school-slug"
-                    value={school.slug}
-                    disabled
-                    className={inputClass(false, "font-mono")}
-                  />
+                    {l.label}
+                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-400" aria-hidden="true" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </nav>
+
+        {/* The settings sheet */}
+        <div className="shadow-card min-w-0 divide-y divide-slate-100 rounded-2xl border border-slate-200/80 bg-white">
+          <SchoolProfileSections
+            schoolSlug={schoolSlug}
+            profile={profile}
+            onProfileChange={setProfile}
+            editable={canEdit && !isLocked}
+          />
+
+          {/* School code */}
+          <section
+            id="section-identifiers"
+            aria-labelledby="identifiers-title"
+            className="scroll-mt-24 px-5 py-7 sm:px-8"
+          >
+            <form onSubmit={handleCodeUpdate} noValidate>
+              <h2 id="identifiers-title" className="text-lg font-bold text-slate-900">
+                School code
+              </h2>
+              <p className="mt-0.5 max-w-prose text-sm text-slate-600">
+                The school code appears on receipts and records. The web address is permanent.
+              </p>
+
+              <div className="mt-6 space-y-5">
+                {error && <Notice>{error}</Notice>}
+                {success && (
+                  <p
+                    role="status"
+                    className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3.5 text-sm text-emerald-900"
+                  >
+                    <CheckCircle2
+                      className="h-4 w-4 shrink-0 text-emerald-700"
+                      aria-hidden="true"
+                    />
+                    {success}
+                  </p>
+                )}
+
+                <div className="grid grid-cols-1 gap-x-5 gap-y-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="school-code"
+                      className="block text-sm font-semibold text-slate-700"
+                    >
+                      School code
+                    </label>
+                    <input
+                      id="school-code"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.toUpperCase())}
+                      disabled={!canEdit || saving}
+                      aria-invalid={Boolean(codeError)}
+                      aria-describedby={codeError ? "school-code-error" : undefined}
+                      className={inputClass(Boolean(codeError), "font-mono uppercase")}
+                    />
+                    <FieldError id="school-code-error">{codeError}</FieldError>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="school-slug"
+                      className="block text-sm font-semibold text-slate-700"
+                    >
+                      Web address
+                    </label>
+                    <input
+                      id="school-slug"
+                      value={`/school/${school.slug}`}
+                      disabled
+                      className={inputClass(false, "font-mono")}
+                    />
+                  </div>
                 </div>
               </div>
 
               {canEdit && (
-                <div className="flex justify-end border-t border-slate-100 pt-4">
+                <div className="mt-6 flex items-center justify-end gap-3">
+                  {code.trim().toUpperCase() !== school.code && <SectionState saved dirty />}
                   <button
                     type="submit"
                     disabled={saving || code.trim().toUpperCase() === school.code}
                     className={primaryButtonClass}
                   >
-                    {saving ? <Spinner /> : <Save className="h-4 w-4" aria-hidden="true" />}
+                    {saving && <Spinner />}
                     {saving ? "Saving…" : "Save school code"}
                   </button>
                 </div>
               )}
             </form>
+          </section>
 
-            {/* Lifecycle */}
-            <div className="shadow-card space-y-3 rounded-2xl border border-slate-200/80 bg-white p-5">
-              <h2 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                Account status
-              </h2>
-              <dl className="space-y-2.5 text-xs">
-                <div className="flex items-center justify-between border-b border-slate-100 py-1">
-                  <dt className="text-slate-500">Lifecycle</dt>
-                  <dd className="font-bold text-slate-800">{school.status}</dd>
+          {/* Account status */}
+          <section
+            id="section-account"
+            aria-labelledby="account-title"
+            className="scroll-mt-24 px-5 py-7 sm:px-8"
+          >
+            <h2 id="account-title" className="text-lg font-bold text-slate-900">
+              Account status
+            </h2>
+            <p className="mt-0.5 max-w-prose text-sm text-slate-600">
+              Set by the platform. Contact your platform administrator to change these.
+            </p>
+            <dl className="mt-5 grid grid-cols-1 text-sm sm:grid-cols-2 sm:gap-x-8">
+              {[
+                { label: "Lifecycle", value: school.status, tone: "text-slate-900" },
+                {
+                  label: "State",
+                  value: school.isActive ? "Active" : "Inactive",
+                  tone: school.isActive ? "text-emerald-700" : "text-rose-700",
+                },
+                {
+                  label: "Administrator",
+                  value: readiness.admin ? readiness.admin.name : "Not assigned",
+                  tone: readiness.admin ? "text-slate-900" : "text-rose-700",
+                },
+                {
+                  label: "Registration",
+                  value: readiness.isRegistrationApproved ? "Approved" : "Pending",
+                  tone: readiness.isRegistrationApproved ? "text-emerald-700" : "text-amber-700",
+                },
+              ].map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-center justify-between gap-4 border-b border-slate-100 py-2.5"
+                >
+                  <dt className="text-slate-500">{row.label}</dt>
+                  <dd className={`truncate font-semibold ${row.tone}`}>{row.value}</dd>
                 </div>
-                <div className="flex items-center justify-between border-b border-slate-100 py-1">
-                  <dt className="text-slate-500">State</dt>
-                  <dd
-                    className={`font-bold ${school.isActive ? "text-emerald-700" : "text-rose-700"}`}
-                  >
-                    {school.isActive ? "Active" : "Inactive"}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between border-b border-slate-100 py-1">
-                  <dt className="text-slate-500">Administrator</dt>
-                  <dd className="truncate pl-3 font-bold text-slate-800">
-                    {readiness.admin ? readiness.admin.name : "Not assigned"}
-                  </dd>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <dt className="text-slate-500">Registration</dt>
-                  <dd className="font-bold text-slate-800">
-                    {readiness.isRegistrationApproved ? "Approved" : "Pending"}
-                  </dd>
-                </div>
-              </dl>
-            </div>
-          </div>
+              ))}
+            </dl>
+          </section>
         </div>
-      )}
+      </div>
     </div>
   );
 }

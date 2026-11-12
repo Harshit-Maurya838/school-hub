@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getSchoolDetailsReadiness } from "@/modules/onboarding";
 import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
 import { SchoolSettingsClient } from "@/modules/onboarding";
+import { primaryButtonClass } from "@/components/common/FormControls";
 
 interface PageProps {
   params: Promise<{
@@ -66,10 +67,7 @@ export default async function SchoolSettingsPage({ params }: PageProps) {
               to School Administrators.
             </p>
           </div>
-          <Link
-            href={`/school/${school.slug}`}
-            className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-xs font-bold text-white transition-colors hover:bg-slate-800"
-          >
+          <Link href={`/school/${school.slug}`} className={`${primaryButtonClass} w-full`}>
             Return to Dashboard
           </Link>
         </div>
@@ -85,15 +83,13 @@ export default async function SchoolSettingsPage({ params }: PageProps) {
   const canLock = canEdit || user.role === "SUPER_ADMIN";
 
   return (
-    <div className="space-y-6">
-      <SchoolSettingsClient
-        schoolSlug={school.slug}
-        initialSchool={school}
-        initialReadiness={readiness}
-        initialProfile={profile}
-        canEdit={canEdit}
-        canLock={canLock}
-      />
-    </div>
+    <SchoolSettingsClient
+      schoolSlug={school.slug}
+      initialSchool={school}
+      initialReadiness={readiness}
+      initialProfile={profile}
+      canEdit={canEdit}
+      canLock={canLock}
+    />
   );
 }
