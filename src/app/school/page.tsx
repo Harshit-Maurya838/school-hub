@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 export default async function SchoolIndexPage() {
   const user = await getAuthenticatedUser();
   if (!user) {
-    redirect("/login");
+    redirect("/auth");
   }
 
   if (user.role === "SUPER_ADMIN") {
@@ -13,7 +13,7 @@ export default async function SchoolIndexPage() {
   }
 
   if (!user.schoolId) {
-    redirect("/login");
+    redirect("/auth");
   }
 
   const school = await prisma.school.findUnique({

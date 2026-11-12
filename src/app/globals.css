@@ -240,3 +240,31 @@ textarea {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
+
+/* /auth: the incoming Sign in / Register panel slides in from its side of the switch. */
+@keyframes auth-panel-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+    filter: blur(3px);
+  }
+}
+@keyframes auth-panel-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+    filter: blur(3px);
+  }
+}
+.auth-panel-from-left {
+  animation: auth-panel-in-left 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.auth-panel-from-right {
+  animation: auth-panel-in-right 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel-from-left,
+  .auth-panel-from-right {
+    animation: none;
+  }
+}

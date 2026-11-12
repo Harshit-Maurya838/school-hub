@@ -16,7 +16,7 @@ export default async function ExamPage({ params }: ExamPageProps) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?callbackUrl=/school/${schoolSlug}/exams`);
+    redirect(`/auth?callbackUrl=/school/${schoolSlug}/exams`);
   }
 
   const school = await prisma.school.findUnique({

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function Home() {
   const user = await getAuthenticatedUser();
 
-  const destination = user?.role === "SUPER_ADMIN" ? "/platform" : user ? "/school" : "/login";
+  const destination = user?.role === "SUPER_ADMIN" ? "/platform" : user ? "/school" : "/auth";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-800 antialiased">
@@ -35,7 +35,7 @@ export default async function Home() {
               {user ? "Go to dashboard" : "Sign in"}
             </Link>
             {!user && (
-              <Link href="/register-school" className={secondaryButtonClass}>
+              <Link href="/auth?tab=register" className={secondaryButtonClass}>
                 Register your school
               </Link>
             )}

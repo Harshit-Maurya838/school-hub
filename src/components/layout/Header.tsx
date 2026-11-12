@@ -192,7 +192,7 @@ export function Header({
             )}
           />
 
-          <LogoutIconButton redirectTo={`/login?callbackUrl=/school/${schoolSlug}`} />
+          <LogoutIconButton redirectTo={`/auth?callbackUrl=/school/${schoolSlug}`} />
         </div>
       </header>
 

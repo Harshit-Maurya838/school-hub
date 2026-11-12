@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { ClipboardCheck, LogIn, ReceiptText, School, ShieldCheck } from "lucide-react";
+import { ClipboardCheck, ReceiptText, ShieldCheck } from "lucide-react";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 
 /**
@@ -77,11 +77,6 @@ export function PublicSheetHeader({
 
 export default PublicShell;
 
-const AUTH_TABS = [
-  { key: "login", href: "/login", label: "Sign in", icon: LogIn },
-  { key: "register", href: "/register-school", label: "Register school", icon: School },
-] as const;
-
 /** What a school gets, stated as the product's own guarantees (see PRODUCT.md). */
 const AUTH_GUARANTEES = [
   {
@@ -108,17 +103,13 @@ const AUTH_GUARANTEES = [
 
 /**
  * Sign-in / registration page: a brand column stating what the school gets, beside a
- * sheet with the Sign in / Register school switch and the active form.
+ * sheet whose header holds the Sign in / Register school switch.
  */
 export function AuthShell({
-  active,
-  title,
-  description,
+  switcher,
   children,
 }: {
-  active: "login" | "register";
-  title: string;
-  description?: React.ReactNode;
+  switcher: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -151,49 +142,32 @@ export function AuthShell({
           </p>
         </aside>
 
-        <main className="flex items-start px-4 pt-6 pb-16 sm:px-6 lg:items-center lg:px-0 lg:py-12">
+        <main className="flex items-start px-4 pt-6 pb-16 sm:px-6 lg:px-0 lg:pt-24 lg:pb-12">
           <div className="shadow-card w-full rounded-2xl border border-slate-200/80 bg-white">
-            <div className="border-b border-slate-100 p-2">
-              <nav
-                aria-label="Account"
-                className="grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1"
-              >
-                {AUTH_TABS.map(({ key, href, label, icon: Icon }) => {
-                  const isActive = key === active;
-                  return (
-                    <Link
-                      key={key}
-                      href={href}
-                      aria-current={isActive ? "page" : undefined}
-                      className={`inline-flex h-9 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-[background-color,color,box-shadow] duration-200 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
-                        isActive
-                          ? "bg-white text-slate-900 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(15,23,42,0.04)]"
-                          : "text-slate-600 hover:text-slate-900"
-                      }`}
-                    >
-                      <Icon
-                        className={`h-4 w-4 ${isActive ? "text-emerald-700" : ""}`}
-                        aria-hidden="true"
-                      />
-                      {label}
-                    </Link>
-                  );
-                })}
-              </nav>
-            </div>
+            <div className="border-b border-slate-100 p-2">{switcher}</div>
 
-            <div className="px-5 pt-6 pb-7 sm:px-8 sm:pt-8 sm:pb-9">
-              <h1 className="text-2xl font-black tracking-tight text-balance text-slate-900">
-                {title}
-              </h1>
-              {description && (
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p>
-              )}
-              <div className="mt-7">{children}</div>
-            </div>
+            <div className="px-5 pt-6 pb-7 sm:px-8 sm:pt-8 sm:pb-9">{children}</div>
           </div>
         </main>
       </div>
+    </div>
+  );
+}
+
+/** Title block at the top of a sign-in or registration panel. */
+export function AuthPanelHeader({
+  title,
+  description,
+}: {
+  title: string;
+  description?: React.ReactNode;
+}) {
+  return (
+    <div className="mb-7">
+      <h1 className="text-2xl font-black tracking-tight text-balance text-slate-900">{title}</h1>
+      {description && (
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{description}</p>
+      )}
     </div>
   );
 }

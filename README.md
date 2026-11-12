@@ -214,11 +214,10 @@ SchoolManagement/
 │   └── seed-mock-data.ts            # Realistic multi-tenant mock data seeder
 ├── src/
 │   ├── app/                         # Next.js App Router (Pages, Layouts, Route Handlers)
-│   │   ├── (auth)/                  # Public auth pages (/login, /forget-password)
+│   │   ├── (auth)/                  # Public auth pages (/auth sign-in + registration, /forget-password)
 │   │   ├── accept-invitation/       # Tokenized invitation acceptance UI
 │   │   ├── api/v1/                  # Tenant-scoped and platform REST API routes
 │   │   ├── platform/                # Super-admin SaaS management console
-│   │   ├── register-school/         # Public customer onboarding flow
 │   │   ├── school/[schoolSlug]/     # Tenant school portal (Dashboard, Academics, Staff, Students, Fees, etc.)
 │   │   ├── layout.tsx               # Root application layout
 │   │   └── page.tsx                 # Root landing page
@@ -294,8 +293,7 @@ Every database record containing tenant-specific data stores a mandatory `school
 ### Key Application Pages
 
 - `/` — Marketing landing page and login portal selector.
-- `/login` — Unified login page with role-based redirection.
-- `/register-school` — Public school registration: form + admin password, then a 6-digit email OTP; on a correct OTP the school and its admin are created and signed in.
+- `/auth` — Sign in and school registration on one page (`?tab=register` opens registration; switching tabs animates in place and keeps typed values). Registration takes the form + admin password, then a 6-digit email OTP; on a correct OTP the school and its admin are created and signed in. `/login` and `/register-school` redirect here, keeping query strings such as `callbackUrl`.
 - `/accept-invitation` — One-time setup password activation for invited staff/parents.
 - `/platform` — Platform administrator console (registered schools).
 - `/school/[schoolSlug]/dashboard` — School administrative overview and KPI cards.

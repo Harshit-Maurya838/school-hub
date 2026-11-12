@@ -160,7 +160,7 @@ function AcceptInvitationContent() {
           {loadError}
         </PublicSheetHeader>
         <div className="mt-6">
-          <Link href="/login" className={secondaryButtonClass}>
+          <Link href="/auth" className={secondaryButtonClass}>
             Back to sign in
           </Link>
         </div>

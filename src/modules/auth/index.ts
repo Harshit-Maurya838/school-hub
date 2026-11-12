@@ -8,3 +8,4 @@ export * from "./services/password";
 export * from "./services/password-reset";
 export * from "./services/rbac";
 export * from "./services/role-ui";
+export { LoginForm } from "./components/LoginForm";

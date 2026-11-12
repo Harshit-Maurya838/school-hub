@@ -23,7 +23,7 @@ export default async function AcademicSectionsPage({ params, searchParams }: Pag
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?callbackUrl=/school/${schoolSlug}/academics/sections`);
+    redirect(`/auth?callbackUrl=/school/${schoolSlug}/academics/sections`);
   }
 
   const school = await prisma.school.findUnique({

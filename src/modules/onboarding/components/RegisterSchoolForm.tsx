@@ -3,7 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, PencilLine, Send } from "lucide-react";
-import { AuthShell, authPrimaryButtonClass } from "@/components/layout/PublicShell";
+import { AuthPanelHeader, authPrimaryButtonClass } from "@/components/layout/PublicShell";
 import { Notice, Spinner, textLinkClass } from "@/components/common/FormControls";
 import { Input } from "@/components/hairline/input";
 import { PasswordInput } from "@/components/hairline/password-input";
@@ -12,7 +12,7 @@ import { Switch } from "@/components/hairline/switch";
 import { Checkbox } from "@/components/hairline/checkbox";
 import { SegmentedControl } from "@/components/hairline/segmented-control";
 import { CodeInput } from "@/components/hairline/code-input";
-import { CLASS_RANGES } from "@/modules/onboarding/services/school-profile-rules";
+import { CLASS_RANGES } from "../services/school-profile-rules";
 
 const CLASS_RANGE_OPTIONS = CLASS_RANGES.map((r) => ({ value: r.value, label: r.label }));
 
@@ -92,7 +92,8 @@ function FormSection({ title, children }: { title: string; children: React.React
   );
 }
 
-export default function RegisterSchoolPage() {
+/** Self-registration: school details and admin password, then the emailed OTP. */
+export function RegisterSchoolForm() {
   const router = useRouter();
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -126,17 +127,17 @@ export default function RegisterSchoolPage() {
 
   if (step === "otp") {
     return (
-      <AuthShell
-        active="register"
-        title="Verify your email"
-        description={
-          <>
-            We sent a 6-digit code to{" "}
-            <span className="font-semibold break-all text-slate-900">{form.email}</span>. It expires
-            in 10 minutes.
-          </>
-        }
-      >
+      <>
+        <AuthPanelHeader
+          title="Verify your email"
+          description={
+            <>
+              We sent a 6-digit code to{" "}
+              <span className="font-semibold break-all text-slate-900">{form.email}</span>. It
+              expires in 10 minutes.
+            </>
+          }
+        />
         <div className="space-y-6">
           {errorMessage && <Notice>{errorMessage}</Notice>}
           <CodeInput
@@ -184,16 +185,16 @@ export default function RegisterSchoolPage() {
             </button>
           </div>
         </div>
-      </AuthShell>
+      </>
     );
   }
 
   return (
-    <AuthShell
-      active="register"
-      title="Register your school"
-      description="Fill in your school's details and verify your email. Your dashboard opens as soon as the code checks out."
-    >
+    <>
+      <AuthPanelHeader
+        title="Register your school"
+        description="Fill in your school's details and verify your email. Your dashboard opens as soon as the code checks out."
+      />
       <form className="space-y-6" onSubmit={handleSubmit} noValidate>
         {errorMessage && <Notice title="We couldn’t send the code">{errorMessage}</Notice>}
 
@@ -384,6 +385,6 @@ export default function RegisterSchoolPage() {
           </button>
         </div>
       </form>
-    </AuthShell>
+    </>
   );
 }

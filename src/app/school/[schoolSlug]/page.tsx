@@ -108,7 +108,7 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?callbackUrl=/school/${schoolSlug}`);
+    redirect(`/auth?callbackUrl=/school/${schoolSlug}`);
   }
 
   const school = await prisma.school.findUnique({

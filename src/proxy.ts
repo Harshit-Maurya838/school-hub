@@ -20,7 +20,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
   const isApi = pathname.startsWith("/api/");
 
-  if (pathname === "/login") {
+  if (pathname === "/auth") {
     if (session) {
       const callback = sanitizeRedirectUrl(searchParams.get("callbackUrl"));
       if (callback) {
@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
           { status: 401 }
         );
       }
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/auth", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -68,7 +68,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
           { status: 401 }
         );
       }
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = new URL("/auth", request.url);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -81,7 +81,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 export const config = {
   matcher: [
-    "/login",
+    "/auth",
     "/platform/:path*",
     "/school/:path*",
     "/api/v1/platform/:path*",

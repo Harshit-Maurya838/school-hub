@@ -309,7 +309,7 @@ export async function verifySchoolRegistrationOtp(input: unknown, meta: RequestM
     to: registration.adminEmail,
     schoolName: school.name,
     recipientName: registration.adminName,
-    loginUrl: `${env.APP_URL.replace(/\/+$/, "")}/login`,
+    loginUrl: `${env.APP_URL.replace(/\/+$/, "")}/auth`,
   });
 
   logger.info({ schoolId: school.id, userId: user.id }, "School self-registration completed");

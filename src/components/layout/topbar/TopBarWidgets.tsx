@@ -516,7 +516,7 @@ export function LanguageTool({ className }: { className?: string }) {
 // Logout
 // ---------------------------------------------------------------------------
 
-export function LogoutIconButton({ redirectTo = "/login" }: { redirectTo?: string }) {
+export function LogoutIconButton({ redirectTo = "/auth" }: { redirectTo?: string }) {
   const router = useRouter();
   const { t } = useT();
   const [loggingOut, setLoggingOut] = useState(false);

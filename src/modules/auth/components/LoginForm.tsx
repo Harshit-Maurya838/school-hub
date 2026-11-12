@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useTransition, Suspense } from "react";
+import React, { useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { LogIn, Mail } from "lucide-react";
-import { AuthShell, authPrimaryButtonClass } from "@/components/layout/PublicShell";
+import { AuthPanelHeader, authPrimaryButtonClass } from "@/components/layout/PublicShell";
 import { Input } from "@/components/hairline/input";
 import { PasswordInput } from "@/components/hairline/password-input";
-import { Notice, PublicLoading, Spinner, textLinkClass } from "@/components/common/FormControls";
+import { Notice, Spinner, textLinkClass } from "@/components/common/FormControls";
 
-function LoginForm() {
+/** Email + password sign-in. Reads `callbackUrl`, so render it inside a Suspense boundary. */
+export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawCallbackUrl = searchParams.get("callbackUrl");
@@ -91,16 +92,16 @@ function LoginForm() {
   };
 
   return (
-    <AuthShell
-      active="login"
-      title="Sign in"
-      description="Use the email your school registered or invited you with."
-    >
+    <>
+      <AuthPanelHeader
+        title="Sign in"
+        description="Use the email your school registered or invited you with."
+      />
       <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         {errorMessage && <Notice>{errorMessage}</Notice>}
 
         <Input
-          id="email"
+          id="login-email"
           name="email"
           type="email"
           label="Email address"
@@ -122,7 +123,7 @@ function LoginForm() {
 
         <div>
           <PasswordInput
-            id="password"
+            id="login-password"
             name="password"
             label="Password"
             autoComplete="current-password"
@@ -147,14 +148,6 @@ function LoginForm() {
           {isPending ? "Signing in…" : "Sign in"}
         </button>
       </form>
-    </AuthShell>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<PublicLoading label="Loading sign-in…" />}>
-      <LoginForm />
-    </Suspense>
+    </>
   );
 }

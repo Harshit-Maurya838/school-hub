@@ -31,6 +31,13 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Sign in and registration share /auth; the old paths keep working (query strings pass through).
+  async redirects() {
+    return [
+      { source: "/login", destination: "/auth", permanent: false },
+      { source: "/register-school", destination: "/auth?tab=register", permanent: false },
+    ];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

@@ -16,7 +16,7 @@ export default async function AttendancePage({ params }: AttendancePageProps) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?callbackUrl=/school/${schoolSlug}/attendance`);
+    redirect(`/auth?callbackUrl=/school/${schoolSlug}/attendance`);
   }
 
   const school = await prisma.school.findUnique({

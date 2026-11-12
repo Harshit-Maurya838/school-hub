@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
           have sent a link to reset your password. It expires in 60 minutes.
         </PublicSheetHeader>
         <div className="mt-6">
-          <Link href="/login" className={secondaryButtonClass}>
+          <Link href="/auth" className={secondaryButtonClass}>
             Back to sign in
           </Link>
         </div>
@@ -105,7 +105,7 @@ export default function ForgotPasswordPage() {
 
         <p className="text-center text-sm text-slate-600">
           Remembered it?{" "}
-          <Link href="/login" className={textLinkClass}>
+          <Link href="/auth" className={textLinkClass}>
             Sign in
           </Link>
         </p>

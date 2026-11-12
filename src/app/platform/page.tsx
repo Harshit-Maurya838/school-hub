@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default async function PlatformPage() {
   const user = await getAuthenticatedUser();
   if (!user || user.role !== "SUPER_ADMIN") {
-    redirect("/login");
+    redirect("/auth");
   }
 
   const schools = await prisma.school.findMany({

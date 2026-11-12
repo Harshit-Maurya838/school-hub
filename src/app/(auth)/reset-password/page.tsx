@@ -55,7 +55,7 @@ function ResetPasswordContent() {
           Your password has been changed and every existing session has been signed out.
         </PublicSheetHeader>
         <div className="mt-6">
-          <Link href="/login" className={primaryButtonClass}>
+          <Link href="/auth" className={primaryButtonClass}>
             Sign in
           </Link>
         </div>

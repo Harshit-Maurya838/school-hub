@@ -37,7 +37,7 @@ export default async function SchoolSlugLayout({ children, params }: SchoolLayou
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?callbackUrl=/school/${schoolSlug}`);
+    redirect(`/auth?callbackUrl=/school/${schoolSlug}`);
   }
 
   const school = await prisma.school.findUnique({

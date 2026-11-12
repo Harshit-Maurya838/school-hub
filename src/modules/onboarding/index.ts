@@ -11,3 +11,4 @@ export * from "./services/school-profile-rules";
 export * from "./services/class-structure-template";
 export { SchoolSettingsClient } from "./components/SchoolSettingsClient";
 export { PlatformSchoolsTable } from "./components/PlatformSchoolsTable";
+export { RegisterSchoolForm } from "./components/RegisterSchoolForm";

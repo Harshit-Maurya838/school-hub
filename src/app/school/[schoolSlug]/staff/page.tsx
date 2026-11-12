@@ -20,7 +20,7 @@ export default async function SchoolStaffPage({ params }: StaffPageProps) {
   const user = await getAuthenticatedUser();
 
   if (!user) {
-    redirect(`/login?callbackUrl=/school/${schoolSlug}/staff`);
+    redirect(`/auth?callbackUrl=/school/${schoolSlug}/staff`);
   }
 
   const school = await prisma.school.findUnique({
