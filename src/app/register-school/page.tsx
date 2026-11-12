@@ -1,289 +1,427 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import Link from "next/link";
-import { MailCheck } from "lucide-react";
-import { PublicShell, PublicSheetHeader } from "@/components/layout/PublicShell";
+import { useRouter } from "next/navigation";
+import { MailCheck, Send, ShieldCheck } from "lucide-react";
+import { AuthShell } from "@/components/layout/PublicShell";
 import {
-  IconTile,
   Notice,
+  PasswordToggle,
   Spinner,
   inputClass,
   labelClass,
   primaryButtonClass,
-  secondaryButtonClass,
   textLinkClass,
 } from "@/components/common/FormControls";
+import { CLASS_RANGES } from "@/modules/onboarding/services/school-profile-rules";
+
+const MEDIUMS = [
+  { value: "ENGLISH", label: "English" },
+  { value: "HINDI", label: "Hindi" },
+  { value: "BILINGUAL", label: "Both" },
+] as const;
+
+const initialForm = {
+  adminName: "",
+  schoolName: "",
+  udiseCode: "",
+  classRange: "",
+  hasPrePrimary: false,
+  hasPlayGroup: false,
+  medium: "ENGLISH",
+  principalName: "",
+  mobile: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+  acceptTerms: false,
+};
+
+type FormState = typeof initialForm;
+
+async function postJson(url: string, body: unknown) {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(data?.error?.message || `Request failed (${res.status}). Please try again.`);
+  }
+  return data?.data;
+}
+
+function ToggleRow({
+  id,
+  label,
+  hint,
+  checked,
+  disabled,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-xl border border-emerald-100 bg-emerald-50/50 px-4 py-3">
+      <div>
+        <p id={`${id}-label`} className="text-sm font-semibold text-slate-800">
+          {label}
+        </p>
+        <p className="text-xs text-emerald-700">{hint}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={`${id}-label`}
+        disabled={disabled}
+        onClick={() => onChange(!checked)}
+        className="flex shrink-0 items-center gap-2 rounded-full text-xs font-semibold text-slate-600 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50"
+      >
+        <span
+          className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-emerald-600" : "bg-slate-300"}`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-5" : ""}`}
+          />
+        </span>
+        <span className="w-6 text-left">{checked ? "Yes" : "No"}</span>
+      </button>
+    </div>
+  );
+}
 
 export default function RegisterSchoolPage() {
-  const [schoolName, setSchoolName] = useState("");
-  const [schoolCode, setSchoolCode] = useState("");
-  const [desiredSlug, setDesiredSlug] = useState("");
-  const [adminName, setAdminName] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPhone, setAdminPhone] = useState("");
-
-  const [submitted, setSubmitted] = useState(false);
+  const router = useRouter();
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState<"form" | "otp">("form");
+  const [otp, setOtp] = useState("");
+  const [info, setInfo] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSchoolName(val);
-    if (!desiredSlug || desiredSlug === val.toLowerCase().replace(/[^a-z0-9]/g, "-")) {
-      setDesiredSlug(
-        val
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "-")
-          .replace(/-+/g, "-")
-          .replace(/^-|-$/g, "")
-      );
-    }
-  };
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const run = (action: () => Promise<void>) => {
     setErrorMessage(null);
-
     startTransition(async () => {
       try {
-        const res = await fetch("/api/v1/public/register-school", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            schoolName,
-            schoolCode,
-            desiredSlug,
-            adminName,
-            adminEmail,
-            adminPhone: adminPhone || undefined,
-          }),
-        });
-
-        interface ErrorResponseData {
-          error?: {
-            message?: string;
-            details?: Array<{ message?: string }>;
-          };
-          message?: string;
-        }
-        let data: ErrorResponseData | null = null;
-        try {
-          data = (await res.json()) as ErrorResponseData;
-        } catch {
-          data = null;
-        }
-
-        if (!res.ok) {
-          const specificIssue =
-            data?.error?.message ||
-            data?.message ||
-            (Array.isArray(data?.error?.details)
-              ? data.error.details
-                  .map((d) => d.message)
-                  .filter(Boolean)
-                  .join(", ")
-              : null) ||
-            `Registration failed (${res.status} ${res.statusText}). Please check your input.`;
-          setErrorMessage(specificIssue);
-          return;
-        }
-        setSubmitted(true);
-      } catch (err: unknown) {
-        setErrorMessage(
-          err instanceof Error
-            ? `Connection error: ${err.message}`
-            : "Network error occurred while connecting to the server. Please try again."
-        );
+        await action();
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
       }
     });
   };
 
-  if (submitted) {
+  const sendOtp = () =>
+    run(async () => {
+      if (form.password !== form.confirmPassword) throw new Error("Passwords do not match");
+      const data = await postJson("/api/v1/public/register-school", form);
+      setInfo(data?.message ?? `We sent a 6-digit code to ${form.email}.`);
+      setOtp("");
+      setStep("otp");
+    });
+
+  const verifyOtp = () =>
+    run(async () => {
+      const data = await postJson("/api/v1/public/register-school/verify", {
+        email: form.email,
+        otp,
+      });
+      router.push(`/school/${data.school.slug}`);
+      router.refresh();
+    });
+
+  if (step === "otp") {
     return (
-      <PublicShell>
-        <PublicSheetHeader icon={<IconTile icon={MailCheck} tone="ok" />} title="Check your inbox">
-          We sent a verification link to{" "}
-          <span className="font-semibold break-all text-slate-900">{adminEmail}</span>.
-        </PublicSheetHeader>
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-          <p className="font-bold text-slate-900">What happens next</p>
-          <ol className="mt-2 list-decimal space-y-1.5 pl-5 marker:font-semibold marker:text-slate-500">
-            <li>Click the verification link in your inbox.</li>
-            <li>Our platform administrator team will review your application.</li>
-            <li>
-              Upon approval, your school workspace and initial admin credentials will be
-              provisioned.
-            </li>
-          </ol>
+      <AuthShell active="register">
+        <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+          <p className="flex items-center gap-2 text-lg font-black text-slate-900">
+            <MailCheck className="h-5 w-5 text-emerald-700" aria-hidden="true" />
+            Verify your email
+          </p>
+          <p className="mt-1 text-xs font-medium text-emerald-800">{info}</p>
         </div>
-        <div className="mt-6">
-          <Link href="/login" className={secondaryButtonClass}>
-            Back to sign in
-          </Link>
-        </div>
-      </PublicShell>
+
+        <form
+          className="mt-6 space-y-5"
+          onSubmit={(e) => {
+            e.preventDefault();
+            verifyOtp();
+          }}
+        >
+          {errorMessage && <Notice>{errorMessage}</Notice>}
+          <div>
+            <label htmlFor="otp" className={labelClass}>
+              Enter OTP
+            </label>
+            <input
+              id="otp"
+              required
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="\d{6}"
+              maxLength={6}
+              disabled={isPending}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+              placeholder="6 digit code"
+              className={inputClass(false, "text-center font-mono text-lg tracking-[0.5em]")}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={isPending || otp.length !== 6}
+            className={`w-full ${primaryButtonClass}`}
+          >
+            {isPending ? <Spinner /> : <ShieldCheck className="h-4 w-4" aria-hidden="true" />}
+            {isPending ? "Verifying…" : "Verify & Register School"}
+          </button>
+          <div className="flex items-center justify-between text-sm">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => setStep("form")}
+              className={textLinkClass}
+            >
+              Edit details
+            </button>
+            <button type="button" disabled={isPending} onClick={sendOtp} className={textLinkClass}>
+              Resend OTP
+            </button>
+          </div>
+        </form>
+      </AuthShell>
     );
   }
 
+  const textField = (
+    key: "adminName" | "schoolName" | "principalName",
+    label: string,
+    placeholder: string,
+    autoComplete?: string
+  ) => (
+    <div>
+      <label htmlFor={key} className={labelClass}>
+        {label}
+      </label>
+      <input
+        id={key}
+        type="text"
+        required
+        autoComplete={autoComplete}
+        disabled={isPending}
+        value={form[key]}
+        onChange={(e) => set(key, e.target.value)}
+        placeholder={placeholder}
+        className={inputClass()}
+      />
+    </div>
+  );
+
   return (
-    <PublicShell width="lg">
-      <PublicSheetHeader title="Register your school">
-        Apply for a Classic Giga workspace. Our platform team reviews each application before the
-        workspace is set up.
-      </PublicSheetHeader>
+    <AuthShell active="register">
+      <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+        <h1 className="text-lg font-black text-slate-900">Register Your School</h1>
+        <p className="mt-1 text-xs font-medium text-emerald-800">
+          Register now for instant access to your school dashboard.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-        {errorMessage && (
-          <Notice title="We couldn’t submit your application">{errorMessage}</Notice>
-        )}
+      <form
+        className="mt-6 space-y-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          sendOtp();
+        }}
+      >
+        {errorMessage && <Notice title="We couldn’t continue">{errorMessage}</Notice>}
 
-        <fieldset className="space-y-4">
-          <legend className="sr-only">School</legend>
-          <p
-            aria-hidden="true"
-            className="text-xs font-bold tracking-wider text-slate-500 uppercase"
+        {textField("adminName", "Admin Name", "Your full name", "name")}
+        {textField("schoolName", "School Name", "e.g. Sunrise Public School", "organization")}
+
+        <div>
+          <label htmlFor="udiseCode" className={labelClass}>
+            U-DISE+ Code
+          </label>
+          <input
+            id="udiseCode"
+            required
+            inputMode="numeric"
+            maxLength={11}
+            disabled={isPending}
+            value={form.udiseCode}
+            onChange={(e) => set("udiseCode", e.target.value.replace(/\D/g, ""))}
+            placeholder="11 digit U-DISE+ code"
+            className={inputClass(false, "font-mono")}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="classRange" className={labelClass}>
+            Select Class Range
+          </label>
+          <select
+            id="classRange"
+            required
+            disabled={isPending}
+            value={form.classRange}
+            onChange={(e) => set("classRange", e.target.value)}
+            className={inputClass()}
           >
-            School
-          </p>
-          <div>
-            <label htmlFor="schoolName" className={labelClass}>
-              School name
-            </label>
+            <option value="" disabled>
+              Select class range
+            </option>
+            {CLASS_RANGES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <ToggleRow
+          id="hasPrePrimary"
+          label="Has Pre-Primary Section?"
+          hint="(Nursery, LKG, UKG)"
+          checked={form.hasPrePrimary}
+          disabled={isPending}
+          onChange={(v) => set("hasPrePrimary", v)}
+        />
+        <ToggleRow
+          id="hasPlayGroup"
+          label="Has Play Group / Playway?"
+          hint="(Toddler Care)"
+          checked={form.hasPlayGroup}
+          disabled={isPending}
+          onChange={(v) => set("hasPlayGroup", v)}
+        />
+
+        <fieldset>
+          <legend className={labelClass}>Medium</legend>
+          <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-2 rounded-xl border border-slate-200 px-4 py-2.5">
+            {MEDIUMS.map((m) => (
+              <label key={m.value} className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="medium"
+                  value={m.value}
+                  disabled={isPending}
+                  checked={form.medium === m.value}
+                  onChange={() => set("medium", m.value)}
+                  className="h-4 w-4 accent-emerald-700"
+                />
+                {m.label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+
+        {textField("principalName", "Principal Name", "Principal name")}
+
+        <div>
+          <label htmlFor="mobile" className={labelClass}>
+            Mobile Number
+          </label>
+          <div className="mt-1.5 flex">
+            <span className="inline-flex items-center rounded-l-xl border border-r-0 border-slate-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800">
+              +91
+            </span>
             <input
-              id="schoolName"
-              type="text"
+              id="mobile"
+              type="tel"
               required
-              autoComplete="organization"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              maxLength={10}
               disabled={isPending}
-              value={schoolName}
-              onChange={handleNameChange}
-              placeholder="e.g. Sunrise Public School"
-              className={inputClass()}
+              value={form.mobile}
+              onChange={(e) => set("mobile", e.target.value.replace(/\D/g, ""))}
+              placeholder="10 digit mobile"
+              className={inputClass(false, "mt-0 rounded-l-none")}
             />
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="schoolCode" className={labelClass}>
-                Official school code
-              </label>
+        <div>
+          <label htmlFor="email" className={labelClass}>
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            required
+            inputMode="email"
+            autoComplete="email"
+            autoCapitalize="none"
+            spellCheck={false}
+            disabled={isPending}
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="Verified account email"
+            className={inputClass()}
+          />
+        </div>
+
+        {(["password", "confirmPassword"] as const).map((key) => (
+          <div key={key}>
+            <label htmlFor={key} className={labelClass}>
+              {key === "password" ? "Password" : "Confirm Password"}
+            </label>
+            <div className="relative">
               <input
-                id="schoolCode"
-                type="text"
+                id={key}
+                type={showPassword ? "text" : "password"}
                 required
-                autoCapitalize="characters"
-                spellCheck={false}
+                autoComplete="new-password"
                 disabled={isPending}
-                value={schoolCode}
-                onChange={(e) => setSchoolCode(e.target.value.toUpperCase())}
-                placeholder="e.g. SPS_01"
-                className={inputClass(false, "font-mono uppercase placeholder:normal-case")}
+                value={form[key]}
+                onChange={(e) => set(key, e.target.value)}
+                aria-describedby={key === "password" ? "password-hint" : undefined}
+                className={inputClass(false, "pr-11")}
+              />
+              <PasswordToggle
+                shown={showPassword}
+                onToggle={() => setShowPassword(!showPassword)}
               />
             </div>
-
-            <div>
-              <label htmlFor="desiredSlug" className={labelClass}>
-                Workspace URL
-              </label>
-              <input
-                id="desiredSlug"
-                type="text"
-                required
-                autoCapitalize="none"
-                spellCheck={false}
-                disabled={isPending}
-                value={desiredSlug}
-                onChange={(e) => setDesiredSlug(e.target.value.toLowerCase())}
-                placeholder="e.g. sunrise-public"
-                aria-describedby="desiredSlug-hint"
-                className={inputClass(false, "font-mono")}
-              />
-              <p id="desiredSlug-hint" className="mt-1.5 truncate text-xs text-slate-500">
-                /school/
-                <span className="font-mono text-slate-700">{desiredSlug || "your-school"}</span>
+            {key === "password" && (
+              <p id="password-hint" className="mt-1.5 text-xs text-slate-500">
+                At least 8 characters, with one uppercase letter and one number.
               </p>
-            </div>
+            )}
           </div>
-        </fieldset>
+        ))}
 
-        <fieldset className="space-y-4 border-t border-slate-100 pt-5">
-          <legend className="sr-only">Primary contact</legend>
-          <p
-            aria-hidden="true"
-            className="text-xs font-bold tracking-wider text-slate-500 uppercase"
-          >
-            Primary contact
-          </p>
-          <div>
-            <label htmlFor="adminName" className={labelClass}>
-              Principal or representative name
-            </label>
-            <input
-              id="adminName"
-              type="text"
-              required
-              autoComplete="name"
-              disabled={isPending}
-              value={adminName}
-              onChange={(e) => setAdminName(e.target.value)}
-              placeholder="e.g. Dr. Anjali Sharma"
-              className={inputClass()}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="adminEmail" className={labelClass}>
-                Official email
-              </label>
-              <input
-                id="adminEmail"
-                type="email"
-                inputMode="email"
-                autoComplete="email"
-                autoCapitalize="none"
-                spellCheck={false}
-                required
-                disabled={isPending}
-                value={adminEmail}
-                onChange={(e) => setAdminEmail(e.target.value)}
-                placeholder="principal@yourschool.in"
-                className={inputClass()}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="adminPhone" className={labelClass}>
-                Phone <span className="font-normal text-slate-500">(optional)</span>
-              </label>
-              <input
-                id="adminPhone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                disabled={isPending}
-                value={adminPhone}
-                onChange={(e) => setAdminPhone(e.target.value)}
-                placeholder="+91 98765 43210"
-                className={inputClass()}
-              />
-            </div>
-          </div>
-        </fieldset>
+        <label className="flex items-start gap-2.5 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            required
+            disabled={isPending}
+            checked={form.acceptTerms}
+            onChange={(e) => set("acceptTerms", e.target.checked)}
+            className="mt-0.5 h-4 w-4 accent-emerald-700"
+          />
+          <span>
+            I agree to the{" "}
+            <span className="font-semibold text-emerald-700">Terms &amp; Conditions</span> &amp;{" "}
+            <span className="font-semibold text-emerald-700">Privacy Policy</span>
+          </span>
+        </label>
 
         <button type="submit" disabled={isPending} className={`w-full ${primaryButtonClass}`}>
-          {isPending && <Spinner />}
-          {isPending ? "Submitting application…" : "Submit application"}
+          {isPending ? <Spinner /> : <Send className="h-4 w-4" aria-hidden="true" />}
+          {isPending ? "Sending OTP…" : "Send OTP & Verify Email"}
         </button>
       </form>
-
-      <p className="mt-6 border-t border-slate-100 pt-5 text-sm text-slate-600">
-        Already registered?{" "}
-        <Link href="/login" className={textLinkClass}>
-          Sign in
-        </Link>
-      </p>
-    </PublicShell>
+    </AuthShell>
   );
 }

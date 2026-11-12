@@ -23,16 +23,16 @@ A production-grade, multi-tenant School Management SaaS application designed for
 
 The application is structured into 8 cohesive domain modules:
 
-| Module                     | Location                   | Primary Responsibilities                                                                                                                                                                                      |
-| :------------------------- | :------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Onboarding & Schools**   | `src/modules/onboarding`   | Public registration, email verification, super-admin review/approval, school provisioning, staff/parent invitation lifecycles, step-by-step school readiness checklist, and the UDISE+ Master School Profile. |
-| **Authentication & RBAC**  | `src/modules/auth`         | JWT session cookies (`jose`), bcrypt password hashing, canonical 6-role permission matrix, cross-tenant isolation enforcement, and assignment-scoped checks.                                                  |
-| **Academics**              | `src/modules/academics`    | Academic years/sessions, current session markers, class definitions, section capacities, curriculum subjects, and setup prerequisite validation.                                                              |
-| **Students & Enrollments** | `src/modules/students`     | Student profiles (APAAR ID, admission number, DOB, gender), primary/secondary guardian linkages, session-based section enrollments, soft-delete, and restoration.                                             |
-| **Staff & Faculty**        | `src/modules/staff`        | Teacher profiles (employee ID, qualifications, specialization, department), class teacher assignments (mentorship), and subject teacher assignments (weekly workload).                                        |
-| **Attendance**             | `src/modules/attendance`   | Daily section attendance registers, present/absent/late/excused tallies, register state machine (`DRAFT` → `SUBMITTED`), audited correction audit trail, and percentage calculations.                         |
-| **Examinations**           | `src/modules/examinations` | Exam creation, grading scales, subject configs, marks entry by assigned subject teachers, approval/return by class teachers/admins, publication to students/parents, and correction audits.                   |
-| **Fees & Finance**         | `src/modules/fees`         | Fee heads, fee structures, immutable invoice generation, offline payment receipts (Cash, Bank Transfer, Cheque, DD), fee adjustments/concessions, payment reversals, and refunds.                             |
+| Module                     | Location                   | Primary Responsibilities                                                                                                                                                                                           |
+| :------------------------- | :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Onboarding & Schools**   | `src/modules/onboarding`   | Public self-registration with email OTP (instant school + admin creation), school provisioning, staff/parent invitation lifecycles, step-by-step school readiness checklist, and the UDISE+ Master School Profile. |
+| **Authentication & RBAC**  | `src/modules/auth`         | JWT session cookies (`jose`), bcrypt password hashing, canonical 6-role permission matrix, cross-tenant isolation enforcement, and assignment-scoped checks.                                                       |
+| **Academics**              | `src/modules/academics`    | Academic years/sessions, current session markers, class definitions, section capacities, curriculum subjects, and setup prerequisite validation.                                                                   |
+| **Students & Enrollments** | `src/modules/students`     | Student profiles (APAAR ID, admission number, DOB, gender), primary/secondary guardian linkages, session-based section enrollments, soft-delete, and restoration.                                                  |
+| **Staff & Faculty**        | `src/modules/staff`        | Teacher profiles (employee ID, qualifications, specialization, department), class teacher assignments (mentorship), and subject teacher assignments (weekly workload).                                             |
+| **Attendance**             | `src/modules/attendance`   | Daily section attendance registers, present/absent/late/excused tallies, register state machine (`DRAFT` → `SUBMITTED`), audited correction audit trail, and percentage calculations.                              |
+| **Examinations**           | `src/modules/examinations` | Exam creation, grading scales, subject configs, marks entry by assigned subject teachers, approval/return by class teachers/admins, publication to students/parents, and correction audits.                        |
+| **Fees & Finance**         | `src/modules/fees`         | Fee heads, fee structures, immutable invoice generation, offline payment receipts (Cash, Bank Transfer, Cheque, DD), fee adjustments/concessions, payment reversals, and refunds.                                  |
 
 ---
 
@@ -280,7 +280,7 @@ Every database record containing tenant-specific data stores a mandatory `school
 
 ### Role-Based Access Control (RBAC) Matrix
 
-1. **`SUPER_ADMIN`**: SaaS platform operator. Manages pending registrations, provisions schools, monitors system health.
+1. **`SUPER_ADMIN`**: SaaS platform operator. Oversees registered schools, provisions schools, monitors system health.
 2. **`SCHOOL_ADMIN`**: School principal / owner. Full administrative rights within their tenant school (academics, staff, students, fees, attendance, exam publication).
 3. **`ACCOUNTANT`**: Dedicated finance officer. Authorized for fee structures, invoices, payment collection, adjustments, cancellations, and refunds. Restricted from curriculum changes.
 4. **`TEACHER`**: Faculty member. Restricted to assigned classes and subjects. Enters marks only for assigned subjects; marks attendance only for assigned class sections.
@@ -295,10 +295,9 @@ Every database record containing tenant-specific data stores a mandatory `school
 
 - `/` — Marketing landing page and login portal selector.
 - `/login` — Unified login page with role-based redirection.
-- `/register-school` — Public application page for prospective school customers.
-- `/register-school/verify` — Public tokenized email confirmation.
+- `/register-school` — Public school registration: form + admin password, then a 6-digit email OTP; on a correct OTP the school and its admin are created and signed in.
 - `/accept-invitation` — One-time setup password activation for invited staff/parents.
-- `/platform` — Platform administrator console (School registrations & provisioning).
+- `/platform` — Platform administrator console (registered schools).
 - `/school/[schoolSlug]/dashboard` — School administrative overview and KPI cards.
 - `/school/[schoolSlug]/academics` — Academic sessions, classes, sections, and subjects.
 - `/school/[schoolSlug]/staff` — Faculty directory, profiles, and teaching allocations.
@@ -363,7 +362,7 @@ Tests are executed using Node.js's native test runner (`node --test`) with TypeS
 
 ### Test Coverage Matrix
 
-- `tests/public-registration.test.ts` — Registration, email verification, approve/reject.
+- `tests/public-registration.test.ts` — Self-registration OTP request, verification, expiry, lockout, duplicates.
 - `tests/provisioning.test.ts` — School provisioning, admin account generation.
 - `tests/invitations.test.ts` — Token hashing, expiration, acceptance, revocation.
 - `tests/parent-student-onboarding.test.ts` — Guardian linkage and boundary restrictions.

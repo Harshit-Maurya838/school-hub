@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import { LogIn, School } from "lucide-react";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 
 /**
@@ -75,3 +76,68 @@ export function PublicSheetHeader({
 }
 
 export default PublicShell;
+
+/**
+ * Sign-in / registration card: centred brand header, a two-tab switch between
+ * /login and /register-school, then the active form.
+ */
+export function AuthShell({
+  active,
+  children,
+}: {
+  active: "login" | "register";
+  children: React.ReactNode;
+}) {
+  const tabs = [
+    { key: "login", href: "/login", label: "Sign In", icon: LogIn },
+    { key: "register", href: "/register-school", label: "Register School", icon: School },
+  ] as const;
+
+  return (
+    <div className="flex min-h-screen items-start justify-center bg-slate-50 px-4 py-10 font-sans text-slate-800 antialiased sm:items-center sm:px-6">
+      <div className="shadow-card w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
+        <div className="flex flex-col items-center gap-3 border-b border-slate-100 bg-gradient-to-b from-emerald-50/70 to-white px-6 pt-8 pb-6 text-center">
+          <Link
+            href="/"
+            aria-label="Classic Giga home"
+            className="rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:ring-offset-4 focus-visible:outline-none"
+          >
+            <BrandEmblem size="lg" />
+          </Link>
+          <div>
+            <BrandWordmark />
+            <p className="mt-1.5 text-xs font-semibold text-emerald-700">
+              School ERP &amp; Management
+            </p>
+          </div>
+        </div>
+
+        <nav
+          aria-label="Account"
+          className="grid grid-cols-2 gap-2 border-b border-slate-100 bg-slate-50/60 p-2"
+        >
+          {tabs.map(({ key, href, label, icon: Icon }) => {
+            const isActive = key === active;
+            return (
+              <Link
+                key={key}
+                href={href}
+                aria-current={isActive ? "page" : undefined}
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
+                  isActive
+                    ? "bg-emerald-700 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-white hover:text-emerald-700"
+                }`}
+              >
+                <Icon className="h-4 w-4" aria-hidden="true" />
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="p-6 sm:p-8">{children}</div>
+      </div>
+    </div>
+  );
+}

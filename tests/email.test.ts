@@ -2,12 +2,12 @@ import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert";
 import {
   sendEmail,
-  sendVerificationEmail,
+  sendRegistrationOtpEmail,
+  sendRegistrationSuccessEmail,
   sendInvitationEmail,
   getSentEmails,
   clearSentEmails,
   getLatestEmailFor,
-  renderVerificationEmailHtml,
   renderInvitationEmailHtml,
   escapeHtml,
   getMailSyncConfig,
@@ -16,13 +16,6 @@ import {
   setResendClient,
 } from "../src/lib/email.js";
 import { env } from "../src/lib/env.js";
-import { prisma } from "../src/lib/prisma.js";
-import {
-  submitSchoolRegistration,
-  verifyRegistrationEmail,
-  REGISTRATION_TOKEN_EXPIRY_HOURS,
-} from "../src/modules/onboarding/services/school-registration.js";
-import { BadRequestError } from "../src/lib/errors.js";
 
 describe("Email Service & MailSync Integration", () => {
   beforeEach(() => {
@@ -39,33 +32,6 @@ describe("Email Service & MailSync Integration", () => {
       assert.strictEqual(escaped.includes("&lt;script&gt;"), true);
       assert.strictEqual(escaped.includes("&amp;"), true);
       assert.strictEqual(escaped.includes("&quot;"), true);
-    });
-
-    it("renders verification email HTML with required UX elements", () => {
-      const verificationUrl = "https://campuspulse.edu/register-school/verify?token=testtoken123";
-      const html = renderVerificationEmailHtml({
-        verificationUrl,
-        schoolName: "Oakridge High",
-        recipientName: "Principal Skinner",
-        expiresInHours: 24,
-      });
-
-      // Verify button CTA
-      assert.strictEqual(html.includes(verificationUrl), true);
-      assert.strictEqual(html.includes("Verify Email Address"), true);
-
-      // Verify recipient & school name personalization
-      assert.strictEqual(html.includes("Principal Skinner"), true);
-      assert.strictEqual(html.includes("Oakridge High"), true);
-
-      // Verify expiration notice
-      assert.strictEqual(html.includes("24 hours"), true);
-
-      // Verify readable fallback link
-      assert.strictEqual(html.includes("copy and paste this link"), true);
-
-      // Verify explanation footer
-      assert.strictEqual(html.includes("Why did you receive this email?"), true);
     });
 
     it("renders invitation email HTML with role and school branding", () => {
@@ -104,25 +70,37 @@ describe("Email Service & MailSync Integration", () => {
       assert.strictEqual(captured?.to, "teacher@oakridge.edu");
     });
 
-    it("dispatches verification email with structured payload", async () => {
-      const verificationUrl = `${env.APP_URL}/register-school/verify?token=sampletoken`;
-      const result = await sendVerificationEmail({
+    it("dispatches registration OTP email with the code and escaped school name", async () => {
+      const result = await sendRegistrationOtpEmail({
         to: "applicant@school.edu",
-        verificationUrl,
-        schoolName: "St. Jude Academy",
+        otp: "482915",
+        schoolName: "St. Jude <Academy>",
         recipientName: "Sister Mary",
-        expiresInHours: 24,
+        expiresInMinutes: 10,
       });
 
       assert.strictEqual(result.success, true);
+      const email = getLatestEmailFor("applicant@school.edu");
+      assert.ok(email?.subject.includes("verification code"));
+      assert.ok(email?.text.includes("482915"));
+      assert.ok(email?.html.includes("482915"));
+      assert.ok(email?.html.includes("St. Jude &lt;Academy&gt;"));
+      assert.strictEqual(email?.subject.includes("482915"), false, "OTP must not be in subject");
+    });
+
+    it("dispatches registration success email with a sign-in link", async () => {
+      const loginUrl = `${env.APP_URL}/login`;
+      await sendRegistrationSuccessEmail({
+        to: "applicant@school.edu",
+        schoolName: "St. Jude Academy",
+        recipientName: "Sister Mary",
+        loginUrl,
+      });
 
       const email = getLatestEmailFor("applicant@school.edu");
-      assert.notStrictEqual(email, undefined);
-      assert.strictEqual(email?.subject.includes("Verify your school registration"), true);
-      assert.strictEqual(email?.subject.includes("St. Jude Academy"), true);
-      assert.strictEqual(email?.actionUrl, verificationUrl);
-      assert.strictEqual(email?.text.includes(verificationUrl), true);
-      assert.strictEqual(email?.text.includes("Why are you receiving this email?"), true);
+      assert.ok(email?.subject.includes("St. Jude Academy is registered"));
+      assert.strictEqual(email?.actionUrl, loginUrl);
+      assert.ok(email?.html.includes(loginUrl));
     });
 
     it("dispatches invitation email with structured payload", async () => {
@@ -268,53 +246,6 @@ describe("Email Service & MailSync Integration", () => {
 
       assert.strictEqual(result.success, true);
       assert.strictEqual(result.id, "legacy_resend_id_999");
-    });
-  });
-
-  describe("Registration Flow Token Expiration", () => {
-    it("rejects verification if token has exceeded REGISTRATION_TOKEN_EXPIRY_HOURS", async () => {
-      // Clean up previous test record if exists
-      await prisma.schoolRegistration.deleteMany({
-        where: { schoolCode: "SCH_EXPIRY_01" },
-      });
-
-      const submission = await submitSchoolRegistration({
-        schoolName: "Expiry Test School",
-        schoolCode: "SCH_EXPIRY_01",
-        desiredSlug: "expiry-test-school",
-        adminName: "Dr. Expiry",
-        adminEmail: "expiry@test.org",
-      });
-
-      const rawToken = submission.rawVerificationToken;
-
-      // Artificially age the registration createdAt beyond 24 hours
-      const expiredDate = new Date(
-        Date.now() - (REGISTRATION_TOKEN_EXPIRY_HOURS + 2) * 60 * 60 * 1000
-      );
-      await prisma.schoolRegistration.update({
-        where: { id: submission.registration.id },
-        data: { createdAt: expiredDate },
-      });
-
-      await assert.rejects(
-        async () => {
-          await verifyRegistrationEmail(rawToken);
-        },
-        (err: unknown) => {
-          assert.ok(err instanceof BadRequestError);
-          assert.strictEqual(
-            (err as BadRequestError).message,
-            "Verification token has expired. Please submit a new registration."
-          );
-          return true;
-        }
-      );
-
-      // Clean up
-      await prisma.schoolRegistration.deleteMany({
-        where: { schoolCode: "SCH_EXPIRY_01" },
-      });
     });
   });
 });

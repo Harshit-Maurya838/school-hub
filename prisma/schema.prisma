@@ -439,6 +439,11 @@ model SchoolRegistration {
   adminPhone            String?
   status                RegistrationStatus @default(PENDING_VERIFICATION)
   verificationTokenHash String?            @unique
+  passwordHash          String?
+  otpHash               String?
+  otpExpiresAt          DateTime?
+  otpAttempts           Int                @default(0)
+  details               Json?
   emailVerifiedAt       DateTime?
   reviewedById          String?
   reviewedAt            DateTime?
@@ -1174,6 +1179,7 @@ model SchoolProfile {
   instructionMedium  InstructionMedium?
   classRange         SchoolClassRange?
   includesPrePrimary Boolean            @default(false)
+  includesPlayGroup  Boolean            @default(false)
   rteApplicable      Boolean            @default(false)
   rteEntryClass      RteEntryClass?
   rteExitClass       RteExitClass?

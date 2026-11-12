@@ -1,298 +1,213 @@
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, after } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
-import { POST as submitRegistrationHandler } from "../src/app/api/v1/public/register-school/route.js";
-import { GET as verifyRegistrationHandler } from "../src/app/api/v1/public/register-school/verify/route.js";
-import { GET as listRegistrationsHandler } from "../src/app/api/v1/platform/registrations/route.js";
-import { POST as approveRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/approve/route.js";
-import { POST as rejectRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/reject/route.js";
-import { DELETE as deleteRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/route.js";
-import { submitSchoolRegistration } from "../src/modules/onboarding/services/school-registration.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
-import { getLatestEmailFor } from "../src/lib/email.js";
+import { POST as requestOtpHandler } from "../src/app/api/v1/public/register-school/route.js";
+import { POST as verifyOtpHandler } from "../src/app/api/v1/public/register-school/verify/route.js";
+import {
+  requestSchoolRegistrationOtp,
+  verifySchoolRegistrationOtp,
+  REGISTRATION_OTP_MAX_ATTEMPTS,
+} from "../src/modules/onboarding/services/school-registration.js";
+import { verifyPassword } from "../src/modules/auth/services/password.js";
+import { SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
+import { clearSentEmails, getLatestEmailFor } from "../src/lib/email.js";
+import { BadRequestError, ConflictError, ValidationError } from "../src/lib/errors.js";
 
-describe("Phase 5: Public School Registration for Future SaaS Customers", () => {
-  let superAdminUser: { id: string; email: string | null; role: "SUPER_ADMIN" };
-  let superAdminToken: string;
+const EMAIL = "applicant@newacademy.org";
+const OTHER_EMAIL = "second@newacademy.org";
+const UDISE = "09123456789";
+const UDISE_2 = "09123456700";
 
-  beforeEach(async () => {
-    // Clean up
-    await prisma.invitation.deleteMany({
-      where: { email: { in: ["applicant@newacademy.org", "rejected@newacademy.org"] } },
-    });
-    const testUsers = await prisma.user.findMany({
-      where: {
-        email: {
-          in: ["super@platform.local", "applicant@newacademy.org", "rejected@newacademy.org"],
-        },
-      },
-      select: { id: true },
-    });
-    if (testUsers.length > 0) {
-      await prisma.auditLog.deleteMany({
-        where: { userId: { in: testUsers.map((u) => u.id) } },
-      });
-      await prisma.user.deleteMany({
-        where: { id: { in: testUsers.map((u) => u.id) } },
-      });
-    }
-    await prisma.schoolRegistration.deleteMany({
-      where: {
-        adminEmail: { in: ["applicant@newacademy.org", "rejected@newacademy.org"] },
-      },
-    });
-    await prisma.school.deleteMany({
-      where: { code: { in: ["NEW_ACAD_01", "REJ_SCH_01"] } },
-    });
+const validForm = (overrides: Record<string, unknown> = {}) => ({
+  adminName: "Dean Thomas",
+  schoolName: "New Horizon Academy",
+  udiseCode: UDISE,
+  classRange: "CLASS_1_TO_8",
+  hasPrePrimary: true,
+  hasPlayGroup: false,
+  medium: "BILINGUAL",
+  principalName: "Dr. Minerva Rao",
+  mobile: "9876543210",
+  email: EMAIL,
+  password: "Secure123",
+  confirmPassword: "Secure123",
+  acceptTerms: true,
+  ...overrides,
+});
 
-    const user = await prisma.user.create({
-      data: {
-        name: "Platform Master Admin",
-        email: "super@platform.local",
-        role: "SUPER_ADMIN",
-        schoolId: null,
-      },
-    });
-    superAdminUser = {
-      id: user.id,
-      email: user.email,
-      role: "SUPER_ADMIN",
-    };
-
-    superAdminToken = await createSessionToken({
-      userId: superAdminUser.id,
-      schoolId: null,
-      role: "SUPER_ADMIN",
-      email: superAdminUser.email,
-    });
+const post = (url: string, body: unknown) =>
+  new NextRequest(`http://localhost:3000${url}`, {
+    method: "POST",
+    body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
   });
 
-  it("should create unprivileged pending registration from public submission without creating operational records", async () => {
-    const req = new NextRequest("http://localhost:3000/api/v1/public/register-school", {
-      method: "POST",
-      body: JSON.stringify({
-        schoolName: "New Horizon Academy",
-        schoolCode: "NEW_ACAD_01",
-        desiredSlug: "new-horizon-academy",
-        adminName: "Dean Thomas",
-        adminEmail: "applicant@newacademy.org",
-        adminPhone: "+15551234",
-      }),
-      headers: { "Content-Type": "application/json" },
-    });
+async function cleanup() {
+  const emails = [EMAIL, OTHER_EMAIL];
+  const schools = await prisma.school.findMany({
+    where: { code: { in: [UDISE, UDISE_2] } },
+    select: { id: true },
+  });
+  const schoolIds = schools.map((s) => s.id);
+  await prisma.auditLog.deleteMany({ where: { schoolId: { in: schoolIds } } });
+  await prisma.schoolRegistration.deleteMany({ where: { adminEmail: { in: emails } } });
+  await prisma.user.deleteMany({ where: { email: { in: emails } } });
+  await prisma.school.deleteMany({ where: { id: { in: schoolIds } } });
+}
 
-    const res = await submitRegistrationHandler(req);
+describe("Public school self-registration with email OTP", () => {
+  beforeEach(async () => {
+    clearSentEmails();
+    await cleanup();
+  });
+  after(cleanup);
+
+  it("emails an OTP without creating a school or user, and never returns the OTP", async () => {
+    const res = await requestOtpHandler(post("/api/v1/public/register-school", validForm()));
     assert.strictEqual(res.status, 201);
     const body = await res.json();
-    assert.strictEqual(body.data.registration.status, "PENDING_VERIFICATION");
+    assert.strictEqual(body.data.email, EMAIL);
+    assert.strictEqual(JSON.stringify(body).match(/\b\d{6}\b/), null, "OTP must not leak");
 
-    // Verify NO operational school or user exists yet
-    const schoolCount = await prisma.school.count({ where: { code: "NEW_ACAD_01" } });
-    assert.strictEqual(
-      schoolCount,
-      0,
-      "No operational school must be created from unverified public submission"
-    );
+    assert.strictEqual(await prisma.school.count({ where: { code: UDISE } }), 0);
+    assert.strictEqual(await prisma.user.count({ where: { email: EMAIL } }), 0);
 
-    const userCount = await prisma.user.count({ where: { email: "applicant@newacademy.org" } });
-    assert.strictEqual(
-      userCount,
-      0,
-      "No operational user must be created from unverified public submission"
-    );
+    const email = getLatestEmailFor(EMAIL);
+    assert.ok(email?.subject.includes("verification code"));
+    assert.match(email!.text, /\b\d{6}\b/);
 
-    // Verify verification email was dispatched
-    const email = getLatestEmailFor("applicant@newacademy.org");
-    assert.notStrictEqual(email, undefined);
-    assert.strictEqual(email?.subject.includes("Verify your school registration"), true);
+    const pending = await prisma.schoolRegistration.findUnique({ where: { adminEmail: EMAIL } });
+    assert.strictEqual(pending?.status, "PENDING_VERIFICATION");
+    assert.notStrictEqual(pending?.passwordHash, "Secure123", "password must be hashed");
   });
 
-  it("should transition from PENDING_VERIFICATION to PENDING_REVIEW upon email token verification", async () => {
-    const submitResult = await submitSchoolRegistration({
-      schoolName: "New Horizon Academy",
-      schoolCode: "NEW_ACAD_01",
-      desiredSlug: "new-horizon-academy",
-      adminName: "Dean Thomas",
-      adminEmail: "applicant@newacademy.org",
-    });
-
-    const rawToken = submitResult.rawVerificationToken;
-
-    // Verify endpoint
-    const verifyReq = new NextRequest(
-      `http://localhost:3000/api/v1/public/register-school/verify?token=${rawToken}`
-    );
-    const verifyRes = await verifyRegistrationHandler(verifyReq);
-    assert.strictEqual(verifyRes.status, 200);
-
-    const updated = await prisma.schoolRegistration.findUnique({
-      where: { id: submitResult.registration.id },
-    });
-    assert.strictEqual(updated?.status, "PENDING_REVIEW");
-    assert.notStrictEqual(updated?.emailVerifiedAt, null);
+  it("rejects invalid payloads", async () => {
+    const cases = [
+      { confirmPassword: "Different123" },
+      { password: "weak", confirmPassword: "weak" },
+      { udiseCode: "123" },
+      { mobile: "12345" },
+      { acceptTerms: false },
+      { classRange: "CLASS_1_TO_99" },
+    ];
+    for (const overrides of cases) {
+      const res = await requestOtpHandler(
+        post("/api/v1/public/register-school", validForm(overrides))
+      );
+      assert.strictEqual(res.status, 422, `expected 422 for ${JSON.stringify(overrides)}`);
+    }
+    assert.strictEqual(getLatestEmailFor(EMAIL), undefined);
   });
 
-  it("should allow Platform Super Admin to approve registration and provision school & admin invitation", async () => {
-    const submitResult = await submitSchoolRegistration({
-      schoolName: "New Horizon Academy",
-      schoolCode: "NEW_ACAD_01",
-      desiredSlug: "new-horizon-academy",
-      adminName: "Dean Thomas",
-      adminEmail: "applicant@newacademy.org",
-    });
+  it("creates the school, profile and active admin on a correct OTP, sends success mail and signs in", async () => {
+    const { rawOtp } = await requestSchoolRegistrationOtp(validForm());
 
-    // 1. Super Admin lists registrations
-    const listReq = new NextRequest("http://localhost:3000/api/v1/platform/registrations", {
-      headers: { Cookie: `${SESSION_COOKIE_NAME}=${superAdminToken}` },
-    });
-    const listRes = await listRegistrationsHandler(listReq);
-    assert.strictEqual(listRes.status, 200);
-
-    // 2. Super Admin approves registration
-    const approveReq = new NextRequest(
-      `http://localhost:3000/api/v1/platform/registrations/${submitResult.registration.id}/approve`,
-      {
-        method: "POST",
-        headers: { Cookie: `${SESSION_COOKIE_NAME}=${superAdminToken}` },
-      }
+    const res = await verifyOtpHandler(
+      post("/api/v1/public/register-school/verify", { email: EMAIL, otp: rawOtp })
     );
+    assert.strictEqual(res.status, 201);
+    const body = await res.json();
+    assert.strictEqual(body.data.school.code, UDISE);
+    assert.strictEqual(body.data.user.role, "SCHOOL_ADMIN");
+    assert.strictEqual(body.data.user.sessionVersion, undefined);
+    assert.ok(res.headers.get("set-cookie")?.includes(SESSION_COOKIE_NAME));
 
-    const approveRes = await approveRegistrationHandler(approveReq, {
-      params: Promise.resolve({ registrationId: submitResult.registration.id }),
+    const school = await prisma.school.findUnique({
+      where: { code: UDISE },
+      include: { profile: true },
     });
-    assert.strictEqual(approveRes.status, 200);
-    const approveBody = await approveRes.json();
-    assert.strictEqual(approveBody.data.school.code, "NEW_ACAD_01");
-    assert.notStrictEqual(approveBody.data.activationUrl, undefined);
+    assert.strictEqual(school?.status, "ACTIVE");
+    assert.ok(school?.slug.startsWith("new-horizon-academy"));
+    assert.strictEqual(school?.profile?.udiseCode, UDISE);
+    assert.strictEqual(school?.profile?.classRange, "CLASS_1_TO_8");
+    assert.strictEqual(school?.profile?.instructionMedium, "BILINGUAL");
+    assert.strictEqual(school?.profile?.includesPrePrimary, true);
+    assert.strictEqual(school?.profile?.includesPlayGroup, false);
+    assert.strictEqual(school?.profile?.hosName, "Dr. Minerva Rao");
 
-    // Verify operational school and invitation now exist in database
-    const operationalSchool = await prisma.school.findUnique({
-      where: { code: "NEW_ACAD_01" },
-    });
-    assert.notStrictEqual(operationalSchool, null);
-    assert.strictEqual(operationalSchool?.status, "ACTIVE");
+    const user = await prisma.user.findUnique({ where: { email: EMAIL } });
+    assert.strictEqual(user?.schoolId, school?.id);
+    assert.strictEqual(user?.isActive, true);
+    assert.ok(await verifyPassword("Secure123", user!.passwordHash!));
 
-    const invitation = await prisma.invitation.findFirst({
-      where: { schoolId: operationalSchool?.id, email: "applicant@newacademy.org" },
+    const registration = await prisma.schoolRegistration.findUnique({
+      where: { adminEmail: EMAIL },
     });
-    assert.notStrictEqual(invitation, null);
-    assert.strictEqual(invitation?.role, "SCHOOL_ADMIN");
+    assert.strictEqual(registration?.status, "APPROVED");
+    assert.strictEqual(registration?.otpHash, null);
+    assert.strictEqual(registration?.passwordHash, null);
+
+    assert.ok(getLatestEmailFor(EMAIL)?.subject.includes("is registered"));
+    assert.strictEqual(await prisma.invitation.count({ where: { email: EMAIL } }), 0);
+
+    // The same OTP cannot be replayed.
+    await assert.rejects(
+      () => verifySchoolRegistrationOtp({ email: EMAIL, otp: rawOtp }),
+      BadRequestError
+    );
   });
 
-  it("should allow Platform Super Admin to reject registration, notify applicant, and delete from DB to release unique fields", async () => {
-    const submitResult = await submitSchoolRegistration({
-      schoolName: "Rejected School",
-      schoolCode: "REJ_SCH_01",
-      desiredSlug: "rejected-school",
-      adminName: "Fake Admin",
-      adminEmail: "rejected@newacademy.org",
-    });
+  it("rejects a wrong OTP and locks after too many attempts", async () => {
+    const { rawOtp } = await requestSchoolRegistrationOtp(validForm());
+    const wrong = rawOtp === "000000" ? "111111" : "000000";
 
-    const rejectReq = new NextRequest(
-      `http://localhost:3000/api/v1/platform/registrations/${submitResult.registration.id}/reject`,
-      {
-        method: "POST",
-        body: JSON.stringify({ reason: "School accreditation documents could not be verified." }),
-        headers: {
-          "Content-Type": "application/json",
-          Cookie: `${SESSION_COOKIE_NAME}=${superAdminToken}`,
-        },
-      }
+    for (let i = 0; i < REGISTRATION_OTP_MAX_ATTEMPTS; i++) {
+      await assert.rejects(
+        () => verifySchoolRegistrationOtp({ email: EMAIL, otp: wrong }),
+        BadRequestError
+      );
+    }
+    await assert.rejects(
+      () => verifySchoolRegistrationOtp({ email: EMAIL, otp: rawOtp }),
+      /Too many incorrect attempts/
     );
-
-    const rejectRes = await rejectRegistrationHandler(rejectReq, {
-      params: Promise.resolve({ registrationId: submitResult.registration.id }),
-    });
-    assert.strictEqual(rejectRes.status, 200);
-    const rejectBody = await rejectRes.json();
-    assert.strictEqual(rejectBody.data.registration.status, "REJECTED");
-    assert.strictEqual(
-      rejectBody.data.registration.rejectionReason,
-      "School accreditation documents could not be verified."
-    );
-
-    // Verify rejected application was deleted from database so unique constraints are released
-    const dbRecord = await prisma.schoolRegistration.findUnique({
-      where: { id: submitResult.registration.id },
-    });
-    assert.strictEqual(dbRecord, null, "Rejected registration must be deleted from DB");
-
-    // Verify rejection email was dispatched
-    const email = getLatestEmailFor("rejected@newacademy.org");
-    assert.notStrictEqual(email, undefined);
-    assert.strictEqual(
-      email?.text.includes("School accreditation documents could not be verified."),
-      true
-    );
-
-    // Verify applicant can re-register using the exact same email without collision error
-    const reRegisterSameEmail = await submitSchoolRegistration({
-      schoolName: "Rejected School Re-application",
-      schoolCode: "REJ_SCH_02",
-      desiredSlug: "rejected-school-re",
-      adminName: "Fake Admin",
-      adminEmail: "rejected@newacademy.org",
-    });
-    assert.strictEqual(reRegisterSameEmail.registration.status, "PENDING_VERIFICATION");
-
-    // Verify another school can register using the same school code and desired slug that was previously rejected
-    const newApplicantUsingSameSlug = await submitSchoolRegistration({
-      schoolName: "Legitimate Academy",
-      schoolCode: "REJ_SCH_01",
-      desiredSlug: "rejected-school",
-      adminName: "New Principal",
-      adminEmail: "principal@legitimate.org",
-    });
-    assert.strictEqual(newApplicantUsingSameSlug.registration.status, "PENDING_VERIFICATION");
-
-    // Clean up created registrations from this test
-    await prisma.schoolRegistration.deleteMany({
-      where: {
-        adminEmail: { in: ["rejected@newacademy.org", "principal@legitimate.org"] },
-      },
-    });
+    assert.strictEqual(await prisma.school.count({ where: { code: UDISE } }), 0);
   });
 
-  it("should allow Platform Super Admin to permanently delete a pending registration to release unique fields", async () => {
-    const submitResult = await submitSchoolRegistration({
-      schoolName: "Spam School Application",
-      schoolCode: "SPAM_99",
-      desiredSlug: "spam-school",
-      adminName: "Spam Bot",
-      adminEmail: "spambot@example.com",
+  it("rejects an expired OTP", async () => {
+    const { rawOtp, registration } = await requestSchoolRegistrationOtp(validForm());
+    await prisma.schoolRegistration.update({
+      where: { id: registration.id },
+      data: { otpExpiresAt: new Date(Date.now() - 1000) },
     });
-
-    const deleteReq = new NextRequest(
-      `http://localhost:3000/api/v1/platform/registrations/${submitResult.registration.id}`,
-      {
-        method: "DELETE",
-        headers: { Cookie: `${SESSION_COOKIE_NAME}=${superAdminToken}` },
-      }
+    await assert.rejects(
+      () => verifySchoolRegistrationOtp({ email: EMAIL, otp: rawOtp }),
+      /expired/
     );
+  });
 
-    const deleteRes = await deleteRegistrationHandler(deleteReq, {
-      params: Promise.resolve({ registrationId: submitResult.registration.id }),
-    });
-    assert.strictEqual(deleteRes.status, 200);
+  it("resending replaces the previous OTP", async () => {
+    const first = await requestSchoolRegistrationOtp(validForm());
+    const second = await requestSchoolRegistrationOtp(validForm());
+    if (first.rawOtp !== second.rawOtp) {
+      await assert.rejects(
+        () => verifySchoolRegistrationOtp({ email: EMAIL, otp: first.rawOtp }),
+        BadRequestError
+      );
+    }
+    const { school } = await verifySchoolRegistrationOtp({ email: EMAIL, otp: second.rawOtp });
+    assert.strictEqual(school.code, UDISE);
+  });
 
-    const checkDb = await prisma.schoolRegistration.findUnique({
-      where: { id: submitResult.registration.id },
-    });
-    assert.strictEqual(checkDb, null, "Deleted registration must not exist in DB");
+  it("blocks duplicate U-DISE codes and existing account emails", async () => {
+    const { rawOtp } = await requestSchoolRegistrationOtp(validForm());
+    await verifySchoolRegistrationOtp({ email: EMAIL, otp: rawOtp });
 
-    // Now re-registering with the same schoolCode, slug, and email succeeds immediately
-    const cleanReRegister = await submitSchoolRegistration({
-      schoolName: "Real School After Delete",
-      schoolCode: "SPAM_99",
-      desiredSlug: "spam-school",
-      adminName: "Real Person",
-      adminEmail: "spambot@example.com",
-    });
-    assert.strictEqual(cleanReRegister.registration.status, "PENDING_VERIFICATION");
+    await assert.rejects(
+      () => requestSchoolRegistrationOtp(validForm({ email: OTHER_EMAIL })),
+      ConflictError
+    );
+    await assert.rejects(
+      () => requestSchoolRegistrationOtp(validForm({ udiseCode: UDISE_2 })),
+      ConflictError
+    );
+  });
 
-    await prisma.schoolRegistration.deleteMany({
-      where: { adminEmail: "spambot@example.com" },
-    });
+  it("rejects malformed verify payloads", async () => {
+    await assert.rejects(
+      () => verifySchoolRegistrationOtp({ email: EMAIL, otp: "12" }),
+      ValidationError
+    );
   });
 });

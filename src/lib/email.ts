@@ -42,16 +42,6 @@ export interface SentEmailRecord {
   sentAt: Date;
 }
 
-export interface SendVerificationEmailOptions {
-  to: string;
-  verificationUrl: string;
-  schoolName?: string;
-  recipientName?: string;
-  expiresInHours?: number;
-  metadata?: Record<string, unknown>;
-  forceDeliver?: boolean;
-}
-
 export interface SendInvitationEmailOptions {
   to: string;
   invitationUrl: string;
@@ -139,196 +129,6 @@ export function escapeHtml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
-}
-
-/**
- * Renders a clean, responsive HTML email for school registration verification.
- */
-export function renderVerificationEmailHtml(params: {
-  verificationUrl: string;
-  schoolName?: string;
-  recipientName?: string;
-  expiresInHours?: number;
-}): string {
-  const schoolName = params.schoolName ? escapeHtml(params.schoolName) : "CampusPulse";
-  const recipientName = params.recipientName ? escapeHtml(params.recipientName) : "Administrator";
-  const hours = params.expiresInHours || 24;
-  const safeUrl = escapeHtml(params.verificationUrl);
-
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify your school registration</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #09090b;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      color: #fafafa;
-      -webkit-font-smoothing: antialiased;
-    }
-    .wrapper {
-      width: 100%;
-      background-color: #09090b;
-      padding: 40px 16px;
-    }
-    .card {
-      max-width: 580px;
-      margin: 0 auto;
-      background-color: #18181b;
-      border-radius: 16px;
-      border: 1px solid #27272a;
-      overflow: hidden;
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-    }
-    .header {
-      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
-      padding: 32px;
-      text-align: center;
-      border-bottom: 1px solid #3730a3;
-    }
-    .header h1 {
-      margin: 0;
-      color: #ffffff;
-      font-size: 24px;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-    }
-    .header p {
-      margin: 6px 0 0;
-      color: #c7d2fe;
-      font-size: 13px;
-    }
-    .content {
-      padding: 36px 32px;
-    }
-    .badge {
-      display: inline-block;
-      background-color: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      margin-bottom: 18px;
-    }
-    .greeting {
-      font-size: 20px;
-      font-weight: 600;
-      color: #ffffff;
-      margin: 0 0 16px;
-    }
-    .body-text {
-      font-size: 15px;
-      line-height: 1.6;
-      color: #d4d4d8;
-      margin-bottom: 24px;
-    }
-    .callout {
-      background-color: #27272a;
-      border-left: 4px solid #6366f1;
-      padding: 14px 18px;
-      border-radius: 6px;
-      margin-bottom: 28px;
-      font-size: 13px;
-      color: #e4e4e7;
-    }
-    .btn-container {
-      text-align: center;
-      margin: 32px 0;
-    }
-    .btn {
-      display: inline-block;
-      background-color: #4f46e5;
-      color: #ffffff !important;
-      font-size: 15px;
-      font-weight: 600;
-      text-decoration: none;
-      padding: 14px 36px;
-      border-radius: 8px;
-      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
-    }
-    .fallback-container {
-      margin-top: 28px;
-      padding-top: 20px;
-      border-top: 1px solid #27272a;
-    }
-    .fallback-text {
-      font-size: 13px;
-      color: #a1a1aa;
-      margin: 0 0 8px;
-    }
-    .fallback-link {
-      background-color: #09090b;
-      border: 1px solid #27272a;
-      border-radius: 6px;
-      padding: 12px;
-      font-size: 12px;
-      word-break: break-all;
-      color: #818cf8;
-    }
-    .fallback-link a {
-      color: #818cf8;
-      text-decoration: underline;
-    }
-    .footer {
-      border-top: 1px solid #27272a;
-      background-color: #121215;
-      padding: 24px 32px;
-      text-align: center;
-      font-size: 12px;
-      color: #71717a;
-      line-height: 1.6;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrapper">
-    <div class="card">
-      <div class="header">
-        <h1>CampusPulse</h1>
-        <p>School Management Platform</p>
-      </div>
-      <div class="content">
-        <div class="badge">Verification Required</div>
-        <h2 class="greeting">Hello, ${recipientName}</h2>
-        <p class="body-text">
-          Thank you for submitting a registration application for <strong>${schoolName}</strong> on CampusPulse.
-          To confirm that you own this contact email address, please verify your account using the button below.
-        </p>
-        <div class="callout">
-          ⏱️ This verification link is strictly single-use and will expire in <strong>${hours} hours</strong>.
-        </div>
-        <div class="btn-container">
-          <a href="${safeUrl}" class="btn" target="_blank" rel="noopener noreferrer">Verify Email Address</a>
-        </div>
-        <div class="fallback-container">
-          <p class="fallback-text">
-            If the button above does not work, copy and paste this link into your web browser:
-          </p>
-          <div class="fallback-link">
-            <a href="${safeUrl}">${safeUrl}</a>
-          </div>
-        </div>
-      </div>
-      <div class="footer">
-        <p>
-          <strong>Why did you receive this email?</strong><br>
-          This verification message was sent because someone registered an institution using this email address on CampusPulse.
-          If this wasn't you, no further action is needed and you can safely ignore this email.
-        </p>
-        <p>© ${new Date().getFullYear()} CampusPulse. All rights reserved.</p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
 }
 
 /**
@@ -681,56 +481,101 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
   }
 }
 
-/**
- * Reusable function for sending verification emails with rich HTML and plain-text fallback.
- */
-export async function sendVerificationEmail(
-  options: SendVerificationEmailOptions
-): Promise<SendEmailResult> {
-  const schoolName = options.schoolName || "CampusPulse";
-  const subject = options.schoolName
-    ? `Verify your school registration for ${options.schoolName}`
-    : "Verify your email address for CampusPulse";
+/** Simple branded HTML shell shared by the registration emails. */
+function renderSimpleEmailHtml(title: string, bodyHtml: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(title)}</title></head>
+<body style="margin:0;padding:40px 16px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:32px;">
+    <h1 style="margin:0 0 16px;font-size:20px;">${escapeHtml(title)}</h1>
+    ${bodyHtml}
+  </div>
+</body>
+</html>`;
+}
 
-  const hours = options.expiresInHours || 24;
-  const html = renderVerificationEmailHtml({
-    verificationUrl: options.verificationUrl,
-    schoolName: options.schoolName,
-    recipientName: options.recipientName,
-    expiresInHours: hours,
-  });
+/**
+ * Sends the 6-digit OTP that confirms a school registrant owns their email address.
+ * The OTP is a secret, so it only travels in the email body and is never logged.
+ */
+export async function sendRegistrationOtpEmail(options: {
+  to: string;
+  otp: string;
+  schoolName: string;
+  recipientName?: string;
+  expiresInMinutes: number;
+}): Promise<SendEmailResult> {
+  const name = options.recipientName || "there";
+  const minutes = options.expiresInMinutes;
 
   const text = [
-    `Hello ${options.recipientName || "there"},`,
+    `Hello ${name},`,
     "",
-    `Thank you for registering ${schoolName} on CampusPulse.`,
+    `Your verification code to register ${options.schoolName} on CampusPulse is: ${options.otp}`,
     "",
-    "To verify your email address and continue with your registration, please visit the following link:",
-    options.verificationUrl,
-    "",
-    `This verification link will expire in ${hours} hours.`,
-    "",
-    "Why are you receiving this email?",
-    `You are receiving this email because someone submitted a registration request for ${schoolName} using this email address. If you did not make this request, you can safely ignore this email.`,
+    `This code expires in ${minutes} minutes. Do not share it with anyone.`,
+    "If you did not try to register a school, you can ignore this email.",
     "",
     "---",
     "CampusPulse School Management Platform",
   ].join("\n");
 
+  const html = renderSimpleEmailHtml(
+    "Verify your email",
+    `<p style="font-size:15px;line-height:1.6;color:#334155;">Hello ${escapeHtml(name)}, use this code to finish registering <strong>${escapeHtml(options.schoolName)}</strong>.</p>
+    <p style="text-align:center;margin:28px 0;font-size:32px;font-weight:800;letter-spacing:10px;color:#047857;">${escapeHtml(options.otp)}</p>
+    <p style="font-size:13px;color:#64748b;">This code expires in ${minutes} minutes. Do not share it with anyone. If you did not try to register a school, ignore this email.</p>`
+  );
+
   return sendEmail({
     to: options.to,
-    subject,
+    subject: `Your verification code for ${options.schoolName}`,
     text,
     html,
-    actionUrl: options.verificationUrl,
     recipientName: options.recipientName,
-    metadata: {
-      ...options.metadata,
-      type: "email_verification",
-      schoolName: options.schoolName,
-      expiresInHours: hours,
-    },
-    forceDeliver: options.forceDeliver,
+    metadata: { type: "registration_otp", expiresInMinutes: minutes },
+  });
+}
+
+/** Confirms that a self-registered school and its admin account are ready to use. */
+export async function sendRegistrationSuccessEmail(options: {
+  to: string;
+  schoolName: string;
+  recipientName?: string;
+  loginUrl: string;
+}): Promise<SendEmailResult> {
+  const name = options.recipientName || "there";
+  const safeUrl = escapeHtml(options.loginUrl);
+
+  const text = [
+    `Hello ${name},`,
+    "",
+    `${options.schoolName} has been registered on CampusPulse and your admin account is ready.`,
+    `Sign in with ${options.to} and the password you chose:`,
+    options.loginUrl,
+    "",
+    "---",
+    "CampusPulse School Management Platform",
+  ].join("\n");
+
+  const html = renderSimpleEmailHtml(
+    "Your school is registered",
+    `<p style="font-size:15px;line-height:1.6;color:#334155;">Hello ${escapeHtml(name)}, <strong>${escapeHtml(options.schoolName)}</strong> has been registered and your admin account is ready.</p>
+    <p style="font-size:15px;line-height:1.6;color:#334155;">Sign in with <strong>${escapeHtml(options.to)}</strong> and the password you chose.</p>
+    <p style="text-align:center;margin:28px 0;">
+      <a href="${safeUrl}" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:8px;">Sign in to your dashboard</a>
+    </p>`
+  );
+
+  return sendEmail({
+    to: options.to,
+    subject: `${options.schoolName} is registered on CampusPulse`,
+    text,
+    html,
+    actionUrl: options.loginUrl,
+    recipientName: options.recipientName,
+    metadata: { type: "registration_success", schoolName: options.schoolName },
   });
 }
 

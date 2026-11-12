@@ -9,7 +9,6 @@ import {
   requireSchoolAccess,
   SESSION_COOKIE_NAME,
 } from "../src/modules/auth/index.js";
-import { listSchoolRegistrations } from "../src/modules/onboarding/services/school-registration.js";
 
 const requestAs = async (user: {
   id: string;
@@ -96,10 +95,5 @@ describe("Shared school access helpers", () => {
         }),
       ForbiddenError
     );
-  });
-
-  it("listSchoolRegistrations rejects an unknown status with 400", async () => {
-    await assert.rejects(() => listSchoolRegistrations("BOGUS"), BadRequestError);
-    assert.ok(Array.isArray(await listSchoolRegistrations("PENDING_REVIEW")));
   });
 });

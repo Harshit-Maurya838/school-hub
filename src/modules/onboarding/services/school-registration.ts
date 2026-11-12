@@ -1,428 +1,318 @@
+import crypto from "crypto";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { RegistrationStatus } from "@/generated/prisma/enums";
-import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
-import { normalizeCode, normalizeSlug, provisionSchoolWithAdmin } from "./provisioning";
-import { generateRawToken, hashToken } from "./invitations";
+import { BadRequestError, ConflictError, ValidationError } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit";
-import { sendEmail, sendVerificationEmail } from "@/lib/email";
+import { sendRegistrationOtpEmail, sendRegistrationSuccessEmail } from "@/lib/email";
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
+import { hashPassword, passwordSchema } from "@/modules/auth";
+import { normalizeCode, normalizeSlug } from "./provisioning";
+import { hashToken } from "./invitations";
+import { CLASS_RANGES } from "./school-profile-rules";
 
-export const REGISTRATION_TOKEN_EXPIRY_HOURS = 24;
+export const REGISTRATION_OTP_EXPIRY_MINUTES = 10;
+export const REGISTRATION_OTP_MAX_ATTEMPTS = 5;
 
-export interface SubmitRegistrationInput {
-  schoolName: string;
-  schoolCode: string;
-  desiredSlug: string;
-  adminName: string;
-  adminEmail: string;
-  adminPhone?: string;
-  baseUrl?: string;
+/** Mediums offered on the public form; "Both" maps to BILINGUAL. */
+export const REGISTRATION_MEDIUMS = ["ENGLISH", "HINDI", "BILINGUAL"] as const;
+
+const classRangeValues = CLASS_RANGES.map((r) => r.value) as [
+  (typeof CLASS_RANGES)[number]["value"],
+  ...(typeof CLASS_RANGES)[number]["value"][],
+];
+
+export const schoolRegistrationSchema = z
+  .object({
+    adminName: z.string().trim().min(2, "Admin name must be at least 2 characters"),
+    schoolName: z.string().trim().min(2, "School name must be at least 2 characters"),
+    udiseCode: z
+      .string()
+      .trim()
+      .regex(/^\d{11}$/, "U-DISE+ code must be exactly 11 digits"),
+    classRange: z.enum(classRangeValues, { error: "Select a class range" }),
+    hasPrePrimary: z.boolean().default(false),
+    hasPlayGroup: z.boolean().default(false),
+    medium: z.enum(REGISTRATION_MEDIUMS, { error: "Select a medium" }),
+    principalName: z.string().trim().min(2, "Principal name must be at least 2 characters"),
+    mobile: z
+      .string()
+      .trim()
+      .regex(/^[6-9]\d{9}$/, "Enter a valid 10 digit mobile number"),
+    email: z
+      .string()
+      .transform((val) => val.trim().toLowerCase())
+      .pipe(z.string().email("Invalid email address")),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+    acceptTerms: z.literal(true, { error: "You must accept the Terms & Conditions" }),
+  })
+  .refine((d) => d.password === d.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+const verifyOtpSchema = z.object({
+  email: z
+    .string()
+    .transform((val) => val.trim().toLowerCase())
+    .pipe(z.string().email("Invalid email address")),
+  otp: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, "OTP must be 6 digits"),
+});
+
+interface RequestMeta {
   ipAddress?: string;
   userAgent?: string;
 }
 
+type RegistrationDetails = Pick<
+  z.infer<typeof schoolRegistrationSchema>,
+  "classRange" | "hasPrePrimary" | "hasPlayGroup" | "medium" | "principalName"
+>;
+
+function generateOtp(): string {
+  return crypto.randomInt(0, 1_000_000).toString().padStart(6, "0");
+}
+
+async function isSlugTaken(slug: string): Promise<boolean> {
+  const [school, registration] = await Promise.all([
+    prisma.school.findUnique({ where: { slug }, select: { id: true } }),
+    prisma.schoolRegistration.findUnique({ where: { desiredSlug: slug }, select: { id: true } }),
+  ]);
+  return Boolean(school || registration);
+}
+
 /**
- * Submits a public application to register a new school on the SaaS platform.
- * Creates an unprivileged SchoolRegistration record with PENDING_VERIFICATION status.
+ * Step 1 of public self-registration: validates the form, stores it as a pending
+ * registration (password already hashed) and emails a 6-digit OTP to the admin.
+ * Calling it again for the same email replaces the pending one and sends a fresh OTP.
  */
-export async function submitSchoolRegistration(input: SubmitRegistrationInput) {
-  const schoolName = input.schoolName.trim();
-  const schoolCode = normalizeCode(input.schoolCode);
-  const desiredSlug = normalizeSlug(input.desiredSlug);
-  const adminEmail = input.adminEmail.toLowerCase().trim();
-  const adminName = input.adminName.trim();
+export async function requestSchoolRegistrationOtp(input: unknown, meta: RequestMeta = {}) {
+  const parsed = schoolRegistrationSchema.safeParse(input);
+  if (!parsed.success)
+    throw new ValidationError(parsed.error.issues[0]?.message, parsed.error.issues);
+  const data = parsed.data;
+  const schoolCode = normalizeCode(data.udiseCode);
 
-  if (schoolName.length < 2) {
-    throw new BadRequestError("School name must be at least 2 characters long");
+  const [existingSchool, existingUdise, existingUser] = await Promise.all([
+    prisma.school.findUnique({ where: { code: schoolCode }, select: { id: true } }),
+    prisma.schoolProfile.findUnique({ where: { udiseCode: data.udiseCode }, select: { id: true } }),
+    prisma.user.findUnique({ where: { email: data.email }, select: { id: true } }),
+  ]);
+  if (existingSchool || existingUdise) {
+    throw new ConflictError(`A school with U-DISE+ code '${data.udiseCode}' is already registered`);
   }
-  if (schoolCode.length < 2) {
-    throw new BadRequestError("School code must be at least 2 characters long");
-  }
-  if (desiredSlug.length < 2) {
-    throw new BadRequestError("Desired slug must be at least 2 characters long");
-  }
-  if (adminName.length < 2) {
-    throw new BadRequestError("Contact name must be at least 2 characters long");
-  }
-
-  // 1. Check existing provisioned schools
-  const existingSchoolCode = await prisma.school.findUnique({
-    where: { code: schoolCode },
-    select: { id: true },
-  });
-  if (existingSchoolCode) {
-    throw new ConflictError(`School code '${schoolCode}' is already taken`);
+  if (existingUser) {
+    throw new ConflictError(`An account with email '${data.email}' already exists`);
   }
 
-  const existingSchoolSlug = await prisma.school.findUnique({
-    where: { slug: desiredSlug },
-    select: { id: true },
-  });
-  if (existingSchoolSlug) {
-    throw new ConflictError(`School URL slug '${desiredSlug}' is already taken`);
-  }
-
-  const existingUser = await prisma.user.findUnique({
-    where: { email: adminEmail },
-    select: { id: true, isActive: true, deletedAt: true },
-  });
-  if (existingUser && existingUser.isActive && existingUser.deletedAt === null) {
-    throw new ConflictError(`An active account with email '${adminEmail}' already exists`);
-  }
-
-  // Check pending invitations for contact email
-  const existingInvitation = await prisma.invitation.findFirst({
-    where: {
-      email: adminEmail,
-      status: "PENDING",
-      expiresAt: { gt: new Date() },
-    },
-    select: { id: true },
-  });
-  if (existingInvitation) {
-    throw new ConflictError(`An active invitation already exists for email '${adminEmail}'`);
-  }
-
-  // Remove any previously rejected applications matching this schoolCode, desiredSlug, or adminEmail
-  // so they do not occupy unique database slots or block re-application
+  // Drop this applicant's earlier attempt and any abandoned attempts whose OTP window has passed.
+  const staleBefore = new Date(Date.now() - REGISTRATION_OTP_EXPIRY_MINUTES * 60 * 1000);
   await prisma.schoolRegistration.deleteMany({
     where: {
-      OR: [{ schoolCode }, { desiredSlug }, { adminEmail }],
-      status: "REJECTED",
+      status: { not: "APPROVED" },
+      OR: [{ adminEmail: data.email }, { updatedAt: { lt: staleBefore } }],
     },
   });
 
-  // 2. Check pending applications in SchoolRegistration
-  const existingPending = await prisma.schoolRegistration.findFirst({
-    where: {
-      OR: [{ schoolCode }, { desiredSlug }, { adminEmail }],
-      status: { in: ["PENDING_VERIFICATION", "PENDING_REVIEW"] },
-    },
+  const pendingForCode = await prisma.schoolRegistration.findUnique({
+    where: { schoolCode },
+    select: { id: true },
   });
-
-  if (existingPending) {
-    if (existingPending.schoolCode === schoolCode) {
-      throw new ConflictError(
-        `A pending application already exists for school code '${schoolCode}'`
-      );
-    }
-    if (existingPending.desiredSlug === desiredSlug) {
-      throw new ConflictError(`A pending application already exists for slug '${desiredSlug}'`);
-    }
-    if (existingPending.adminEmail === adminEmail) {
-      throw new ConflictError(
-        `A pending application is already registered for email '${adminEmail}'`
-      );
-    }
+  if (pendingForCode) {
+    throw new ConflictError(
+      `A registration for U-DISE+ code '${data.udiseCode}' is already in progress. Try again in ${REGISTRATION_OTP_EXPIRY_MINUTES} minutes.`
+    );
   }
 
-  const rawVerificationToken = generateRawToken();
-  const verificationTokenHash = hashToken(rawVerificationToken);
+  const baseSlug = normalizeSlug(data.schoolName) || "school";
+  let desiredSlug = baseSlug;
+  if (await isSlugTaken(desiredSlug)) desiredSlug = `${baseSlug}-${data.udiseCode.slice(-4)}`;
+  if (await isSlugTaken(desiredSlug)) desiredSlug = `${baseSlug}-${data.udiseCode}`;
+
+  const rawOtp = generateOtp();
+  const details: RegistrationDetails = {
+    classRange: data.classRange,
+    hasPrePrimary: data.hasPrePrimary,
+    hasPlayGroup: data.hasPlayGroup,
+    medium: data.medium,
+    principalName: data.principalName,
+  };
 
   const registration = await prisma.schoolRegistration.create({
     data: {
-      schoolName,
+      schoolName: data.schoolName,
       schoolCode,
       desiredSlug,
-      adminName,
-      adminEmail,
-      adminPhone: input.adminPhone?.trim() || null,
+      adminName: data.adminName,
+      adminEmail: data.email,
+      adminPhone: data.mobile,
       status: "PENDING_VERIFICATION",
-      verificationTokenHash,
-      ipAddress: input.ipAddress || null,
-      userAgent: input.userAgent || null,
+      passwordHash: await hashPassword(data.password),
+      otpHash: hashToken(rawOtp),
+      otpExpiresAt: new Date(Date.now() + REGISTRATION_OTP_EXPIRY_MINUTES * 60 * 1000),
+      details,
+      ipAddress: meta.ipAddress || null,
+      userAgent: meta.userAgent || null,
     },
-    select: {
-      id: true,
-      schoolName: true,
-      schoolCode: true,
-      desiredSlug: true,
-      adminName: true,
-      adminEmail: true,
-      status: true,
-      createdAt: true,
-    },
+    select: { id: true, schoolName: true, adminEmail: true, status: true },
   });
 
   await logAuditEvent({
     action: "REGISTRATION_SUBMITTED",
     entityType: "SchoolRegistration",
     entityId: registration.id,
-    details: {
-      schoolName,
-      schoolCode,
-      desiredSlug,
-      adminEmail,
-    },
-    ipAddress: input.ipAddress,
-    userAgent: input.userAgent,
+    details: { schoolName: data.schoolName, schoolCode, adminEmail: data.email },
+    ...meta,
   });
 
-  // Construct verification URL
-  const baseUrl = (input.baseUrl || env.APP_URL).replace(/\/+$/, "");
-  const verificationUrl = `${baseUrl}/register-school/verify?token=${rawVerificationToken}`;
-
-  await sendVerificationEmail({
-    to: adminEmail,
-    verificationUrl,
-    schoolName,
-    recipientName: adminName,
-    expiresInHours: REGISTRATION_TOKEN_EXPIRY_HOURS,
-    metadata: { registrationId: registration.id },
+  await sendRegistrationOtpEmail({
+    to: data.email,
+    otp: rawOtp,
+    schoolName: data.schoolName,
+    recipientName: data.adminName,
+    expiresInMinutes: REGISTRATION_OTP_EXPIRY_MINUTES,
   });
 
-  logger.info(
-    { registrationId: registration.id, adminEmail, schoolCode },
-    "School registration application submitted"
-  );
+  logger.info({ registrationId: registration.id, schoolCode }, "Registration OTP issued");
 
   return {
     registration,
-    rawVerificationToken,
-    verificationUrl,
+    expiresInMinutes: REGISTRATION_OTP_EXPIRY_MINUTES,
+    /** Returned for tests only; route handlers must never send it to the client. */
+    rawOtp,
   };
 }
 
 /**
- * Verifies applicant's email address using the one-time verification token.
- * Transitions application from PENDING_VERIFICATION to PENDING_REVIEW.
+ * Step 2 of public self-registration: checks the OTP and, when it matches, creates the
+ * school, its profile and the active SCHOOL_ADMIN account in one transaction.
  */
-export async function verifyRegistrationEmail(rawToken: string) {
-  if (!rawToken || typeof rawToken !== "string" || rawToken.trim() === "") {
-    throw new BadRequestError("Verification token is required");
-  }
-
-  const verificationTokenHash = hashToken(rawToken);
+export async function verifySchoolRegistrationOtp(input: unknown, meta: RequestMeta = {}) {
+  const parsed = verifyOtpSchema.safeParse(input);
+  if (!parsed.success)
+    throw new ValidationError(parsed.error.issues[0]?.message, parsed.error.issues);
+  const { email, otp } = parsed.data;
 
   const registration = await prisma.schoolRegistration.findUnique({
-    where: { verificationTokenHash },
+    where: { adminEmail: email },
   });
-
-  if (!registration) {
-    throw new NotFoundError("Invalid or expired registration verification token");
+  if (
+    !registration ||
+    registration.status !== "PENDING_VERIFICATION" ||
+    !registration.otpHash ||
+    !registration.passwordHash
+  ) {
+    throw new BadRequestError("No pending registration for this email. Please request a new OTP.");
+  }
+  if (!registration.otpExpiresAt || registration.otpExpiresAt < new Date()) {
+    throw new BadRequestError("This OTP has expired. Please request a new one.");
+  }
+  if (registration.otpAttempts >= REGISTRATION_OTP_MAX_ATTEMPTS) {
+    throw new BadRequestError("Too many incorrect attempts. Please request a new OTP.");
   }
 
-  const expiryMs = REGISTRATION_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
-  const isExpired = Date.now() - registration.createdAt.getTime() > expiryMs;
-  if (isExpired) {
-    throw new BadRequestError("Verification token has expired. Please submit a new registration.");
+  const matches = crypto.timingSafeEqual(
+    Buffer.from(hashToken(otp), "hex"),
+    Buffer.from(registration.otpHash, "hex")
+  );
+  if (!matches) {
+    await prisma.schoolRegistration.update({
+      where: { id: registration.id },
+      data: { otpAttempts: { increment: 1 } },
+    });
+    throw new BadRequestError("Incorrect OTP. Please check the code sent to your email.");
   }
 
-  if (registration.status === "PENDING_REVIEW") {
-    return {
-      registration,
-      message: "Email address was already verified. Your application is under review.",
-    };
-  }
+  const details = registration.details as unknown as RegistrationDetails;
+  const passwordHash = registration.passwordHash;
 
-  if (registration.status !== "PENDING_VERIFICATION") {
-    throw new BadRequestError(
-      `Application is in status '${registration.status}' and cannot be verified`
-    );
-  }
+  const { school, user } = await prisma.$transaction(async (tx) => {
+    const school = await tx.school.create({
+      data: {
+        name: registration.schoolName,
+        code: registration.schoolCode,
+        slug: registration.desiredSlug,
+        profile: {
+          create: {
+            udiseCode: registration.schoolCode,
+            officialEmail: registration.adminEmail,
+            contactMobile: registration.adminPhone,
+            instructionMedium: details.medium,
+            classRange: details.classRange,
+            includesPrePrimary: details.hasPrePrimary,
+            includesPlayGroup: details.hasPlayGroup,
+            hosName: details.principalName,
+          },
+        },
+      },
+      select: { id: true, name: true, code: true, slug: true },
+    });
 
-  const updated = await prisma.schoolRegistration.update({
-    where: { id: registration.id },
-    data: {
-      status: "PENDING_REVIEW",
-      emailVerifiedAt: new Date(),
-    },
+    const user = await tx.user.create({
+      data: {
+        schoolId: school.id,
+        name: registration.adminName,
+        email: registration.adminEmail,
+        phone: registration.adminPhone,
+        passwordHash,
+        role: "SCHOOL_ADMIN",
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        schoolId: true,
+        sessionVersion: true,
+      },
+    });
+
+    // Clear the stored secrets once they have served their purpose.
+    await tx.schoolRegistration.update({
+      where: { id: registration.id },
+      data: {
+        status: "APPROVED",
+        emailVerifiedAt: new Date(),
+        schoolId: school.id,
+        otpHash: null,
+        passwordHash: null,
+      },
+    });
+
+    return { school, user };
   });
 
   await logAuditEvent({
-    action: "REGISTRATION_VERIFIED",
-    entityType: "SchoolRegistration",
-    entityId: registration.id,
-    details: {
-      schoolCode: registration.schoolCode,
-      adminEmail: registration.adminEmail,
-    },
+    action: "SCHOOL_PROVISIONED",
+    entityType: "School",
+    entityId: school.id,
+    schoolId: school.id,
+    userId: user.id,
+    details: { schoolCode: school.code, schoolSlug: school.slug, selfRegistered: true },
+    ...meta,
   });
-
-  return {
-    registration: updated,
-    message:
-      "Email verified successfully. Your application is now queued for Platform Administrator review.",
-  };
-}
-
-/**
- * Super Admin review action: Approves a pending school application.
- * Atomically provisions the operational School tenant and initial School Admin invitation.
- */
-export async function approveRegistration(registrationId: string, reviewedByUserId: string) {
-  const registration = await prisma.schoolRegistration.findUnique({
-    where: { id: registrationId },
-  });
-
-  if (!registration) {
-    throw new NotFoundError("Registration application not found");
-  }
-
-  if (registration.status === "APPROVED") {
-    throw new BadRequestError("This application has already been approved");
-  }
-
-  if (registration.status === "REJECTED") {
-    throw new BadRequestError("Cannot approve a rejected application");
-  }
-
-  // Provision school and first admin invitation
-  const provisionResult = await provisionSchoolWithAdmin({
-    name: registration.schoolName,
-    code: registration.schoolCode,
-    slug: registration.desiredSlug,
-    adminName: registration.adminName,
-    adminEmail: registration.adminEmail,
-    adminPhone: registration.adminPhone ?? undefined,
-    provisionedById: reviewedByUserId,
-  });
-
-  // Link registration to the newly provisioned school
-  const updatedRegistration = await prisma.schoolRegistration.update({
-    where: { id: registration.id },
-    data: {
-      status: "APPROVED",
-      reviewedById: reviewedByUserId,
-      reviewedAt: new Date(),
-      schoolId: provisionResult.school.id,
-    },
-  });
-
   await logAuditEvent({
-    action: "REGISTRATION_APPROVED",
-    entityType: "SchoolRegistration",
-    entityId: registration.id,
-    schoolId: provisionResult.school.id,
-    userId: reviewedByUserId,
-    details: {
-      schoolCode: registration.schoolCode,
-      schoolId: provisionResult.school.id,
-      adminEmail: registration.adminEmail,
-    },
+    action: "STAFF_MEMBER_CREATED",
+    entityType: "User",
+    entityId: user.id,
+    schoolId: school.id,
+    userId: user.id,
+    details: { role: "SCHOOL_ADMIN", email: user.email, selfRegistered: true },
+    ...meta,
   });
 
-  return {
-    registration: updatedRegistration,
-    school: provisionResult.school,
-    activationUrl: provisionResult.activationUrl,
-  };
-}
-
-/**
- * Super Admin review action: Rejects a pending school application with an optional reason.
- * Deletes the record from database so that email, desiredSlug, and schoolCode are freed immediately.
- */
-export async function rejectRegistration(
-  registrationId: string,
-  reviewedByUserId: string,
-  reason?: string
-) {
-  const registration = await prisma.schoolRegistration.findUnique({
-    where: { id: registrationId },
-  });
-
-  if (!registration) {
-    throw new NotFoundError("Registration application not found");
-  }
-
-  if (registration.status === "APPROVED") {
-    throw new BadRequestError("Cannot reject an application that has already been approved");
-  }
-
-  const rejectionReason = reason?.trim() || "Application does not meet platform requirements.";
-
-  await logAuditEvent({
-    action: "REGISTRATION_REJECTED",
-    entityType: "SchoolRegistration",
-    entityId: registration.id,
-    userId: reviewedByUserId,
-    details: {
-      schoolCode: registration.schoolCode,
-      schoolName: registration.schoolName,
-      adminEmail: registration.adminEmail,
-      reason: rejectionReason,
-    },
-  });
-
-  // Dispatch rejection notification email
-  await sendEmail({
+  await sendRegistrationSuccessEmail({
     to: registration.adminEmail,
-    subject: `Update regarding your school registration for ${registration.schoolName}`,
-    text: `Your application to register ${registration.schoolName} could not be approved at this time. Reason: ${rejectionReason}`,
-    html: `<p>Your application to register <strong>${registration.schoolName}</strong> could not be approved at this time.</p><p><strong>Reason:</strong> ${rejectionReason}</p>`,
+    schoolName: school.name,
+    recipientName: registration.adminName,
+    loginUrl: `${env.APP_URL.replace(/\/+$/, "")}/login`,
   });
 
-  // Delete rejected application from DB so unique slots for adminEmail, desiredSlug, and schoolCode are immediately freed
-  await prisma.schoolRegistration.delete({
-    where: { id: registration.id },
-  });
+  logger.info({ schoolId: school.id, userId: user.id }, "School self-registration completed");
 
-  return {
-    registration: {
-      ...registration,
-      status: "REJECTED" as const,
-      rejectionReason,
-      reviewedById: reviewedByUserId,
-      reviewedAt: new Date(),
-    },
-  };
-}
-
-/**
- * Super Admin review action: Permanently deletes a pending or unapproved school registration from the database.
- */
-export async function deleteRegistration(registrationId: string, deletedByUserId: string) {
-  const registration = await prisma.schoolRegistration.findUnique({
-    where: { id: registrationId },
-  });
-
-  if (!registration) {
-    throw new NotFoundError("Registration application not found");
-  }
-
-  if (registration.status === "APPROVED") {
-    throw new BadRequestError(
-      "Cannot delete an approved registration with an active tenant school"
-    );
-  }
-
-  await logAuditEvent({
-    action: "REGISTRATION_DELETED",
-    entityType: "SchoolRegistration",
-    entityId: registration.id,
-    userId: deletedByUserId,
-    details: {
-      schoolCode: registration.schoolCode,
-      schoolName: registration.schoolName,
-      adminEmail: registration.adminEmail,
-    },
-  });
-
-  await prisma.schoolRegistration.delete({
-    where: { id: registration.id },
-  });
-
-  return {
-    success: true,
-    message: "Registration application permanently deleted",
-    deletedRegistration: registration,
-  };
-}
-
-/** Platform view of school registrations, newest first, optionally filtered by status. */
-export async function listSchoolRegistrations(status?: string | null) {
-  // An unknown status used to reach Prisma and fail as a 500.
-  if (status && !Object.values(RegistrationStatus).includes(status as RegistrationStatus)) {
-    throw new BadRequestError(`Unknown registration status '${status}'`);
-  }
-  return prisma.schoolRegistration.findMany({
-    where: status ? { status: status as RegistrationStatus } : {},
-    orderBy: { createdAt: "desc" },
-    include: {
-      reviewedBy: { select: { id: true, name: true, email: true } },
-      school: { select: { id: true, name: true, slug: true, code: true } },
-    },
-  });
+  return { school, user };
 }

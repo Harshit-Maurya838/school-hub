@@ -3,7 +3,7 @@
 import React, { useState, useTransition, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { PublicShell, PublicSheetHeader } from "@/components/layout/PublicShell";
+import { AuthShell } from "@/components/layout/PublicShell";
 import {
   FieldError,
   Notice,
@@ -99,12 +99,8 @@ function LoginForm() {
   };
 
   return (
-    <PublicShell>
-      <PublicSheetHeader title="Sign in">
-        Use the email your school invited you with.
-      </PublicSheetHeader>
-
-      <form className="mt-6 space-y-5" onSubmit={handleSubmit} noValidate>
+    <AuthShell active="login">
+      <form className="space-y-5" onSubmit={handleSubmit} noValidate>
         {errorMessage && <Notice>{errorMessage}</Notice>}
 
         <div>
@@ -170,14 +166,7 @@ function LoginForm() {
           {isPending ? "Signing in…" : "Sign in"}
         </button>
       </form>
-
-      <p className="mt-6 border-t border-slate-100 pt-5 text-sm text-slate-600">
-        New to Classic Giga?{" "}
-        <Link href="/register-school" className={textLinkClass}>
-          Register your school
-        </Link>
-      </p>
-    </PublicShell>
+    </AuthShell>
   );
 }
 
