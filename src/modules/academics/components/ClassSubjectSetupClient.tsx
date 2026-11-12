@@ -87,6 +87,13 @@ async function callApi<T = unknown>(url: string, method: string, body?: unknown)
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
+const FREQUENCY_SUFFIX: Record<PlanFrequency, string> = {
+  MONTHLY: "monthly",
+  TERM: "per term",
+  ANNUAL: "yearly",
+  ONE_TIME: "one-time",
+};
+
 const MISSING_LABEL: Record<ClassSetupRow["missing"][number], string> = {
   sections: "sections",
   subjects: "subjects",
@@ -417,7 +424,7 @@ export function ClassSubjectSetupClient({
             }}
           />
         ) : (
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full min-w-[920px] text-left text-sm">
               <thead className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
                 <tr className="border-b border-slate-100">
@@ -529,7 +536,7 @@ export function ClassSubjectSetupClient({
                               .map((s) => s.name)
                               .join(", ")}
                             {row.subjects.length > 2 && (
-                              <span className="text-slate-500">
+                              <span className="whitespace-nowrap text-slate-500">
                                 {" "}
                                 +{row.subjects.length - 2} more
                               </span>
@@ -850,23 +857,24 @@ function FeeSummary({
       <span className="text-slate-300">—</span>
     );
   }
-  const lines = [
-    fees.monthlyFee && `${formatINR(fees.monthlyFee)}/month`,
-    fees.admissionFee && `${formatINR(fees.admissionFee)} admission`,
-    fees.additional.length > 0 &&
-      `+${fees.additional.length} other cost${fees.additional.length === 1 ? "" : "s"}`,
-  ].filter(Boolean) as string[];
+  const all = [
+    ...(fees.monthlyFee ? [`${formatINR(fees.monthlyFee)} monthly`] : []),
+    ...(fees.admissionFee ? [`${formatINR(fees.admissionFee)} admission`] : []),
+    ...fees.additional.map(
+      (a) => `${formatINR(a.amount)} ${FREQUENCY_SUFFIX[a.frequency]} · ${a.headName}`
+    ),
+  ];
+  const shown = all.slice(0, 2);
+  const hidden = all.length - shown.length;
 
   const content = (
-    <span className="text-left text-sm">
-      <span className="block text-slate-800">{lines[0]}</span>
-      {lines.slice(1).map((l) => (
-        <span key={l} className="block text-xs text-slate-500">
-          {l}
-        </span>
-      ))}
+    <span className="block text-left text-sm whitespace-nowrap tabular-nums">
+      <span className="block text-slate-800">{shown[0]}</span>
+      {shown[1] && <span className="block text-xs text-slate-600">{shown[1]}</span>}
+      {hidden > 0 && <span className="block text-xs text-slate-500">+{hidden} more</span>}
     </span>
   );
+  const lines = all;
 
   return canManage ? (
     <button
@@ -1076,7 +1084,15 @@ function FeePlanModal({
   }, [apiBase, row.id]);
 
   // Tuition and admission have their own fields, so they are not offered as extra costs.
-  const extraHeads = (plan?.heads ?? []).filter((h) => !isTuitionHead(h) && !isAdmissionHead(h));
+  const extraHeads = useMemo(() => {
+    const list = (plan?.heads ?? []).filter((h) => !isTuitionHead(h) && !isAdmissionHead(h));
+    for (const used of plan?.additional ?? []) {
+      if (!list.some((h) => h.id === used.feeHeadId)) {
+        list.push({ id: used.feeHeadId, name: used.headName, code: null });
+      }
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [plan]);
   const update = (key: number, patch: Partial<CostRow>) => {
     setDirty(true);
     setCosts((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c)));
@@ -1154,8 +1170,8 @@ function FeePlanModal({
       <label htmlFor={id} className={labelClass}>
         {label}
       </label>
-      <div className="relative">
-        <span className="pointer-events-none absolute top-1/2 left-3 mt-0.75 -translate-y-1/2 text-sm text-slate-400">
+      <div className="relative mt-1.5">
+        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm font-medium text-slate-500">
           ₹
         </span>
         <input
@@ -1169,7 +1185,7 @@ function FeePlanModal({
           placeholder="0"
           aria-invalid={Boolean(error)}
           aria-describedby={`${id}-hint`}
-          className={inputClass(Boolean(error), "pl-7 tabular-nums")}
+          className={inputClass(Boolean(error), "mt-0! pl-7 tabular-nums")}
         />
       </div>
       <p id={`${id}-hint`} className={`mt-1 text-xs ${error ? "text-rose-700" : "text-slate-500"}`}>
