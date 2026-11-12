@@ -325,6 +325,7 @@ export async function acceptInvitation(params: AcceptInvitationParams) {
           role: invitation.role,
           schoolId: invitation.schoolId,
           isActive: true,
+          sessionVersion: { increment: 1 },
         },
       });
     } else {
@@ -391,6 +392,7 @@ export async function acceptInvitation(params: AcceptInvitationParams) {
         role: user.role,
         schoolId: user.schoolId,
         schoolSlug: invitation.school.slug,
+        sessionVersion: user.sessionVersion,
       },
       invitationId: invitation.id,
       guardianId: invitation.guardianId,

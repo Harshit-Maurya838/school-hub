@@ -51,6 +51,12 @@ export class ConflictError extends AppError {
   }
 }
 
+export class TooManyRequestsError extends AppError {
+  constructor(message: string = "Too many requests", details?: unknown) {
+    super(message, 429, "too_many_requests", details);
+  }
+}
+
 export class ValidationError extends AppError {
   constructor(message: string = "Validation failed", details?: unknown) {
     super(message, 422, "VALIDATION_ERROR", details);

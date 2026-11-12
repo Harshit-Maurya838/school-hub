@@ -4,15 +4,12 @@ import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { acceptInvitation } from "@/lib/invitations";
 import { createSessionToken, setSessionCookieOnResponse } from "@/lib/auth";
+import { passwordSchema } from "@/modules/auth";
 
 const acceptSchema = z.object({
   token: z.string().min(1, "Token is required"),
   name: z.string().min(2, "Name must be at least 2 characters"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters long")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number"),
+  password: passwordSchema,
 });
 
 export const POST = apiHandler(async (req: NextRequest) => {
@@ -36,6 +33,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     schoolId: result.user.schoolId,
     role: result.user.role,
     email: result.user.email,
+    sessionVersion: result.user.sessionVersion,
   });
 
   const redirectUrl =

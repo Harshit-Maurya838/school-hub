@@ -132,6 +132,30 @@ describe("Multi-Tenant Isolation", () => {
     });
     assert.notStrictEqual(stillExists, null);
 
+    // 6. Multi-word models (Prisma passes "AcademicYear") and findUnique are scoped too
+    const yearA = await tenantClientA.academicYear.create({
+      data: {
+        schoolId: schoolA.id,
+        name: "2030-31",
+        startDate: new Date("2030-04-01"),
+        endDate: new Date("2031-03-31"),
+      },
+    });
+    assert.strictEqual(
+      await tenantClientB.academicYear.findUnique({ where: { id: yearA.id } }),
+      null,
+      "School B must not read School A's academic year by id"
+    );
+    assert.strictEqual(await tenantClientB.academicYear.count({ where: { id: yearA.id } }), 0);
+    await assert.rejects(() =>
+      tenantClientB.academicYear.update({ where: { id: yearA.id }, data: { name: "hijacked" } })
+    );
+    assert.notStrictEqual(
+      await tenantClientA.academicYear.findUnique({ where: { id: yearA.id } }),
+      null
+    );
+    await tenantClientA.academicYear.delete({ where: { id: yearA.id } });
+
     // Clean up
     await tenantClientA.class.deleteMany({ where: { id: classA.id } });
     await prisma.user.deleteMany({ where: { id: { in: [userA.id, userB.id] } } });

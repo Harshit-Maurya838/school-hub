@@ -265,9 +265,18 @@ SchoolManagement/
 
 Every database record containing tenant-specific data stores a mandatory `schoolId` foreign key. The custom `createTenantPrisma(schoolId)` extension enforces strict automatic scoping:
 
-- Queries automatically filter by `schoolId`.
+- Every top-level query on a tenant model (reads including `findUnique`, `count`, `aggregate`, `groupBy`, and all writes) is filtered by `schoolId`.
 - Mutations prevent cross-tenant record linking.
+- Nested relation queries (`include`, nested writes) and raw SQL are **not** rewritten; filter those by `schoolId` explicitly.
 - Platform administrators (`SUPER_ADMIN`) have `schoolId = null` and access platform-level consoles only; they cannot perform routine school actions without explicit tenant authorization.
+
+### Sessions, Password Reset & Login Lockout
+
+- Sessions are HS256 JWTs (7 days) carrying an `sv` claim that must equal `User.sessionVersion`. Incrementing that column revokes every token issued before it; a password reset does this automatically.
+- `POST /api/v1/auth/forgot-password` always returns the same response, and emails a single-use link (`/reset-password?token=…`, 60 minutes, SHA-256 hashed at rest) only to active, activated accounts, at most once per 2 minutes.
+- After 10 consecutive failed sign-ins within 15 minutes an account is locked (HTTP 429) until the window passes or the password is reset. The lock is computed from `audit_logs`, so it needs no Redis.
+- Email delivery requires both `EMAIL_ACCESS_KEY` and `MAILSYNC_API_URL`; there is no default relay. Without them, emails are not sent.
+- Security headers (CSP, HSTS in production, frame and content-type protections) are set in `next.config.ts` so they apply on every host.
 
 ### Role-Based Access Control (RBAC) Matrix
 

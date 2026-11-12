@@ -1,0 +1,15 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "roboto",
+        "files": ["src/lib/email.ts"],
+        "createdAt": "2026-11-12T02:54:07.693Z",
+        "reason": "Claude: email HTML must use a system font fallback stack; mail clients cannot load the app's web fonts"
+      }
+    ]
+  }
+}

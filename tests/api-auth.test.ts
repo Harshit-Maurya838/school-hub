@@ -208,14 +208,16 @@ describe("API Authentication & Route Security", () => {
     const logoutCookie = logoutRes.headers.get("set-cookie");
     assert.strictEqual(logoutCookie?.includes("Max-Age=0"), true);
 
-    // 8. Test /forgot-password rejection when transport is unconfigured
-    const forgotReq = new NextRequest("http://localhost:3000/api/v1/auth/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email: "active@test.edu" }),
-      headers: { "Content-Type": "application/json" },
-    });
-    const forgotRes = await forgotPasswordHandler(forgotReq);
-    assert.strictEqual(forgotRes.status, 400);
+    // 8. /forgot-password answers identically for known and unknown accounts (no enumeration)
+    for (const email of ["active@test.edu", "nobody-here@test.edu"]) {
+      const forgotReq = new NextRequest("http://localhost:3000/api/v1/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const forgotRes = await forgotPasswordHandler(forgotReq);
+      assert.strictEqual(forgotRes.status, 200);
+    }
 
     // Clean up
     await prisma.user.deleteMany({

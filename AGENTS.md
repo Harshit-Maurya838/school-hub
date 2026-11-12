@@ -139,7 +139,8 @@ Security invariants are strictly non-negotiable:
      // WRONG:
      await prisma.student.findUnique({ where: { id: studentId } });
      ```
-   - Alternatively, use the tenant-scoped client: `const tenantPrisma = createTenantPrisma(schoolId)`.
+   - Alternatively, use the tenant-scoped client: `const tenantPrisma = createTenantPrisma(schoolId)`. It scopes top-level queries only; nested `include`/nested writes and raw SQL still need an explicit `schoolId` filter.
+   - Revoke a user's sessions by incrementing `User.sessionVersion`; never trust a JWT without `getAuthenticatedUser` (it checks the version against the database).
 2. **Explicit Server-Side Authorization**:
    - Never trust client-side claims or hidden UI elements.
    - For school actions, verify school access via `assertSchoolAccess(user, schoolSlug)`.
@@ -248,7 +249,7 @@ For financial operations (Domain: Fees & Finance):
 1. **Every New Feature Requires Tests**:
    - Add integration tests covering happy paths, unauthorized attempts, cross-tenant isolation, and invalid payloads.
 2. **Preserve Existing Tests**:
-   - All 19 existing test suites in `tests/` must continue to pass with 0 failures:
+   - All existing test suites in `tests/` must continue to pass with 0 failures:
      - `academic-setup.test.ts`
      - `class-setup.test.ts`
      - `class-fee-plan.test.ts`
@@ -268,6 +269,9 @@ For financial operations (Domain: Fees & Finance):
      - `teaching-assignments.test.ts`
      - `tenant-isolation.test.ts`
      - `school-profile.test.ts`
+     - `email.test.ts`
+     - `staff-profile-and-invitations.test.ts`
+     - `password-reset.test.ts`
 
 ---
 

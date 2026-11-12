@@ -14,6 +14,8 @@ export type SessionPayload = {
   role: Role;
   email?: string | null;
   phone?: string | null;
+  // Must match User.sessionVersion; bumping the column revokes every token issued before it.
+  sessionVersion?: number;
 };
 
 export type AuthenticatedUser = {
@@ -48,6 +50,7 @@ export async function createSessionToken(payload: SessionPayload): Promise<strin
     role: payload.role,
     email: payload.email ?? null,
     phone: payload.phone ?? null,
+    sv: payload.sessionVersion ?? 0,
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(payload.userId)
@@ -79,6 +82,8 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 
     const email = typeof payload.email === "string" ? payload.email : null;
     const phone = typeof payload.phone === "string" ? payload.phone : null;
+    // Tokens issued before the claim existed count as version 0.
+    const sessionVersion = typeof payload.sv === "number" ? payload.sv : 0;
 
     return {
       userId,
@@ -86,6 +91,7 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
       role,
       email,
       phone,
+      sessionVersion,
     };
   } catch {
     return null;
@@ -149,10 +155,16 @@ export async function getAuthenticatedUser(
       schoolId: true,
       isActive: true,
       deletedAt: true,
+      sessionVersion: true,
     },
   });
 
-  if (!user || !user.isActive || user.deletedAt !== null) {
+  if (
+    !user ||
+    !user.isActive ||
+    user.deletedAt !== null ||
+    user.sessionVersion !== (session.sessionVersion ?? 0)
+  ) {
     return null;
   }
 
@@ -197,4 +209,27 @@ export function clearSessionCookieOnResponse(response: NextResponse): void {
     path: options.path,
     maxAge: 0,
   });
+}
+
+export const LOGIN_MAX_FAILURES = 10;
+export const LOGIN_LOCKOUT_WINDOW_MS = 15 * 60 * 1000;
+
+/**
+ * An account is locked when its last LOGIN_MAX_FAILURES sign-in events inside the window are all
+ * failures. A successful login or a completed password reset breaks the streak.
+ */
+export async function isLoginLocked(userId: string): Promise<boolean> {
+  const recent = await prisma.auditLog.findMany({
+    where: {
+      userId,
+      action: { in: ["AUTH_LOGIN_FAILED", "AUTH_LOGIN_SUCCESS", "PASSWORD_RESET_COMPLETED"] },
+      createdAt: { gte: new Date(Date.now() - LOGIN_LOCKOUT_WINDOW_MS) },
+    },
+    orderBy: { createdAt: "desc" },
+    take: LOGIN_MAX_FAILURES,
+    select: { action: true },
+  });
+  return (
+    recent.length === LOGIN_MAX_FAILURES && recent.every((e) => e.action === "AUTH_LOGIN_FAILED")
+  );
 }

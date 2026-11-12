@@ -2,10 +2,10 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { UnauthorizedError } from "@/lib/errors";
+import { TooManyRequestsError, UnauthorizedError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
-import { createSessionToken, setSessionCookieOnResponse } from "@/lib/auth";
+import { createSessionToken, isLoginLocked, setSessionCookieOnResponse } from "@/lib/auth";
 import { logAuditEvent } from "@/lib/audit";
 
 const loginSchema = z.object({
@@ -43,6 +43,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
       schoolId: true,
       isActive: true,
       deletedAt: true,
+      sessionVersion: true,
       school: {
         select: {
           id: true,
@@ -66,6 +67,22 @@ export const POST = apiHandler(async (req: NextRequest) => {
       userAgent,
     });
     throw new UnauthorizedError("Invalid email or password");
+  }
+
+  // Checked before the password so a locked account cannot be probed further.
+  if (await isLoginLocked(user.id)) {
+    await logAuditEvent({
+      action: "AUTH_LOGIN_LOCKED",
+      entityType: "User",
+      userId: user.id,
+      schoolId: user.schoolId,
+      details: { email },
+      ipAddress,
+      userAgent,
+    });
+    throw new TooManyRequestsError(
+      "Too many failed sign-in attempts. Please wait 15 minutes or reset your password."
+    );
   }
 
   // Account is deactivated or deleted
@@ -120,6 +137,7 @@ export const POST = apiHandler(async (req: NextRequest) => {
     role: user.role,
     email: user.email,
     phone: user.phone,
+    sessionVersion: user.sessionVersion,
   });
 
   await logAuditEvent({

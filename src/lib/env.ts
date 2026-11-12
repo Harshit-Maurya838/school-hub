@@ -10,12 +10,11 @@ export const envSchema = z.object({
     const candidate = val || process.env.MAILSYNC_ACCESS_KEY || process.env.ACCESS_KEY;
     return typeof candidate === "string" && candidate.trim() !== "" ? candidate.trim() : undefined;
   }, z.string().optional()),
+  // No default: emails carry raw invitation and reset tokens, so the relay must be chosen explicitly.
   MAILSYNC_API_URL: z.preprocess((val) => {
     const candidate = val || process.env.EMAIL_API_URL;
-    return typeof candidate === "string" && candidate.trim() !== ""
-      ? candidate.trim()
-      : "https://mailsync-sigma.vercel.app";
-  }, z.string().url().default("https://mailsync-sigma.vercel.app")),
+    return typeof candidate === "string" && candidate.trim() !== "" ? candidate.trim() : undefined;
+  }, z.string().url().optional()),
   RESEND_API_KEY: z.preprocess(
     (val) => (typeof val === "string" && val.trim() !== "" ? val.trim() : undefined),
     z.string().optional()

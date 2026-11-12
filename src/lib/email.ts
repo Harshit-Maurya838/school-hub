@@ -18,7 +18,7 @@ export interface SendEmailOptions {
 }
 
 export interface MailSyncConfig {
-  apiUrl: string;
+  apiUrl?: string;
   accessKey?: string;
   from: string;
 }
@@ -557,7 +557,10 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
     sentAt: new Date(),
   };
 
-  sentEmailsStore.push(record);
+  // Records hold live token links, so never retain them in a production process.
+  if (process.env.NODE_ENV !== "production") {
+    sentEmailsStore.push(record);
+  }
 
   const isTestEnv = isTestEnvironment() && !options.forceDeliver;
 
@@ -576,21 +579,21 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
 
   const config = getMailSyncConfig();
 
-  // If neither an access key is configured nor a mock dispatcher is set, save to in-memory store only
-  if (!config.accessKey && !customDispatcher) {
+  // Without a configured relay (or a test dispatcher) nothing leaves the process.
+  if (!customDispatcher && (!config.accessKey || !config.apiUrl)) {
     logger.warn(
       {
         emailId: id,
         to: record.to,
         subject: record.subject,
       },
-      "EMAIL_ACCESS_KEY is not configured; email saved to in-memory store only"
+      "EMAIL_ACCESS_KEY or MAILSYNC_API_URL is not configured; email was not delivered"
     );
     return { success: true, id };
   }
 
   try {
-    const baseUrl = config.apiUrl.replace(/\/+$/, "");
+    const baseUrl = (config.apiUrl ?? "").replace(/\/+$/, "");
     const url = `${baseUrl}/mail`;
 
     const headers: Record<string, string> = {
@@ -776,6 +779,59 @@ export async function sendInvitationEmail(
       expiresInHours: hours,
     },
     forceDeliver: options.forceDeliver,
+  });
+}
+
+/**
+ * Sends a password reset link. The link carries a raw single-use token, so it is never logged.
+ */
+export async function sendPasswordResetEmail(options: {
+  to: string;
+  resetUrl: string;
+  recipientName?: string;
+  expiresInMinutes: number;
+}): Promise<SendEmailResult> {
+  const name = escapeHtml(options.recipientName || "there");
+  const safeUrl = escapeHtml(options.resetUrl);
+  const minutes = options.expiresInMinutes;
+
+  const text = [
+    `Hello ${options.recipientName || "there"},`,
+    "",
+    "We received a request to reset your CampusPulse password. Choose a new one here:",
+    options.resetUrl,
+    "",
+    `This link expires in ${minutes} minutes and can be used once.`,
+    "If you did not ask for this, ignore this email; your password will not change.",
+    "",
+    "---",
+    "CampusPulse School Management Platform",
+  ].join("\n");
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Reset your password</title></head>
+<body style="margin:0;padding:40px 16px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
+  <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:32px;">
+    <h1 style="margin:0 0 16px;font-size:20px;">Reset your password</h1>
+    <p style="font-size:15px;line-height:1.6;color:#334155;">Hello ${name}, we received a request to reset your CampusPulse password.</p>
+    <p style="text-align:center;margin:28px 0;">
+      <a href="${safeUrl}" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:8px;">Choose a new password</a>
+    </p>
+    <p style="font-size:13px;color:#64748b;">This link expires in ${minutes} minutes and can be used once. If you did not ask for this, ignore this email; your password will not change.</p>
+    <p style="font-size:12px;color:#64748b;word-break:break-all;">If the button does not work, open: <a href="${safeUrl}" style="color:#047857;">${safeUrl}</a></p>
+  </div>
+</body>
+</html>`;
+
+  return sendEmail({
+    to: options.to,
+    subject: "Reset your CampusPulse password",
+    text,
+    html,
+    actionUrl: options.resetUrl,
+    recipientName: options.recipientName,
+    metadata: { type: "password_reset", expiresInMinutes: minutes },
   });
 }
 

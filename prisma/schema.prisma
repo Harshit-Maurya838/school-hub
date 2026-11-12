@@ -130,11 +130,13 @@ model User {
   role                  Role
   isActive              Boolean              @default(true)
   deletedAt             DateTime?
+  sessionVersion        Int                  @default(0)
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
   school                School?              @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   auditLogs             AuditLog[]
+  passwordResetTokens   PasswordResetToken[]
   guardians             Guardian[]
   student               Student?
   teacherProfile        TeacherProfile?
@@ -165,6 +167,20 @@ model User {
   @@index([phone])
   @@index([schoolId, role])
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 model AuditLog {
