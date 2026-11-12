@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-07T14:58:24.434874+00:00",
-  "title": "Design System: Classic Giga",
+  "generatedAt": "2026-11-12T09:31:49.248493+00:00",
+  "title": "Design System: Academix AI",
   "extensions": {
     "colorMeta": {
       "register-green": {
@@ -311,6 +311,48 @@
           "#fecdd3",
           "#fff1f2"
         ]
+      },
+      "register-gutter": {
+        "role": "tertiary",
+        "displayName": "Register Gutter",
+        "tonalRamp": [
+          "#3a3426",
+          "#5c5440",
+          "#857a5f",
+          "#b0a487",
+          "#d6cdb5",
+          "#ebe5d6",
+          "#f1eee6",
+          "#fffdf7"
+        ]
+      },
+      "register-seam": {
+        "role": "tertiary",
+        "displayName": "Register Seam",
+        "tonalRamp": [
+          "#3a3426",
+          "#5c5440",
+          "#857a5f",
+          "#b0a487",
+          "#d6cdb5",
+          "#ebe5d6",
+          "#f1eee6",
+          "#fffdf7"
+        ]
+      },
+      "desk": {
+        "role": "neutral",
+        "displayName": "Desk",
+        "tonalRamp": [
+          "#1a1f24",
+          "#2f363d",
+          "#4a535c",
+          "#6b747d",
+          "#959da5",
+          "#c3c9cf",
+          "#e7ebef",
+          "#f6f8f9"
+        ]
       }
     },
     "typographyMeta": {
@@ -340,7 +382,39 @@
       },
       "register-title": {
         "displayName": "Register Title",
-        "purpose": "Serif; only inside the register notebook."
+        "purpose": "Serif; only inside the app's register notebook."
+      },
+      "book-display": {
+        "displayName": "Book Display",
+        "purpose": "Landing only: title-page headline and closing line, Libre Caslon Text bold, 2.6rem to 4.1rem, snapped to whole 32px rules."
+      },
+      "book-title": {
+        "displayName": "Book Title",
+        "purpose": "Landing only: section and record titles on one 32px line."
+      },
+      "book-numeral": {
+        "displayName": "Book Numeral",
+        "purpose": "Landing only: italic Caslon index numerals."
+      },
+      "index-entry": {
+        "displayName": "Index Entry",
+        "purpose": "Landing only: Geist bold 18-20px index titles."
+      },
+      "book-lede": {
+        "displayName": "Book Lede",
+        "purpose": "Landing only: 17px lede and step titles."
+      },
+      "book-body": {
+        "displayName": "Book Body",
+        "purpose": "Landing only: 15px body and FAQ answers."
+      },
+      "book-gloss": {
+        "displayName": "Book Gloss",
+        "purpose": "Landing only: 13px glosses, record rows and footnotes."
+      },
+      "folio": {
+        "displayName": "Folio",
+        "purpose": "Landing only: Geist Mono page numbers, session and references."
       }
     },
     "shadows": [
@@ -363,6 +437,16 @@
         "name": "overlay",
         "value": "0 25px 50px -12px rgba(0,0,0,0.25)",
         "purpose": "Modals and dialogs only."
+      },
+      {
+        "name": "book",
+        "value": "0 30px 60px -24px rgba(15,23,42,0.28), 0 8px 18px -8px rgba(15,23,42,0.12)",
+        "purpose": "The landing book on its desk."
+      },
+      {
+        "name": "gutter-shade",
+        "value": "inset -18px 0 22px -20px rgba(70,52,20,0.22)",
+        "purpose": "Inner edge of each landing page at lg (mirrored on the right page)."
       }
     ],
     "motion": [
@@ -380,6 +464,16 @@
         "name": "notebook-lift",
         "value": "250ms cubic-bezier(0.16, 1, 0.3, 1)",
         "purpose": "Register notebook hover lift."
+      },
+      {
+        "name": "page-turn",
+        "value": "620ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Landing signature: new page revealed by clip-path from the gutter, shade fading off its edge. Off under reduced motion."
+      },
+      {
+        "name": "stamp-land",
+        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1) 380ms",
+        "purpose": "Landing rubber stamp lands after the page is down (scale 1.35 to 1, blur 2px to 0). Off under reduced motion."
       }
     ],
     "breakpoints": [
@@ -456,17 +550,24 @@
       "description": "Signature: a class register as a bound book. Register-like records only.",
       "html": "<div class=\"ds-reg\" tabindex=\"0\"><div class=\"ds-reg-spine\"><i></i><i></i><i></i><i></i></div><div class=\"ds-reg-page\"><div class=\"ds-reg-head\"><span>Attendance Register</span><b>2026–27</b></div><h3>Class VIII · B</h3><p class=\"ds-reg-sub\">38 students enrolled</p><div class=\"ds-reg-foot\"><div><small>Class Teacher</small><strong>Meera Iyer</strong></div><span class=\"ds-reg-chip\">Take Attendance →</span></div></div></div>",
       "css": ".ds-reg { font-family: Geist, ui-sans-serif, system-ui, sans-serif; display:flex; width:340px; border-radius:16px; overflow:hidden; border:1px solid rgba(120,53,15,.1); background:#fffdf7; box-shadow:0 4px 20px -2px rgba(0,0,0,.08),0 2px 6px -1px rgba(0,0,0,.04); transition:transform .25s cubic-bezier(.16,1,.3,1), box-shadow .25s cubic-bezier(.16,1,.3,1); cursor:pointer; } .ds-reg:hover, .ds-reg:focus-visible { outline:none; transform:translateY(-4px); box-shadow:0 12px 28px -4px rgba(6,78,59,.16),0 4px 10px -2px rgba(0,0,0,.06); } .ds-reg-spine { width:52px; background:linear-gradient(135deg,#064e3b 0%,#065f46 50%,#047857 100%); display:flex; flex-direction:column; justify-content:space-around; align-items:center; padding:16px 0; } .ds-reg-spine i { width:10px; height:10px; border-radius:9999px; background:rgba(2,44,34,.8); } .ds-reg-page { flex:1; padding:18px; background-color:#fffdf7; background-image:linear-gradient(rgba(241,238,230,.6) 1px, transparent 1px); background-size:100% 28px; } .ds-reg-head { display:flex; justify-content:space-between; align-items:center; padding-bottom:8px; border-bottom:1px solid rgba(120,53,15,.1); } .ds-reg-head span { font-family:ui-serif,Georgia,serif; font-size:10px; font-weight:900; letter-spacing:.1em; text-transform:uppercase; color:#064e3b; } .ds-reg-head b { font-size:10px; font-weight:700; color:#065f46; background:rgba(209,250,229,.7); border:1px solid #a7f3d0; border-radius:4px; padding:2px 8px; } .ds-reg h3 { margin:12px 0 0; font-family:ui-serif,Georgia,serif; font-size:20px; font-weight:900; letter-spacing:-.025em; color:#0f172a; } .ds-reg-sub { margin:2px 0 0; font-size:12px; font-weight:600; color:#065f46; } .ds-reg-foot { margin-top:20px; padding-top:12px; border-top:1px solid rgba(120,53,15,.1); display:flex; justify-content:space-between; align-items:center; } .ds-reg-foot small { display:block; font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:#64748b; } .ds-reg-foot strong { font-size:12px; color:#1e293b; } .ds-reg-chip { font-size:12px; font-weight:700; color:#065f46; background:#ecfdf5; border:1px solid rgba(167,243,208,.8); border-radius:8px; padding:4px 10px; }"
+    },
+    {
+      "name": "Landing Book",
+      "kind": "custom",
+      "description": "Signature, landing page only: the school's bound register. One green spine with rings at 96px, paper ruled every 32px, index entries on dotted leaders, a rubber stamp on records.",
+      "html": "<div class=\"ds-book\"><div class=\"ds-book-spine\"></div><div class=\"ds-book-page\"><div class=\"ds-book-head\"><h4>Index</h4><span>Open an entry to read its record</span></div><button class=\"ds-book-entry\"><span class=\"ds-book-num\">i</span><span class=\"ds-book-title\">Attendance</span><span class=\"ds-book-leader\"></span><span class=\"ds-book-pg\">p. 3</span></button><button class=\"ds-book-entry\"><span class=\"ds-book-num\">ii</span><span class=\"ds-book-title\">Examinations</span><span class=\"ds-book-leader\"></span><span class=\"ds-book-pg\">p. 11</span></button><div class=\"ds-book-row\"><span>Register, VIII B</span><span class=\"ds-stamp\">Locked</span></div><div class=\"ds-book-row\"><span>Term 1 marks</span><span class=\"ds-stamp ds-stamp-pending\">In review</span></div></div></div>",
+      "css": ".ds-book { display:flex; width:420px; border-radius:16px; overflow:hidden; font-family: Geist, ui-sans-serif, system-ui, sans-serif; box-shadow:0 30px 60px -24px rgba(15,23,42,.28),0 8px 18px -8px rgba(15,23,42,.12); } .ds-book-spine { width:56px; background-color:#065f46; background-image:radial-gradient(ellipse 12px 5px at center,#a7f3d0 92%,transparent 100%),linear-gradient(90deg,rgba(0,0,0,.18),transparent 30%,transparent 70%,rgba(0,0,0,.22)); background-size:100% 96px,100% 100%; background-repeat:repeat-y,no-repeat; } .ds-book-page { flex:1; padding:32px 28px; background-color:#fffdf7; background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 31px,#f1eee6 31px,#f1eee6 32px); background-position:0 -5px; box-shadow:inset 18px 0 22px -20px rgba(70,52,20,.22); } .ds-book-head { display:flex; justify-content:space-between; align-items:center; height:32px; margin-bottom:32px; font-size:13px; color:#475569; } .ds-book-head h4 { margin:0; font-family:'Libre Caslon Text',Georgia,serif; font-weight:400; font-size:24px; color:#0f172a; } .ds-book-entry { display:flex; align-items:baseline; gap:16px; width:100%; height:32px; padding:0; border:0; background:none; cursor:pointer; text-align:left; border-radius:8px; } .ds-book-entry:focus-visible { outline:2px solid #059669; outline-offset:2px; } .ds-book-num { width:32px; font-family:'Libre Caslon Text',Georgia,serif; font-style:italic; font-size:16px; color:#64748b; } .ds-book-title { font-size:20px; font-weight:700; color:#0f172a; text-decoration-color:#047857; text-decoration-thickness:2px; text-underline-offset:4px; } .ds-book-entry:hover .ds-book-title { text-decoration-line:underline; } .ds-book-leader { flex:1; min-width:24px; height:4px; background-image:radial-gradient(circle,#94a3b8 1px,transparent 1.4px); background-size:8px 4px; background-repeat:repeat-x; } .ds-book-pg { font-family:'Geist Mono',ui-monospace,monospace; font-size:14px; color:#065f46; } .ds-book-row { display:flex; justify-content:space-between; align-items:center; height:32px; font-size:13px; color:#334155; } .ds-stamp { display:inline-block; transform:rotate(-6deg); mix-blend-mode:multiply; border:2px solid #047857; outline:1px solid #047857; outline-offset:2px; border-radius:6px; padding:4px 12px; font-size:11px; font-weight:900; letter-spacing:.12em; text-transform:uppercase; line-height:1.25; color:#047857; } .ds-stamp-pending { border-color:#b45309; outline-color:#92400e; color:#92400e; }"
     }
   ],
   "narrative": {
     "northStar": "The School Register",
-    "overview": "**Creative North Star: \"The School Register\"**\n\nClassic Giga should feel like a school office's best-kept register: paper-clear, ordered, and written in green ink that carries authority. Each screen is a page of records. Its job is to show what stands, who entered it, and what can happen next. The interface is calm because the work is serious: attendance becomes a legal record, marks reach parents, and fees have to reconcile.\n\nScreens are dense but well organized. Office staff and teachers work through lists of students, sections and invoices, so the system uses small, firm type, white sheets on a pale slate desk, and thin dividing lines rather than heavy panels. Green is used sparingly as the ink of authority: the main action, the current page, a confirmed state. The rest stays in slate.\n\nOne place breaks the plainness on purpose. The **register notebook** (cream ruled paper, serif title, green spine) marks a real record book. It belongs only to register-like records and is never used as decoration.\n\nThe dark zinc-and-indigo look on the landing, login, registration, password-reset and invitation pages, and the dark purple platform console, are **legacy drift**. They predate this system and should be brought into the light register world when they are next touched.",
+    "overview": "**Creative North Star: \"The School Register\"**\n\nAcademix AI should feel like a school office's best-kept register: paper-clear, ordered, and written in green ink that carries authority. Each screen is a page of records. Its job is to show what stands, who entered it, and what can happen next. The interface is calm because the work is serious: attendance becomes a legal record, marks reach parents, and fees have to reconcile.\n\nScreens are dense but well organized. Office staff and teachers work through lists of students, sections and invoices, so the system uses small, firm type, white sheets on a pale slate desk, and thin dividing lines rather than heavy panels. Green is used sparingly as the ink of authority: the main action, the current page, a confirmed state. The rest stays in slate.\n\nOne place breaks the plainness on purpose. The **register notebook** (cream ruled paper, serif title, green spine) marks a real record book. It belongs only to register-like records and is never used as decoration.\n\nThe **landing page** is the one approved place where the notebook carries a whole surface, because the landing page is the school's own bound register: one green spine, ruled cream pages on a cool desk, a printed serif, an index, and records that open in place. App screens never borrow it.\n\nThe public pages around it (sign-in and registration, password reset, invitation acceptance) and the platform console now sit in the light world on the Canvas desk. Any dark zinc-and-indigo or purple chrome that turns up is legacy drift.",
     "keyCharacteristics": [
       "Light slate canvas, white working sheets, hairline borders.",
       "One brand hue: register green. Amber and rose appear only as status.",
       "Small, bold Geist Sans; Geist Mono for identifiers and amounts.",
       "Flat by default; motion and lift only communicate state.",
-      "A single tactile signature, the paper register, kept for records."
+      "A single tactile signature, the paper register, kept for records and for the landing page, which is the school's book."
     ],
     "rules": [
       {
@@ -491,7 +592,12 @@
       },
       {
         "name": "The Serif Is a Book Rule",
-        "body": "Serif type appears only inside a register notebook. A serif heading anywhere else is drift.",
+        "body": "Serif type appears only inside a register notebook or on the landing page's book. A serif heading anywhere else is drift.",
+        "section": "typography"
+      },
+      {
+        "name": "The Write on the Rule Rule",
+        "body": "On the landing page every line box is 32px or a whole multiple of it, and every vertical gap is a multiple of 32px. Anything taller than a line (a display heading, a stamp) is padded or overhangs so the lines below stay on the ruling.",
         "section": "typography"
       },
       {
@@ -501,20 +607,22 @@
       }
     ],
     "dos": [
+      "**Do** keep the logo's blue to the logo and the \"AI\" of the wordmark. The infinity-ribbon mark is the brand's one blue; interface accents stay Register Green.",
       "**Do** keep every app screen on the Canvas desk with white Surface sheets and hairline borders.",
       "**Do** use Register Green for the one primary action per view and for confirmed states, and nothing else.",
       "**Do** map workflow states to the fixed status inks: green for final, amber for pending or draft, rose for missing, owed or undone.",
       "**Do** set IDs, receipt numbers and ₹ amounts in Geist Mono.",
       "**Do** show a loading state on every async button and a visible focus ring on every control.",
-      "**Do** bring legacy dark zinc/indigo pages (landing, login, register-school, forgot-password, accept-invitation) and the purple platform console into this light register world when you next touch them."
+      "**Do** keep public pages (sign-in, registration, password reset, invitation) on the Canvas desk through the shared public shell.",
+      "**Do** keep every line and gap on the landing page in 32px units, and snap any display heading to whole rules."
     ],
     "donts": [
       "**Don't** introduce indigo, purple or blue as interface accents. Indigo-on-zinc is the legacy look being retired.",
       "**Don't** use role colors outside role badges and avatars.",
-      "**Don't** use the cream paper, serif type or spiral spine outside register-like records.",
+      "**Don't** use the cream paper, serif type or spine outside register-like records and the landing page's book. App screens never take the landing book's paper, Caslon or desk.",
       "**Don't** add gradient stat cards, colored glow shadows, or `hover:scale` on buttons.",
       "**Don't** use Ink Faint for information a user needs to read; it is for placeholders and decoration.",
-      "**Don't** fall back to Arial: the `body` rule in `globals.css` still names it, but the app font is Geist Sans."
+      "**Don't** fall back to Arial: the app font is Geist Sans, as the `body` rule in `globals.css` sets."
     ]
   }
 }

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1440px;height:900px;overflow:hidden;background:#e2e8f0;font-family:Geist,sans-serif;color:#0f172a;display:grid;place-items:center}
+.book{width:1300px;height:820px;display:grid;grid-template-columns:64px 1fr 1fr;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px -10px rgba(0,0,0,.2)}
+.spine{background:linear-gradient(90deg,#065f46,#047857);display:flex;flex-direction:column;justify-content:space-around;align-items:center}
+.ring{width:22px;height:10px;border-radius:99px;background:#d1fae5;opacity:.7}
+.pg{background:#fffdf7 repeating-linear-gradient(#fffdf7 0 31px,#f1eee6 31px 32px);padding:48px 56px;position:relative}
+.pg+.pg{border-left:1px solid #e7e1d3}
+.brand{font-weight:900;font-size:18px}.brand b{color:#2563eb}
+.ey{margin-top:56px;font-family:Georgia,serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#065f46}
+h1{margin-top:14px;font-family:Georgia,serif;font-size:58px;line-height:1.05;font-weight:900;letter-spacing:-.02em}
+.lede{margin-top:22px;font-size:17px;line-height:1.6;color:#475569;max-width:480px}
+.btn{display:inline-block;margin-top:30px;background:#047857;color:#fff;font-weight:700;font-size:15px;padding:13px 22px;border-radius:12px}
+.si{margin-left:18px;font-weight:700;color:#334155;font-size:15px}
+.h2{font-family:Georgia,serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#065f46;margin-bottom:22px}
+.e{display:flex;align-items:baseline;gap:10px;height:64px;font-size:22px;font-weight:700}
+.e .n{font-family:'Geist Mono';font-size:14px;color:#64748b;width:30px}
+.e .d{flex:1;border-bottom:2px dotted #cbd5e1;transform:translateY(-6px)}
+.e .p{font-family:'Geist Mono';font-size:16px;color:#065f46}
+.e small{display:block;font-size:13px;font-weight:500;color:#64748b}
+.blank{color:#047857}
+</style></head><body>
+<div class="book">
+<div class="spine"><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span><span class="ring"></span></div>
+<div class="pg"><div class="brand">∞ Academix <b>AI</b></div>
+<p class="ey">The school's register · Session 2026–27</p>
+<h1>Every record your office keeps, in one bound book.</h1>
+<p class="lede">Registers lock when submitted, marks are reviewed before parents see them, every receipt is numbered, and every correction is signed.</p>
+<a class="btn">Register your school</a><a class="si">Sign in →</a></div>
+<div class="pg"><p class="h2">Index</p>
+<div class="e"><span class="n">i</span><span>Academics<small>sessions, classes, sections, subjects</small></span><span class="d"></span><span class="p">p. 3</span></div>
+<div class="e"><span class="n">ii</span><span>Students<small>admissions, guardians, APAAR IDs</small></span><span class="d"></span><span class="p">p. 11</span></div>
+<div class="e"><span class="n">iii</span><span>Attendance<small>daily registers that lock</small></span><span class="d"></span><span class="p">p. 19</span></div>
+<div class="e"><span class="n">iv</span><span>Examinations<small>marks, review, publication</small></span><span class="d"></span><span class="p">p. 27</span></div>
+<div class="e"><span class="n">v</span><span>Fees<small>invoices, receipts, refunds</small></span><span class="d"></span><span class="p">p. 35</span></div>
+<div class="e"><span class="n">vi</span><span>Audit trail<small>who changed what, and why</small></span><span class="d"></span><span class="p">p. 43</span></div>
+<div class="e blank"><span class="n">vii</span><span>Your school<small>the next entry</small></span><span class="d"></span><span class="p">→</span></div>
+</div></div>
+</body></html>
