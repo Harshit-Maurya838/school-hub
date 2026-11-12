@@ -134,7 +134,7 @@ export default async function AcademicSettingsPage({ params }: PageProps) {
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50"
             >
               <Settings className="h-3.5 w-3.5 text-slate-500" />
-              <span>School Settings</span>
+              <span>School Profile</span>
             </Link>
           </div>
         </div>

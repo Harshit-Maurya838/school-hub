@@ -7,6 +7,7 @@ import {
   BOARD_AFFILIATIONS,
   CLASS_RANGES,
   HOS_DESIGNATIONS,
+  LEADER_DESIGNATIONS,
   INSTRUCTION_MEDIUMS,
   RTE_ENTRY_CLASSES,
   RTE_EXIT_CLASSES,
@@ -165,6 +166,13 @@ export default async function PrintSchoolProfilePage({ params }: PageProps) {
             <Row label="HOS email" value={p.leadership.hosEmail} />
             <Row label="Owner / manager" value={p.leadership.managementName} />
             <Row label="Management phone" value={formatIndianPhone(p.leadership.managementPhone)} />
+            {p.leadership.otherLeaders.map((l, i) => (
+              <Row
+                key={i}
+                label={`${labelFor(LEADER_DESIGNATIONS, l.designation)} (person ${i + 2})`}
+                value={`${l.name} · ${formatIndianPhone(l.mobile)} · ${l.email}`}
+              />
+            ))}
           </Section>
 
           {p.lock.isLocked && p.lock.lockedAt && (

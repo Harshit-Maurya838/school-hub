@@ -1197,6 +1197,8 @@ model SchoolProfile {
   hosEmail        String?
   managementName  String?
   managementPhone String?
+  /// Up to two more school leaders after the HOS: [{ designation, name, mobile, email }]
+  otherLeaders    Json            @default("[]")
 
   identityCompletedAt   DateTime?
   academicCompletedAt   DateTime?

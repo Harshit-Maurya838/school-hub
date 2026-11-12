@@ -15,6 +15,7 @@ import {
   PROFILE_STEPS,
   STEP_SCHEMAS,
   profileLockSchema,
+  type OtherLeader,
   type ProfileStep,
 } from "./school-profile-rules";
 
@@ -47,6 +48,7 @@ export interface SchoolProfileView {
     hosEmail: string;
     managementName: string;
     managementPhone: string;
+    otherLeaders: OtherLeader[];
   };
   completion: Record<ProfileStep, boolean>;
   isComplete: boolean;
@@ -91,6 +93,7 @@ const STEP_FIELDS: Record<ProfileStep, readonly string[]> = {
     "hosEmail",
     "managementName",
     "managementPhone",
+    "otherLeaders",
   ],
 };
 
@@ -158,6 +161,7 @@ export async function getSchoolProfile(schoolId: string): Promise<SchoolProfileV
       hosEmail: p?.hosEmail ?? "",
       managementName: p?.managementName ?? "",
       managementPhone: p?.managementPhone ?? "",
+      otherLeaders: (p?.otherLeaders as OtherLeader[] | undefined) ?? [],
     },
     completion,
     isComplete: completion.identity && completion.academic && completion.leadership,

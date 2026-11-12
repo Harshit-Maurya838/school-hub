@@ -136,6 +136,17 @@ export const SCHOOL_STREAMS = [
   },
 ] as const;
 
+/** Designations for the leaders listed after the head of school. */
+export const LEADER_DESIGNATIONS = [
+  { value: "PRINCIPAL", label: "Principal" },
+  { value: "VICE_PRINCIPAL", label: "Vice Principal" },
+  { value: "HEADMASTER", label: "Headmaster" },
+  { value: "HEADMISTRESS", label: "Headmistress" },
+  { value: "DIRECTOR", label: "Director" },
+  { value: "ACADEMIC_COORDINATOR", label: "Academic Coordinator" },
+  { value: "ADMINISTRATIVE_OFFICER", label: "Administrative Officer" },
+] as const;
+
 export const HOS_DESIGNATIONS = [
   { value: "PRINCIPAL", label: "Principal" },
   { value: "HEADMASTER", label: "Headmaster" },
@@ -288,14 +299,17 @@ export const identityStepSchema = z.object({
   postalAddress: requiredText("Full postal address", 10, 300),
 });
 
+const emptyToNull = (v: unknown) => (v === "" ? null : v);
+
 export const academicStepSchema = z
   .object({
     instructionMedium: requiredEnum(INSTRUCTION_MEDIUMS, "the medium of instruction"),
     classRange: requiredEnum(CLASS_RANGES, "the recognised class range"),
     includesPrePrimary: z.boolean().default(false),
     rteApplicable: z.boolean().default(false),
-    rteEntryClass: z.enum(valuesOf(RTE_ENTRY_CLASSES)).nullish(),
-    rteExitClass: z.enum(valuesOf(RTE_EXIT_CLASSES)).nullish(),
+    // The form sends "" for an unpicked select; with RTE off these must not block the save.
+    rteEntryClass: z.preprocess(emptyToNull, z.enum(valuesOf(RTE_ENTRY_CLASSES)).nullish()),
+    rteExitClass: z.preprocess(emptyToNull, z.enum(valuesOf(RTE_EXIT_CLASSES)).nullish()),
     boardAffiliation: requiredEnum(BOARD_AFFILIATIONS, "the board affiliation"),
     stateBoardName: z.string().trim().max(80, "State board name is too long").nullish(),
     streams: z.array(z.enum(valuesOf(SCHOOL_STREAMS))).default([]),
@@ -390,6 +404,16 @@ export const academicStepSchema = z
     streams: Array.from(new Set(v.streams)),
   }));
 
+/** The HOS plus at most this many more people make up the school's leadership. */
+export const MAX_OTHER_LEADERS = 2;
+
+const otherLeaderSchema = z.object({
+  designation: requiredEnum(LEADER_DESIGNATIONS, "a designation"),
+  name: requiredText("Name", 2, 100),
+  mobile: mobile("Mobile number"),
+  email: requiredEmail("Email"),
+});
+
 export const leadershipStepSchema = z.object({
   hosDesignation: requiredEnum(HOS_DESIGNATIONS, "the HOS designation"),
   hosName: requiredText("HOS / principal name", 2, 100),
@@ -397,7 +421,13 @@ export const leadershipStepSchema = z.object({
   hosEmail: requiredEmail("HOS official email"),
   managementName: requiredText("School owner / manager name", 2, 150),
   managementPhone: phone("Management contact phone"),
+  otherLeaders: z
+    .array(otherLeaderSchema)
+    .max(MAX_OTHER_LEADERS, `Add at most ${MAX_OTHER_LEADERS + 1} people including the HOS`)
+    .default([]),
 });
+
+export type OtherLeader = z.output<typeof otherLeaderSchema>;
 
 export const profileLockSchema = z.object({
   locked: z.boolean({ error: "locked must be true or false" }),
@@ -413,11 +443,14 @@ export type IdentityStepInput = z.output<typeof identityStepSchema>;
 export type AcademicStepInput = z.output<typeof academicStepSchema>;
 export type LeadershipStepInput = z.output<typeof leadershipStepSchema>;
 
-/** Field-keyed messages from a failed parse; first message per field wins. */
+/**
+ * Field-keyed messages from a failed parse; first message per field wins. Fields inside a list
+ * of objects are keyed by their full path, e.g. `otherLeaders.0.name`.
+ */
 export function fieldErrorsFrom(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "_form");
+    const key = issue.path.length > 2 ? issue.path.join(".") : String(issue.path[0] ?? "_form");
     if (!out[key]) out[key] = issue.message;
   }
   return out;

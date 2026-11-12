@@ -145,7 +145,7 @@ export function Sidebar({
     },
     {
       id: "settings",
-      label: "School Settings",
+      label: "School Profile",
       icon: Settings,
       href: `/school/${schoolSlug}/settings`,
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],

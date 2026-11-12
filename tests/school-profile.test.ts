@@ -274,6 +274,15 @@ describe("Master School Profile: step saves, validation, locking and isolation",
     assert.strictEqual(data.profile.academic.rteExitClass, null);
     assert.deepStrictEqual(data.profile.academic.streams, ["SCIENCE", "COMMERCE"]);
 
+    // The form sends empty selects for the hidden RTE classes.
+    const blankRte = await saveStep(schoolA.slug, "academic", tokenAdminA, {
+      ...validAcademic,
+      rteApplicable: false,
+      rteEntryClass: "",
+      rteExitClass: "",
+    });
+    assert.strictEqual(blankRte.status, 200);
+
     const full = await saveStep(schoolA.slug, "academic", tokenAdminA, validAcademic);
     assert.strictEqual(full.status, 200);
   });
@@ -290,6 +299,42 @@ describe("Master School Profile: step saves, validation, locking and isolation",
     const { data } = await res.json();
     assert.strictEqual(data.profile.isComplete, true);
     assert.strictEqual(data.profile.leadership.managementPhone, "+915222345678");
+  });
+
+  it("stores up to two more leaders and rejects a fourth person", async () => {
+    const leader = {
+      designation: "VICE_PRINCIPAL",
+      name: "Meera Singh",
+      mobile: "9876543210",
+      email: "VP@deeptimontessori.com",
+    };
+    const ok = await saveStep(schoolA.slug, "leadership", tokenAdminA, {
+      ...validLeadership,
+      otherLeaders: [leader, { ...leader, name: "Ravi Kumar" }],
+    });
+    assert.strictEqual(ok.status, 200);
+    const { data } = await ok.json();
+    assert.strictEqual(data.profile.leadership.otherLeaders.length, 2);
+    assert.strictEqual(data.profile.leadership.otherLeaders[0].mobile, "+919876543210");
+    assert.strictEqual(data.profile.leadership.otherLeaders[0].email, "vp@deeptimontessori.com");
+
+    const tooMany = await saveStep(schoolA.slug, "leadership", tokenAdminA, {
+      ...validLeadership,
+      otherLeaders: [leader, leader, leader],
+    });
+    assert.strictEqual(tooMany.status, 422);
+
+    const freeText = await saveStep(schoolA.slug, "leadership", tokenAdminA, {
+      ...validLeadership,
+      otherLeaders: [{ ...leader, designation: "Vice Principal" }],
+    });
+    assert.strictEqual(freeText.status, 422);
+
+    const incomplete = await saveStep(schoolA.slug, "leadership", tokenAdminA, {
+      ...validLeadership,
+      otherLeaders: [{ ...leader, mobile: "" }],
+    });
+    assert.strictEqual(incomplete.status, 422);
   });
 
   it("prevents teachers and other schools from locking", async () => {

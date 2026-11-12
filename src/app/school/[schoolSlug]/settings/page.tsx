@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Shield } from "lucide-react";
 import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { getSchoolDetailsReadiness } from "@/modules/onboarding";
 import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
 import { SchoolSettingsClient } from "@/modules/onboarding";
 import { primaryButtonClass } from "@/components/common/FormControls";
@@ -75,19 +74,21 @@ export default async function SchoolSettingsPage({ params }: PageProps) {
     );
   }
 
-  const [readiness, profile] = await Promise.all([
-    getSchoolDetailsReadiness(school.id),
-    getSchoolProfile(school.id),
-  ]);
+  const profile = await getSchoolProfile(school.id);
   const canEdit = user.role === "SCHOOL_ADMIN" && user.schoolId === school.id;
   const canLock = canEdit || user.role === "SUPER_ADMIN";
+
+  // Until the profile is filled in, the school admin lands straight on the form.
+  if (canEdit && !profile.isComplete && !profile.lock.isLocked) {
+    redirect(`/school/${school.slug}/settings/edit`);
+  }
 
   return (
     <SchoolSettingsClient
       schoolSlug={school.slug}
-      initialSchool={school}
-      initialReadiness={readiness}
+      school={school}
       initialProfile={profile}
+      mode="view"
       canEdit={canEdit}
       canLock={canLock}
     />

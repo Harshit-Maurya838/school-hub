@@ -39,6 +39,7 @@ const HI: Record<string, string> = {
     "विद्यालय प्रोफ़ाइल में अभी नेतृत्व का विवरण नहीं जोड़ा गया है।",
   "Platform Console": "प्लेटफ़ॉर्म कंसोल",
   "School Settings": "विद्यालय सेटिंग्स",
+  "School Profile": "विद्यालय प्रोफ़ाइल",
   "Take Attendance": "उपस्थिति लें",
   "Fees Management": "शुल्क प्रबंधन",
   "Help & Support": "सहायता",
