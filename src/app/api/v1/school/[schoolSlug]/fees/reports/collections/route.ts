@@ -2,9 +2,9 @@ import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { requireAuth } from "@/lib/rbac";
+import { requireAuth } from "@/modules/auth";
 import { PaymentMethod } from "@/generated/prisma/enums";
-import { resolveSchoolForFees, getCollectionReport } from "@/lib/fees";
+import { resolveSchoolForFees, getCollectionReport } from "@/modules/fees";
 
 type Context = RouteContext<{ schoolSlug: string }>;
 

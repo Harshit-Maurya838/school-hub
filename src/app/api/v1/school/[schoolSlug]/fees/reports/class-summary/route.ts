@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { requireAuth } from "@/lib/rbac";
-import { resolveSchoolForFees, getClassWiseCollectionSummary } from "@/lib/fees";
+import { requireAuth } from "@/modules/auth";
+import { resolveSchoolForFees, getClassWiseCollectionSummary } from "@/modules/fees";
 
 type Context = RouteContext<{ schoolSlug: string }>;
 

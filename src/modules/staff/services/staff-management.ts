@@ -1,8 +1,32 @@
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { Role, EmploymentStatus } from "@/generated/prisma/enums";
-import { ConflictError, BadRequestError } from "@/lib/errors";
+import { ConflictError, BadRequestError, NotFoundError } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit";
-import { issueInvitation } from "@/modules/onboarding/services/invitations";
+import { issueInvitation, resendInvitation } from "@/modules/onboarding";
+
+export const staffMemberSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
+  email: z.string().trim().toLowerCase().email("Invalid email address"),
+  phone: z.string().trim().optional().nullable(),
+  role: z.enum(["TEACHER", "ACCOUNTANT", "SCHOOL_ADMIN"]).default("TEACHER"),
+  employeeId: z.string().trim().optional().nullable(),
+  qualification: z.string().trim().optional().nullable(),
+  specialization: z.string().trim().optional().nullable(),
+  designation: z.string().trim().optional().nullable(),
+  department: z.string().trim().optional().nullable(),
+  joiningDate: z.string().optional().nullable(),
+  employmentStatus: z.enum(["ACTIVE", "ON_LEAVE", "TERMINATED", "RESIGNED"]).optional(),
+});
+
+export const createStaffSchema = staffMemberSchema.extend({
+  sendInvite: z.boolean().optional().default(false),
+});
+
+export const bulkStaffSchema = z.object({
+  members: z.array(staffMemberSchema).min(1, "At least one member is required for bulk import"),
+  sendInvitesImmediately: z.boolean().optional().default(false),
+});
 
 export interface CreateStaffInput {
   name: string;
@@ -531,4 +555,46 @@ export async function getStaffDirectoryWithInviteStatus(
       teacherProfile: teacherDetails,
     };
   });
+}
+
+/**
+ * Re-issues the account invitation for a staff member (looked up by user id or teacher profile
+ * id) who has not activated their account yet.
+ */
+export async function reissueStaffInvitation(params: {
+  schoolId: string;
+  staffId: string;
+  actorUserId: string;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const staffUser = await prisma.user.findFirst({
+    where: {
+      schoolId: params.schoolId,
+      OR: [{ id: params.staffId }, { teacherProfile: { id: params.staffId } }],
+      deletedAt: null,
+    },
+    select: { id: true, email: true, passwordHash: true },
+  });
+
+  if (!staffUser) {
+    throw new NotFoundError("Staff member record not found in this school");
+  }
+  if (!staffUser.email) {
+    throw new BadRequestError("Staff member does not have an email address configured");
+  }
+  if (staffUser.passwordHash !== null) {
+    throw new BadRequestError(
+      "This staff member has already activated their account with a password."
+    );
+  }
+
+  const result = await resendInvitation({
+    schoolId: params.schoolId,
+    email: staffUser.email,
+    invitedById: params.actorUserId,
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+  });
+  return { ...result, email: staffUser.email };
 }

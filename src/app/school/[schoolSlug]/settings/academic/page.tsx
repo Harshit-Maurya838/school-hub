@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Shield, BookOpen, Settings } from "lucide-react";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { listAcademicYears } from "@/lib/academics";
-import { getAcademicSetupReadiness } from "@/lib/school-readiness";
-import { AcademicSessionsClient } from "@/components/academics/AcademicSessionsClient";
+import { listAcademicYears } from "@/modules/academics";
+import { getAcademicSetupReadiness } from "@/modules/onboarding";
+import { AcademicSessionsClient } from "@/modules/academics";
 
 interface PageProps {
   params: Promise<{

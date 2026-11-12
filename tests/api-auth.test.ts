@@ -6,8 +6,12 @@ import { POST as logoutHandler } from "../src/app/api/v1/auth/logout/route.js";
 import { GET as meHandler } from "../src/app/api/v1/auth/me/route.js";
 import { POST as forgotPasswordHandler } from "../src/app/api/v1/auth/forgot-password/route.js";
 import { prisma } from "../src/lib/prisma.js";
-import { hashPassword } from "../src/lib/password.js";
-import { createSessionToken, SESSION_COOKIE_NAME, getSession } from "../src/lib/auth.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
+import {
+  createSessionToken,
+  SESSION_COOKIE_NAME,
+  getSession,
+} from "../src/modules/auth/services/auth.js";
 import { sanitizeRedirectUrl } from "../src/proxy.js";
 
 describe("API Authentication & Route Security", () => {

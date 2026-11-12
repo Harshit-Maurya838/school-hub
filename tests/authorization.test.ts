@@ -2,8 +2,8 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
-import { hashPassword } from "../src/lib/password.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 import {
   hasPermission,
   requirePermission,
@@ -18,7 +18,7 @@ import {
   assertAttendanceMarkingAccess,
   assertCanManageTeachingAssignments,
   getTeacherActiveAssignments,
-} from "../src/lib/rbac.js";
+} from "../src/modules/auth/services/rbac.js";
 import { ForbiddenError } from "../src/lib/errors.js";
 import { Role } from "../src/generated/prisma/enums.js";
 import {

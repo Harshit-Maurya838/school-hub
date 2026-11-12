@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { resolveSchoolAndAuthorize } from "@/lib/academics";
+import { resolveSchoolAndAuthorize } from "@/modules/academics";
 import { BadRequestError } from "@/lib/errors";
-import { getTeacherDirectory, ensureTeacherProfile } from "@/lib/teachers";
+import { getTeacherDirectory, ensureTeacherProfile } from "@/modules/staff";
 
 type Context = RouteContext<{ schoolSlug: string }>;
 

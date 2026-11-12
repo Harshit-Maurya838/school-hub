@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
 import {

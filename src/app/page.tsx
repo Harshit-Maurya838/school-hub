@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { BrandMark } from "@/components/layout/PublicShell";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/common/FormControls";
 

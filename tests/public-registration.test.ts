@@ -8,8 +8,8 @@ import { GET as listRegistrationsHandler } from "../src/app/api/v1/platform/regi
 import { POST as approveRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/approve/route.js";
 import { POST as rejectRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/reject/route.js";
 import { DELETE as deleteRegistrationHandler } from "../src/app/api/v1/platform/registrations/[registrationId]/route.js";
-import { submitSchoolRegistration } from "../src/lib/school-registration.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
+import { submitSchoolRegistration } from "../src/modules/onboarding/services/school-registration.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
 import { getLatestEmailFor } from "../src/lib/email.js";
 
 describe("Phase 5: Public School Registration for Future SaaS Customers", () => {

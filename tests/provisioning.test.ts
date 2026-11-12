@@ -3,8 +3,8 @@ import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
 import { POST as provisionHandler } from "../src/app/api/v1/platform/schools/provision/route.js";
-import { provisionSchoolWithAdmin } from "../src/lib/provisioning.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
+import { provisionSchoolWithAdmin } from "../src/modules/onboarding/services/provisioning.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
 import { ConflictError } from "../src/lib/errors.js";
 
 describe("Phase 2: School Provisioning & First Customer Setup", () => {

@@ -54,6 +54,8 @@ Follow this decision tree when adding or modifying code:
    - If the code calculates averages, enforces workflow status transitions, manages financial balances, or verifies preconditions, it belongs in a module service.
 3. **Module UI Components (`src/modules/<domain>/components/`)**:
    - If a React component is specific to one domain (e.g. `AttendanceRegisterModal`, `ExamClient`, `FeesClient`), place it in that module's `components/` directory.
+   - Large screens are split into a controller hook plus view pieces: `useFeesController` / `useExamController` own all state, data fetching and handlers; each tab (`FeesOverviewTab`, `MarksEntryTab`, …) and modal group (`FeePaymentModals`, `ExamModals`, …) is its own file that takes `{ vm }` typed as `FeesController` / `ExamController`. Add new state to the controller and new UI to the matching tab, rather than growing `FeesClient.tsx` / `ExamClient.tsx`.
+   - Large services are split by area behind a hub: `fees/services/fees.ts` and `examinations/services/exam.ts` only re-export their parts (`fee-setup`, `fee-invoices`, `fee-payments`, `fee-reports`, `exam-lifecycle`, `exam-marks`, …). Internal helpers stay out of the hub, as `fee-sequence.ts` does.
 4. **Shared UI Components (`src/components/`)**:
    - Only truly shared primitives (`Badge`, `Modal`, `StatCard`) or cross-cutting layouts (`Sidebar`, `Header`) belong in `src/components/`.
    - Hairline UI components (shadcn registry) live in `src/components/hairline/` and are added with `npx shadcn@latest add https://hairlineui.com/r/<name>.json`. They read the shadcn theme tokens in `src/app/globals.css` (mapped to the slate/emerald palette); never hard-code colours into them. Installed so far: `number-roll` (used by `StatCard` for numeric values), `segmented-control`, `empty-state`, `command-palette` (the ⌘K palette in `GlobalSearchModal`), `earnings-chart` (the dashboard class chart), plus their dependencies. When the CLI asks to overwrite an existing file, answer no: `number-roll.tsx` carries a local fix (no empty `catch`).
@@ -84,7 +86,7 @@ Enforce a strict one-way dependency flow:
 ### Import Rules
 
 - **No Circular Imports**: Module A must never import from Module B if Module B imports from Module A.
-- **Infrastructure Isolation**: `src/lib/` files must never import from `src/modules/` or `src/app/`.
+- **Infrastructure Isolation**: `src/lib/` files must never import from `src/modules/` or `src/app/`, including re-export shims. Import domain code from `@/modules/<domain>`.
 - **Prefer `@/` Aliases**: Always use `@/modules/<domain>`, `@/components/...`, and `@/lib/...` for application code.
 - **Node.js Native Test Imports**: Test files in `tests/` executed with `node --import tsx` must import relative paths without breaking ESM resolution (e.g., `import { prisma } from "../src/lib/prisma.js"` or `import { ... } from "../src/modules/..."`).
 
@@ -96,30 +98,36 @@ Every API route handler must follow the standardized wrapper pattern:
 
 ```ts
 import { NextRequest } from "next/server";
-import { apiHandler } from "@/lib/api-handler";
+import { apiHandler, requestMeta, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { requireAuth, assertSchoolAccess } from "@/modules/auth";
+import { requireSchoolAccess } from "@/modules/auth";
 import { yourDomainServiceFunction } from "@/modules/<domain>";
 
-export const POST = apiHandler(async (req: NextRequest, { params }) => {
-  const { schoolSlug } = await params;
-  const user = await requireAuth(req);
-  const school = await assertSchoolAccess(user, schoolSlug);
+type Context = RouteContext<{ schoolSlug: string }>;
 
-  const body = await req.json();
+export const POST = apiHandler(async (req: NextRequest, context?: Context) => {
+  const { schoolSlug } = (await context?.params) ?? {};
+  // Authenticates, applies role/permission gates, loads the school by slug, enforces tenancy.
+  const { user, school } = await requireSchoolAccess(req, schoolSlug, {
+    roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+  });
+
   const result = await yourDomainServiceFunction({
     schoolId: school.id,
     actorUserId: user.id,
-    ...body,
+    input: await req.json().catch(() => ({})), // validated with Zod inside the service
+    ...requestMeta(req), // ipAddress + userAgent for audit logs
   });
 
-  return successResponse(result, 201);
+  return successResponse(result, undefined, 201); // (data, meta?, status)
 });
 ```
 
 ### Rules:
 
 - Always `await params` in dynamic Next.js 16 route handlers.
+- Never query Prisma from a route handler; put the query in the owning module's service.
+- `requireSchoolAccess` only checks tenancy plus the optional `roles` / `permission` gates. Module role policies stay in the module (`resolveSchoolAndAuthorize`, `resolveStudentSchoolAndAuthorize`, `resolveSchoolAndAuthorizeAttendance`, `resolveSchoolForExam`, `resolveSchoolForFees`), and all of them build on `findSchoolBySlug` / `requireSchoolAccess`.
 - Use `apiHandler(...)` to automatically catch errors and map them to HTTP responses.
 - Return structured JSON responses using `successResponse(data, statusCode)`.
 
@@ -143,7 +151,7 @@ Security invariants are strictly non-negotiable:
    - Revoke a user's sessions by incrementing `User.sessionVersion`; never trust a JWT without `getAuthenticatedUser` (it checks the version against the database).
 2. **Explicit Server-Side Authorization**:
    - Never trust client-side claims or hidden UI elements.
-   - For school actions, verify school access via `assertSchoolAccess(user, schoolSlug)`.
+   - For school actions, use `requireSchoolAccess(req, schoolSlug, ...)`, or `assertSchoolAccess(user, school.id)` when you already hold the user and school.
    - For teacher actions, verify active assignment via `assertAttendanceTeacherAccess(...)` or `assertMarksTeacherAccess(...)`.
    - For accountant actions, verify financial access via `assertCanViewSchoolFees(...)` or `assertCanCollectSchoolFees(...)`.
    - `SUPER_ADMIN` has platform scope (`schoolId = null`) and must not perform tenant-scoped operations without explicit administrative override.
@@ -272,6 +280,7 @@ For financial operations (Domain: Fees & Finance):
      - `email.test.ts`
      - `staff-profile-and-invitations.test.ts`
      - `password-reset.test.ts`
+     - `school-access.test.ts`
 
 ---
 

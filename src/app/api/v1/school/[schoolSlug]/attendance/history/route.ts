@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { getHistoricalRegisters, resolveSchoolAndAuthorizeAttendance } from "@/lib/attendance";
+import { getHistoricalRegisters, resolveSchoolAndAuthorizeAttendance } from "@/modules/attendance";
 import { RegisterStatus } from "@/generated/prisma/enums";
 
 type Context = RouteContext<{ schoolSlug: string }>;

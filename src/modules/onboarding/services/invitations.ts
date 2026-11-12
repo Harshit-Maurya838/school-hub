@@ -1,7 +1,8 @@
 import crypto from "crypto";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@/generated/prisma/enums";
-import { hashPassword } from "@/lib/password";
+import { hashPassword } from "@/modules/auth";
 import { BadRequestError, ConflictError, NotFoundError, ForbiddenError } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit";
 import { sendInvitationEmail } from "@/lib/email";
@@ -526,4 +527,123 @@ export async function resendInvitation(params: ResendInvitationParams) {
     ipAddress: params.ipAddress,
     userAgent: params.userAgent,
   });
+}
+
+export const schoolInvitationSchema = z.object({
+  email: z
+    .string()
+    .transform((val) => val.trim().toLowerCase())
+    .pipe(z.string().email("Invalid email address")),
+  role: z.enum(["TEACHER", "ACCOUNTANT", "PARENT", "STUDENT"], {
+    message: "Role must be TEACHER, ACCOUNTANT, PARENT, or STUDENT",
+  }),
+  guardianId: z.string().optional(),
+  studentId: z.string().optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+/**
+ * Validates an admin's invitation request and issues it. Admin roles can never be invited this
+ * way, and parent/student invitations must name the record they link to.
+ */
+export async function inviteToSchool(params: {
+  schoolId: string;
+  invitedById: string;
+  input: unknown;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const validated = schoolInvitationSchema.parse(params.input);
+
+  // Defence in depth: the schema already excludes these roles.
+  if (
+    (validated.role as string) === "SUPER_ADMIN" ||
+    (validated.role as string) === "SCHOOL_ADMIN"
+  ) {
+    throw new ForbiddenError("School administrators cannot invite platform or school admin roles");
+  }
+  if (validated.role === "PARENT" && !validated.guardianId) {
+    throw new BadRequestError(
+      "A guardian record ID (guardianId) is required to issue a Parent invitation"
+    );
+  }
+  if (validated.role === "STUDENT" && !validated.studentId) {
+    throw new BadRequestError(
+      "A student record ID (studentId) is required to issue a Student invitation"
+    );
+  }
+
+  return issueInvitation({
+    schoolId: params.schoolId,
+    email: validated.email,
+    role: validated.role as Role,
+    invitedById: params.invitedById,
+    guardianId: validated.guardianId,
+    studentId: validated.studentId,
+    metadata: validated.metadata,
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+  });
+}
+
+export async function listSchoolInvitations(schoolId: string) {
+  return prisma.invitation.findMany({
+    where: { schoolId },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      status: true,
+      expiresAt: true,
+      acceptedAt: true,
+      revokedAt: true,
+      createdAt: true,
+      guardian: { select: { id: true, name: true, phone: true } },
+      student: { select: { id: true, name: true, admissionNumber: true } },
+      invitedBy: { select: { id: true, name: true, email: true } },
+    },
+  });
+}
+
+/** Revokes a pending invitation of this school. Accepted or already revoked ones are rejected. */
+export async function revokeInvitation(params: {
+  schoolId: string;
+  invitationId: string;
+  actorUserId: string;
+  ipAddress?: string;
+  userAgent?: string;
+}) {
+  const invitation = await prisma.invitation.findFirst({
+    where: { id: params.invitationId, schoolId: params.schoolId },
+  });
+
+  if (!invitation) {
+    throw new NotFoundError("Invitation not found");
+  }
+  if (invitation.status === "REVOKED") {
+    throw new BadRequestError("Invitation has already been revoked");
+  }
+  if (invitation.status === "ACCEPTED") {
+    throw new BadRequestError("Cannot revoke an invitation that has already been accepted");
+  }
+
+  const updated = await prisma.invitation.update({
+    where: { id: invitation.id },
+    data: { status: "REVOKED", revokedAt: new Date() },
+    select: { id: true, email: true, role: true, status: true, revokedAt: true },
+  });
+
+  await logAuditEvent({
+    action: "INVITATION_REVOKED",
+    entityType: "Invitation",
+    entityId: invitation.id,
+    schoolId: params.schoolId,
+    userId: params.actorUserId,
+    details: { email: invitation.email, role: invitation.role },
+    ipAddress: params.ipAddress,
+    userAgent: params.userAgent,
+  });
+
+  return updated;
 }

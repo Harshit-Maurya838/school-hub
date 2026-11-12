@@ -1,7 +1,7 @@
 // Role Based Access Control & Assignment-Scoped Authorization Engine
 import { Role } from "@/generated/prisma/enums";
 import { AuthenticatedUser, getAuthenticatedUser } from "./auth";
-import { ForbiddenError, UnauthorizedError } from "@/lib/errors";
+import { BadRequestError, ForbiddenError, NotFoundError, UnauthorizedError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import { NextRequest } from "next/server";
 
@@ -229,6 +229,54 @@ export function requirePermission(user: AuthenticatedUser, permission: Permissio
   if (!hasPermission(user.role, permission)) {
     throw new ForbiddenError(`Access denied: missing permission '${permission}'`);
   }
+}
+
+export type SchoolRef = {
+  id: string;
+  name: string;
+  slug: string;
+  code: string;
+  isActive: boolean;
+};
+
+/**
+ * Loads a school by its URL slug. 400 for a blank slug; 404 when no school matches, or when
+ * `requireActive` is set and the school is suspended.
+ */
+export async function findSchoolBySlug(
+  slug: string | undefined | null,
+  options: { requireActive?: boolean } = {}
+): Promise<SchoolRef> {
+  if (!slug || typeof slug !== "string" || !slug.trim()) {
+    throw new BadRequestError("Valid school slug is required");
+  }
+  const school = await prisma.school.findUnique({
+    where: { slug: slug.trim() },
+    select: { id: true, name: true, slug: true, code: true, isActive: true },
+  });
+  if (!school) throw new NotFoundError("School not found");
+  if (options.requireActive && !school.isActive) {
+    throw new NotFoundError("School not found or is inactive");
+  }
+  return school;
+}
+
+/**
+ * The standard entry point for school-scoped route handlers: authenticates the request, applies
+ * the optional role and permission gates, loads the school and enforces tenant access.
+ * Module-specific role policies (e.g. "only admins may write") stay in each module.
+ */
+export async function requireSchoolAccess(
+  req: NextRequest | Request,
+  slug: string | undefined | null,
+  options: { roles?: Role[]; permission?: Permission; requireActive?: boolean } = {}
+): Promise<{ user: AuthenticatedUser; school: SchoolRef }> {
+  const user = await requireAuth(req);
+  if (options.roles) requireRole(user, options.roles);
+  if (options.permission) requirePermission(user, options.permission);
+  const school = await findSchoolBySlug(slug, { requireActive: options.requireActive });
+  assertSchoolAccess(user, school.id);
+  return { user, school };
 }
 
 /**

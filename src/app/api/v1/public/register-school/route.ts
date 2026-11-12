@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { submitSchoolRegistration } from "@/lib/school-registration";
+import { submitSchoolRegistration } from "@/modules/onboarding";
 
 const registrationSchema = z.object({
   schoolName: z.string().min(2, "School name must be at least 2 characters"),

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { verifyInvitation } from "@/lib/invitations";
+import { verifyInvitation } from "@/modules/onboarding";
 
 export const GET = apiHandler(async (req: NextRequest) => {
   const token = req.nextUrl.searchParams.get("token");

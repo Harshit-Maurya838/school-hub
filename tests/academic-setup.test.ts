@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
 import { POST as createYearHandler } from "../src/app/api/v1/school/[schoolSlug]/academics/years/route.js";
 import { DELETE as deleteYearHandler } from "../src/app/api/v1/school/[schoolSlug]/academics/years/[yearId]/route.js";
 import { POST as setCurrentYearHandler } from "../src/app/api/v1/school/[schoolSlug]/academics/years/[yearId]/set-current/route.js";

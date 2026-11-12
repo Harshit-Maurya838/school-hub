@@ -6,7 +6,7 @@ import {
   enrollmentInputSchema,
   enrollStudent,
   resolveStudentSchoolAndAuthorize,
-} from "@/lib/students";
+} from "@/modules/students";
 
 type Context = RouteContext<{ schoolSlug: string; studentId: string }>;
 

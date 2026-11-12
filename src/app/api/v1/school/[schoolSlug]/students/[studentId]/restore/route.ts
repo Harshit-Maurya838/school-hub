@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { resolveStudentSchoolAndAuthorize, restoreStudent } from "@/lib/students";
+import { resolveStudentSchoolAndAuthorize, restoreStudent } from "@/modules/students";
 
 type Context = RouteContext<{ schoolSlug: string; studentId: string }>;
 

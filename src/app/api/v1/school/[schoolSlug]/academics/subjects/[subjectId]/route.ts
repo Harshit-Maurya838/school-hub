@@ -6,7 +6,7 @@ import {
   resolveSchoolAndAuthorize,
   updateSubject,
   updateSubjectSchema,
-} from "@/lib/academics";
+} from "@/modules/academics";
 import { BadRequestError } from "@/lib/errors";
 
 type Context = RouteContext<{ schoolSlug: string; subjectId: string }>;

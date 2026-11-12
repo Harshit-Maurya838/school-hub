@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { requireAuth, requireRole, requirePermission } from "@/lib/rbac";
-import { provisionSchoolWithAdmin } from "@/lib/provisioning";
+import { requireAuth, requireRole, requirePermission } from "@/modules/auth";
+import { provisionSchoolWithAdmin } from "@/modules/onboarding";
 
 const provisionSchoolSchema = z.object({
   name: z.string().min(2, "School name must be at least 2 characters"),

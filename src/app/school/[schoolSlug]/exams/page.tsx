@@ -1,9 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser, getTeacherActiveAssignments } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { ExamClient } from "@/components/exams/ExamClient";
-import { getTeacherActiveAssignments } from "@/lib/rbac";
+import { ExamClient } from "@/modules/examinations";
 import { Shield, BookOpen } from "lucide-react";
 
 interface ExamPageProps {

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect, notFound } from "next/navigation";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 import { SchoolLayoutClient } from "@/components/layout/SchoolLayoutClient";
 import type { ManagementContact } from "@/components/layout/topbar/ProfileMenu";

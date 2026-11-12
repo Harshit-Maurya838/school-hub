@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { requireAuth, requireRole, requirePermission } from "@/lib/rbac";
-import { deleteRegistration } from "@/lib/school-registration";
+import { requireAuth, requireRole, requirePermission } from "@/modules/auth";
+import { deleteRegistration } from "@/modules/onboarding";
 import { BadRequestError } from "@/lib/errors";
 
 type Context = RouteContext<{ registrationId: string }>;

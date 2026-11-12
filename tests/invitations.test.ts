@@ -6,8 +6,11 @@ import { POST as inviteHandler } from "../src/app/api/v1/school/[schoolSlug]/inv
 import { POST as revokeHandler } from "../src/app/api/v1/school/[schoolSlug]/invitations/[invitationId]/revoke/route.js";
 import { GET as verifyHandler } from "../src/app/api/v1/auth/invitations/verify/route.js";
 import { POST as acceptHandler } from "../src/app/api/v1/auth/invitations/accept/route.js";
-import { issueInvitation, acceptInvitation } from "../src/lib/invitations.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
+import {
+  issueInvitation,
+  acceptInvitation,
+} from "../src/modules/onboarding/services/invitations.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
 import { BadRequestError } from "../src/lib/errors.js";
 
 describe("Phase 3: Staff Invitation Flow & Acceptance Security", () => {

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { getAttendanceOverview, resolveSchoolAndAuthorizeAttendance } from "@/lib/attendance";
+import { getAttendanceOverview, resolveSchoolAndAuthorizeAttendance } from "@/modules/attendance";
 
 type Context = RouteContext<{ schoolSlug: string }>;
 

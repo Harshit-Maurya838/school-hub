@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { RegistrationStatus } from "@/generated/prisma/enums";
 import { BadRequestError, ConflictError, NotFoundError } from "@/lib/errors";
 import { normalizeCode, normalizeSlug, provisionSchoolWithAdmin } from "./provisioning";
 import { generateRawToken, hashToken } from "./invitations";
@@ -408,4 +409,20 @@ export async function deleteRegistration(registrationId: string, deletedByUserId
     message: "Registration application permanently deleted",
     deletedRegistration: registration,
   };
+}
+
+/** Platform view of school registrations, newest first, optionally filtered by status. */
+export async function listSchoolRegistrations(status?: string | null) {
+  // An unknown status used to reach Prisma and fail as a 500.
+  if (status && !Object.values(RegistrationStatus).includes(status as RegistrationStatus)) {
+    throw new BadRequestError(`Unknown registration status '${status}'`);
+  }
+  return prisma.schoolRegistration.findMany({
+    where: status ? { status: status as RegistrationStatus } : {},
+    orderBy: { createdAt: "desc" },
+    include: {
+      reviewedBy: { select: { id: true, name: true, email: true } },
+      school: { select: { id: true, name: true, slug: true, code: true } },
+    },
+  });
 }

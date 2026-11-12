@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Building2, Clock, GraduationCap, Plus, Users } from "lucide-react";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/common/Badge";
 import { StatCard } from "@/components/common/StatCard";

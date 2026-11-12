@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { PreconditionFailedError } from "@/lib/errors";
+import { z } from "zod";
+import { ConflictError, PreconditionFailedError } from "@/lib/errors";
+import { logAuditEvent } from "@/lib/audit";
+import { normalizeCode } from "./provisioning";
 
 export interface SchoolDetailsReadiness {
   isReady: boolean;
@@ -714,4 +717,76 @@ export async function assertClassAndSectionForSchool(
   }
 
   return { classRecord, sectionRecord };
+}
+
+export const updateSchoolDetailsSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "School name must be at least 2 characters")
+    .max(100, "School name too long")
+    .optional(),
+  code: z
+    .string()
+    .trim()
+    .min(2, "School code must be at least 2 characters")
+    .max(50, "School code too long")
+    .optional(),
+});
+
+/** Renames a school or changes its code (unique across the platform) and audits the change. */
+export async function updateSchoolDetails(params: {
+  school: { id: string; name: string; code: string };
+  actorUserId: string;
+  input: unknown;
+}) {
+  const { school } = params;
+  const validated = updateSchoolDetailsSchema.parse(params.input);
+  const updateData: { name?: string; code?: string } = {};
+
+  if (validated.name && validated.name.trim() !== school.name) {
+    updateData.name = validated.name.trim();
+  }
+
+  if (validated.code) {
+    const normalized = normalizeCode(validated.code);
+    if (normalized !== school.code) {
+      const existing = await prisma.school.findUnique({
+        where: { code: normalized },
+        select: { id: true },
+      });
+      if (existing && existing.id !== school.id) {
+        throw new ConflictError(`School code '${normalized}' is already in use by another school`);
+      }
+      updateData.code = normalized;
+    }
+  }
+
+  if (Object.keys(updateData).length === 0) return null;
+
+  const updated = await prisma.school.update({
+    where: { id: school.id },
+    data: updateData,
+    select: {
+      id: true,
+      name: true,
+      code: true,
+      slug: true,
+      isActive: true,
+      status: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  await logAuditEvent({
+    action: "SCHOOL_UPDATED",
+    entityType: "School",
+    entityId: school.id,
+    schoolId: school.id,
+    userId: params.actorUserId,
+    details: updateData,
+  });
+
+  return updated;
 }

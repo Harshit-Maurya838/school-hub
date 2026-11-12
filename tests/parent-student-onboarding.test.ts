@@ -7,8 +7,11 @@ import {
   GET as listStudentsHandler,
 } from "../src/app/api/v1/school/[schoolSlug]/students/route.js";
 import { GET as getStudentHandler } from "../src/app/api/v1/school/[schoolSlug]/students/[studentId]/route.js";
-import { issueInvitation, acceptInvitation } from "../src/lib/invitations.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
+import {
+  issueInvitation,
+  acceptInvitation,
+} from "../src/modules/onboarding/services/invitations.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
 
 describe("Phase 4: Parent & Student Onboarding and Boundary Enforcement", () => {
   let school: { id: string; slug: string; name: string };

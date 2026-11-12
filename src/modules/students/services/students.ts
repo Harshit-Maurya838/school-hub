@@ -1,14 +1,22 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import {
-  BadRequestError,
   ConflictError,
   ForbiddenError,
   NotFoundError,
   PreconditionFailedError,
 } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit";
-import { AuthenticatedUser, assertSchoolAccess, requireAuth, requireRole } from "@/modules/auth";
+import {
+  AuthenticatedUser,
+  assertParentStudentAccess,
+  assertStudentAccess,
+  assertStudentOwnAccess,
+  getTeacherActiveAssignments,
+  requireRole,
+  requireSchoolAccess,
+  sanitizeStudentForAccountant,
+} from "@/modules/auth";
 import { NextRequest } from "next/server";
 import { Gender, GuardianRelationship } from "@/generated/prisma/enums";
 import { assertCanAdmitStudent, assertClassAndSectionForSchool } from "@/modules/onboarding";
@@ -30,22 +38,7 @@ export async function resolveStudentSchoolAndAuthorize(
   schoolSlug: string,
   requiredAction: "read" | "write"
 ): Promise<StudentSchoolContext> {
-  const user = await requireAuth(req);
-
-  if (!schoolSlug || typeof schoolSlug !== "string") {
-    throw new BadRequestError("Valid school slug is required");
-  }
-
-  const school = await prisma.school.findUnique({
-    where: { slug: schoolSlug.trim() },
-    select: { id: true, name: true, slug: true, code: true, isActive: true },
-  });
-
-  if (!school) {
-    throw new NotFoundError("School not found");
-  }
-
-  assertSchoolAccess(user, school.id);
+  const { user, school } = await requireSchoolAccess(req, schoolSlug);
 
   if (requiredAction === "write") {
     // Platform Super Admin or School Admin of this specific school
@@ -984,4 +977,189 @@ export async function addStudentGuardian(
   });
 
   return link;
+}
+
+/**
+ * Student list scoped to the caller: parents see their linked children, students see themselves,
+ * teachers see their assigned sections, and admins/accountants see the school (accountants
+ * receive sanitized records). Returns the response payload and optional pagination meta.
+ */
+export async function listStudentsForUser(
+  user: AuthenticatedUser,
+  school: { id: string },
+  searchParams: URLSearchParams
+): Promise<{ data: Record<string, unknown>; meta?: Record<string, unknown> }> {
+  const respond = (data: Record<string, unknown>, meta?: Record<string, unknown>) => ({
+    data,
+    meta,
+  });
+
+  // Parent scope: only return children linked to this guardian profile
+  if (user.role === "PARENT") {
+    const guardian = await prisma.guardian.findFirst({
+      where: { userId: user.id, schoolId: school.id },
+      select: { id: true },
+    });
+
+    if (!guardian) {
+      return respond({ students: [] });
+    }
+
+    const links = await prisma.studentGuardian.findMany({
+      where: { guardianId: guardian.id, schoolId: school.id },
+      include: {
+        student: {
+          select: {
+            id: true,
+            name: true,
+            admissionNumber: true,
+            dob: true,
+            gender: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+
+    const students = links.map((l) => ({
+      ...l.student,
+      relationship: l.relationship,
+      isPrimary: l.isPrimary,
+    }));
+
+    return respond({ students });
+  }
+
+  // Student scope: only return their own record
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findFirst({
+      where: { userId: user.id, schoolId: school.id },
+      select: {
+        id: true,
+        name: true,
+        admissionNumber: true,
+        dob: true,
+        gender: true,
+        isActive: true,
+      },
+    });
+
+    return respond({ students: student ? [student] : [] });
+  }
+
+  // Staff and Admin scope: supports search, filtering, and database-level pagination
+  if (user.role !== "SUPER_ADMIN") {
+    requireRole(user, ["SCHOOL_ADMIN", "TEACHER", "ACCOUNTANT"]);
+  }
+
+  const search = searchParams.get("search") || undefined;
+  const academicYearId = searchParams.get("academicYearId") || undefined;
+  const classId = searchParams.get("classId") || undefined;
+  const sectionId = searchParams.get("sectionId") || undefined;
+
+  let permittedSectionIds: string[] | undefined = undefined;
+
+  if (user.role === "TEACHER") {
+    const teacherAssignments = await getTeacherActiveAssignments(
+      school.id,
+      user.id,
+      academicYearId
+    );
+    if (!teacherAssignments || teacherAssignments.allPermittedSectionIds.length === 0) {
+      // Teacher has no active assignments: return empty result
+      return respond({
+        students: [],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 0,
+          totalPages: 0,
+          hasMore: false,
+        },
+      });
+    }
+
+    if (sectionId) {
+      if (!teacherAssignments.allPermittedSectionIds.includes(sectionId)) {
+        throw new ForbiddenError(`Access denied: You are not assigned to Section '${sectionId}'`);
+      }
+    } else {
+      permittedSectionIds = teacherAssignments.allPermittedSectionIds;
+    }
+  }
+
+  const statusParam = searchParams.get("status");
+  const status =
+    statusParam === "ACTIVE" ||
+    statusParam === "INACTIVE" ||
+    statusParam === "ARCHIVED" ||
+    statusParam === "ALL"
+      ? statusParam
+      : undefined;
+
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const limit = parseInt(searchParams.get("limit") || "10", 10);
+  const sortByParam = searchParams.get("sortBy");
+  const sortBy =
+    sortByParam === "name" || sortByParam === "admissionNumber" || sortByParam === "createdAt"
+      ? sortByParam
+      : "createdAt";
+  const sortOrderParam = searchParams.get("sortOrder");
+  const sortOrder = sortOrderParam === "asc" ? "asc" : "desc";
+
+  const result = await listStudents({
+    schoolId: school.id,
+    search,
+    academicYearId,
+    classId,
+    sectionId,
+    sectionIds: permittedSectionIds,
+    status,
+    page: isNaN(page) ? 1 : page,
+    limit: isNaN(limit) ? 10 : limit,
+    sortBy,
+    sortOrder,
+  });
+
+  const students =
+    user.role === "ACCOUNTANT"
+      ? result.students.map((st) => sanitizeStudentForAccountant(st))
+      : result.students;
+
+  return respond(
+    {
+      students,
+      pagination: result.pagination,
+    },
+    result.pagination
+  );
+}
+
+/**
+ * One student profile with resource-level access: parents and students only reach linked or own
+ * records (never archived ones), teachers only their assigned students, accountants get a
+ * sanitized record. The caller must already have passed the school tenant check.
+ */
+export async function getStudentForUser(
+  user: AuthenticatedUser,
+  schoolId: string,
+  studentId: string
+) {
+  if (user.role === "PARENT") {
+    await assertParentStudentAccess(user, studentId);
+  } else if (user.role === "STUDENT") {
+    await assertStudentOwnAccess(user, studentId);
+  } else if (user.role === "TEACHER") {
+    await assertStudentAccess(user, studentId);
+  }
+
+  const student = await getStudentById(schoolId, studentId);
+
+  if ((user.role === "PARENT" || user.role === "STUDENT") && student.deletedAt) {
+    throw new NotFoundError("Student not found");
+  }
+
+  return user.role === "ACCOUNTANT"
+    ? sanitizeStudentForAccountant(student as unknown as Record<string, unknown>)
+    : student;
 }

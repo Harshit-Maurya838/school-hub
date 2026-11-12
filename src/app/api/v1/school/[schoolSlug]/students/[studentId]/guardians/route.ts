@@ -6,7 +6,7 @@ import {
   addStudentGuardian,
   guardianInputSchema,
   resolveStudentSchoolAndAuthorize,
-} from "@/lib/students";
+} from "@/modules/students";
 import { GuardianRelationship } from "@/generated/prisma/enums";
 
 type Context = RouteContext<{ schoolSlug: string; studentId: string }>;

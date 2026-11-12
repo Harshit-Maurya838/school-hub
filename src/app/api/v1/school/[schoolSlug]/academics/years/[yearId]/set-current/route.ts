@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { resolveSchoolAndAuthorize, setCurrentAcademicYear } from "@/lib/academics";
+import { resolveSchoolAndAuthorize, setCurrentAcademicYear } from "@/modules/academics";
 import { BadRequestError } from "@/lib/errors";
 
 type Context = RouteContext<{ schoolSlug: string; yearId: string }>;

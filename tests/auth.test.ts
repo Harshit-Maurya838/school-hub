@@ -1,12 +1,12 @@
 import { describe, it } from "node:test";
 import assert from "node:assert";
-import { hashPassword, verifyPassword } from "../src/lib/password.js";
+import { hashPassword, verifyPassword } from "../src/modules/auth/services/password.js";
 import {
   createSessionToken,
   verifySessionToken,
   getSessionCookieOptions,
   SESSION_COOKIE_NAME,
-} from "../src/lib/auth.js";
+} from "../src/modules/auth/services/auth.js";
 
 describe("Authentication & Password Security", () => {
   it("should securely hash and verify passwords using bcrypt", async () => {

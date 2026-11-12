@@ -2,8 +2,8 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
-import { hashPassword } from "../src/lib/password.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 import {
   Role,
   ExamType,
@@ -24,9 +24,9 @@ import {
   publishExamResults,
   adminCorrectMarks,
   getExamReports,
-} from "../src/lib/exam.js";
+} from "../src/modules/examinations/services/exam.js";
 import { BadRequestError, ForbiddenError } from "../src/lib/errors.js";
-import { AuthenticatedUser } from "../src/lib/auth.js";
+import { AuthenticatedUser } from "../src/modules/auth/services/auth.js";
 
 import { GET as getExamsHandler } from "../src/app/api/v1/school/[schoolSlug]/exams/route.js";
 import { GET as getExamDetailsHandler } from "../src/app/api/v1/school/[schoolSlug]/exams/[examId]/route.js";

@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   AuthenticatedUser,
   getTeacherActiveAssignments,
-  assertSchoolAccess,
-  requireAuth,
+  requireSchoolAccess,
 } from "@/modules/auth";
 import {
   BadRequestError,
@@ -1402,23 +1401,7 @@ export async function resolveSchoolAndAuthorizeAttendance(
   school: { id: string; name: string; slug: string; code: string; isActive: boolean };
   user: AuthenticatedUser;
 }> {
-  const user = await requireAuth(req);
-
-  if (!schoolSlug || typeof schoolSlug !== "string") {
-    throw new BadRequestError("Valid school slug is required");
-  }
-
-  const school = await prisma.school.findUnique({
-    where: { slug: schoolSlug.trim() },
-    select: { id: true, name: true, slug: true, code: true, isActive: true },
-  });
-
-  if (!school) {
-    throw new NotFoundError("School not found");
-  }
-
-  // Cross-tenant verification
-  assertSchoolAccess(user, school.id);
+  const { user, school } = await requireSchoolAccess(req, schoolSlug);
 
   // Accountant is strictly forbidden from attendance module
   if (user.role === "ACCOUNTANT") {

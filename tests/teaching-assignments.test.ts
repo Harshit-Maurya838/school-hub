@@ -2,16 +2,16 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
-import { hashPassword } from "../src/lib/password.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 import {
   assignClassTeacher,
   assignSubjectTeacher,
   removeSubjectTeacherAssignment,
   calculateTeacherWorkload,
   getSectionTeachingAssignments,
-} from "../src/lib/teaching-assignments.js";
-import { assertTeacherAccess } from "../src/lib/rbac.js";
+} from "../src/modules/staff/services/teaching-assignments.js";
+import { assertTeacherAccess } from "../src/modules/auth/services/rbac.js";
 import { POST as assignClassTeacherHandler } from "../src/app/api/v1/school/[schoolSlug]/academics/assignments/class-teacher/route.js";
 import { POST as assignSubjectTeacherHandler } from "../src/app/api/v1/school/[schoolSlug]/academics/assignments/subject-teacher/route.js";
 

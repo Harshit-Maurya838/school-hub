@@ -1,10 +1,13 @@
 import { redirect, notFound } from "next/navigation";
-import { getAuthenticatedUser } from "@/lib/auth";
+import {
+  getAuthenticatedUser,
+  assertParentStudentAccess,
+  assertStudentOwnAccess,
+} from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { assertParentStudentAccess, assertStudentOwnAccess } from "@/lib/rbac";
-import { getStudentById } from "@/lib/students";
-import { StudentNav } from "@/components/students/StudentNav";
-import { StudentDetail, StudentProfileClient } from "@/components/students/StudentProfileClient";
+import { getStudentById } from "@/modules/students";
+import { StudentNav } from "@/modules/students";
+import { StudentDetail, StudentProfileClient } from "@/modules/students";
 
 interface PageProps {
   params: Promise<{
@@ -56,7 +59,7 @@ export default async function StudentDetailPage({ params }: PageProps) {
   } else if (user.role === "STUDENT") {
     await assertStudentOwnAccess(user, studentId);
   } else if (user.role === "TEACHER") {
-    const { canAccessStudent } = await import("@/lib/rbac");
+    const { canAccessStudent } = await import("@/modules/auth");
     const allowed = await canAccessStudent(user, studentId);
     if (!allowed) {
       const { Shield } = await import("lucide-react");

@@ -1,5 +1,5 @@
 import { prisma } from "../src/lib/prisma";
-import { hashPassword } from "../src/lib/password";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 
 async function seed() {
   console.log("\n========================================================");

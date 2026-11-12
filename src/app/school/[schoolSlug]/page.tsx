@@ -13,12 +13,11 @@ import {
   Layers,
   CalendarRange,
 } from "lucide-react";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser, canViewSchoolFees } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 import { formatINR } from "@/lib/utils";
-import { getAcademicSetupReadiness } from "@/lib/school-readiness";
+import { getAcademicSetupReadiness } from "@/modules/onboarding";
 import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
-import { canViewSchoolFees } from "@/modules/auth";
 import { getFeeDashboardSummary, getClassWiseCollectionSummary } from "@/modules/fees";
 import { getAttendanceDaySummary } from "@/modules/attendance";
 import { StatCard } from "@/components/common/StatCard";
@@ -157,9 +156,9 @@ export default async function SchoolSlugPage({ params }: SchoolPageProps) {
     ? Object.values(schoolProfile.completion).filter(Boolean).length
     : 0;
 
-  let teacherAssignments: import("@/lib/rbac").TeacherAssignmentContext | null = null;
+  let teacherAssignments: import("@/modules/auth").TeacherAssignmentContext | null = null;
   if (isTeacher) {
-    const { getTeacherActiveAssignments } = await import("@/lib/rbac");
+    const { getTeacherActiveAssignments } = await import("@/modules/auth");
     teacherAssignments = await getTeacherActiveAssignments(school.id, user.id, currentYear?.id);
   }
   const permittedSectionIds = teacherAssignments?.allPermittedSectionIds ?? [];

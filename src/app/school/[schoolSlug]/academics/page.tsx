@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { AcademicNav } from "@/components/academics/AcademicNav";
-import { AcademicHubClient } from "@/components/academics/AcademicHubClient";
-import { getAcademicOverview, listAcademicYears } from "@/lib/academics";
+import { AcademicNav } from "@/modules/academics";
+import { AcademicHubClient } from "@/modules/academics";
+import { getAcademicOverview, listAcademicYears } from "@/modules/academics";
 
 interface PageProps {
   params: Promise<{

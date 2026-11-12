@@ -3,8 +3,8 @@ import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
 import { Prisma } from "../src/generated/prisma/client.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
-import { hashPassword } from "../src/lib/password.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 import { Role, PaymentMethod } from "../src/generated/prisma/enums.js";
 import {
   createFeeHead,
@@ -25,9 +25,9 @@ import {
   getClassWiseCollectionSummary,
   getStudentFeeAccount,
   getFeeDashboardSummary,
-} from "../src/lib/fees.js";
+} from "../src/modules/fees/services/fees.js";
 import { BadRequestError, ConflictError, ForbiddenError } from "../src/lib/errors.js";
-import { AuthenticatedUser } from "../src/lib/auth.js";
+import { AuthenticatedUser } from "../src/modules/auth/services/auth.js";
 
 import { GET as getOverviewHandler } from "../src/app/api/v1/school/[schoolSlug]/fees/overview/route.js";
 import { POST as createHeadHandler } from "../src/app/api/v1/school/[schoolSlug]/fees/heads/route.js";

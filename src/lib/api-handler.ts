@@ -13,6 +13,14 @@ type RouteHandler<T, P = Record<string, string | string[]>> = (
   context?: RouteContext<P>
 ) => Promise<NextResponse<T>> | NextResponse;
 
+/** Client IP and user agent for audit logging. */
+export function requestMeta(req: NextRequest) {
+  return {
+    ipAddress: req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown",
+    userAgent: req.headers.get("user-agent") || "unknown",
+  };
+}
+
 export function apiHandler<T, P = Record<string, string | string[]>>(handler: RouteHandler<T, P>) {
   return async (req: NextRequest, context?: RouteContext<P>): Promise<NextResponse> => {
     try {

@@ -2,16 +2,16 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert";
 import { NextRequest } from "next/server";
 import { prisma } from "../src/lib/prisma.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
-import { hashPassword } from "../src/lib/password.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 import { Role } from "../src/generated/prisma/enums.js";
 import {
   normalizeAttendanceDate,
   saveAttendanceDraft,
   getAttendanceDaySummary,
-} from "../src/lib/attendance.js";
+} from "../src/modules/attendance/services/attendance.js";
 import { BadRequestError, ForbiddenError } from "../src/lib/errors.js";
-import type { AuthenticatedUser } from "../src/lib/auth.js";
+import type { AuthenticatedUser } from "../src/modules/auth/services/auth.js";
 import { GET as getOverviewHandler } from "../src/app/api/v1/school/[schoolSlug]/attendance/overview/route.js";
 import { GET as getRegisterHandler } from "../src/app/api/v1/school/[schoolSlug]/attendance/register/route.js";
 import { POST as postDraftHandler } from "../src/app/api/v1/school/[schoolSlug]/attendance/register/draft/route.js";

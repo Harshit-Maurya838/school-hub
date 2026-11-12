@@ -1,9 +1,8 @@
 import { notFound, redirect } from "next/navigation";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser, assertTeacherAccess } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { assertTeacherAccess } from "@/lib/rbac";
-import { getTeacherProfile } from "@/lib/teachers";
-import { TeacherProfileClient } from "@/components/staff/TeacherProfileClient";
+import { getTeacherProfile } from "@/modules/staff";
+import { TeacherProfileClient } from "@/modules/staff";
 import { Shield } from "lucide-react";
 import Link from "next/link";
 

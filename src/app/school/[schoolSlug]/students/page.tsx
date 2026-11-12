@@ -1,12 +1,9 @@
 import { redirect, notFound } from "next/navigation";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { listStudents } from "@/lib/students";
-import { StudentNav } from "@/components/students/StudentNav";
-import {
-  StudentDirectoryClient,
-  StudentListItem,
-} from "@/components/students/StudentDirectoryClient";
+import { listStudents } from "@/modules/students";
+import { StudentNav } from "@/modules/students";
+import { StudentDirectoryClient, StudentListItem } from "@/modules/students";
 
 interface PageProps {
   params: Promise<{
@@ -77,7 +74,7 @@ export default async function StudentsDirectoryPage({ params }: PageProps) {
   let sections = allSections;
 
   if (user.role === "TEACHER") {
-    const { getTeacherActiveAssignments } = await import("@/lib/rbac");
+    const { getTeacherActiveAssignments } = await import("@/modules/auth");
     const teacherAssignments = await getTeacherActiveAssignments(
       school.id,
       user.id,

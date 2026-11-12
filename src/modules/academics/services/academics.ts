@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from "@/lib/errors";
 import { logAuditEvent } from "@/lib/audit";
-import { AuthenticatedUser, assertSchoolAccess, requireAuth, requireRole } from "@/modules/auth";
+import { AuthenticatedUser, requireRole, requireSchoolAccess } from "@/modules/auth";
 import { NextRequest } from "next/server";
 import {
   assertCanMutateAcademicYear,
@@ -29,23 +29,7 @@ export async function resolveSchoolAndAuthorize(
   schoolSlug: string,
   requiredAction: "read" | "write"
 ): Promise<SchoolContext> {
-  const user = await requireAuth(req);
-
-  if (!schoolSlug || typeof schoolSlug !== "string") {
-    throw new BadRequestError("Valid school slug is required");
-  }
-
-  const school = await prisma.school.findUnique({
-    where: { slug: schoolSlug.trim() },
-    select: { id: true, name: true, slug: true, code: true, isActive: true },
-  });
-
-  if (!school) {
-    throw new NotFoundError("School not found");
-  }
-
-  // Cross-tenant verification
-  assertSchoolAccess(user, school.id);
+  const { user, school } = await requireSchoolAccess(req, schoolSlug);
 
   if (requiredAction === "write") {
     // Only SCHOOL_ADMIN belonging to this school can mutate academic configuration

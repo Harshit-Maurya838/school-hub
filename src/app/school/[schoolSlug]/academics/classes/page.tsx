@@ -1,12 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser, canViewSchoolFees } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { AcademicNav } from "@/components/academics/AcademicNav";
+import { AcademicNav } from "@/modules/academics";
 import { ClassSubjectSetupClient } from "@/modules/academics/components/ClassSubjectSetupClient";
 import { getClassSetupOverview } from "@/modules/academics";
-import { canViewSchoolFees } from "@/modules/auth";
-import { getAcademicSetupReadiness } from "@/lib/school-readiness";
+import { getAcademicSetupReadiness } from "@/modules/onboarding";
 
 interface PageProps {
   params: Promise<{

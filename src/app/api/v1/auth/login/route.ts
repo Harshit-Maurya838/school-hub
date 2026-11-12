@@ -1,12 +1,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { apiHandler } from "@/lib/api-handler";
+import { apiHandler, requestMeta } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { TooManyRequestsError, UnauthorizedError } from "@/lib/errors";
-import { prisma } from "@/lib/prisma";
-import { verifyPassword } from "@/lib/password";
-import { createSessionToken, isLoginLocked, setSessionCookieOnResponse } from "@/lib/auth";
-import { logAuditEvent } from "@/lib/audit";
+import { UnauthorizedError } from "@/lib/errors";
+import { loginWithPassword, setSessionCookieOnResponse } from "@/modules/auth";
 
 const loginSchema = z.object({
   email: z
@@ -16,139 +13,14 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// A dummy bcrypt hash for timing attack mitigation when user is not found
-const DUMMY_HASH = "$2a$12$e8Y6/m5L4jU5k7a0qO9b4O3gZfJ3X7P6H6n2E7N7I6O8r6G8J9L1K";
-
 export const POST = apiHandler(async (req: NextRequest) => {
-  const body = await req.json().catch(() => ({}));
-  const parseResult = loginSchema.safeParse(body);
-
+  const parseResult = loginSchema.safeParse(await req.json().catch(() => ({})));
+  // Malformed input gets the same answer as wrong credentials.
   if (!parseResult.success) {
     throw new UnauthorizedError("Invalid email or password");
   }
 
-  const { email, password } = parseResult.data;
-  const ipAddress = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "unknown";
-  const userAgent = req.headers.get("user-agent") || "unknown";
-
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      passwordHash: true,
-      role: true,
-      schoolId: true,
-      isActive: true,
-      deletedAt: true,
-      sessionVersion: true,
-      school: {
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          isActive: true,
-        },
-      },
-    },
-  });
-
-  // Account does not exist
-  if (!user || !user.passwordHash) {
-    // Run dummy verify to maintain constant time against timing attacks
-    await verifyPassword(password, DUMMY_HASH);
-    await logAuditEvent({
-      action: "AUTH_LOGIN_FAILED",
-      entityType: "User",
-      details: { email, reason: "Account not found or missing credentials" },
-      ipAddress,
-      userAgent,
-    });
-    throw new UnauthorizedError("Invalid email or password");
-  }
-
-  // Checked before the password so a locked account cannot be probed further.
-  if (await isLoginLocked(user.id)) {
-    await logAuditEvent({
-      action: "AUTH_LOGIN_LOCKED",
-      entityType: "User",
-      userId: user.id,
-      schoolId: user.schoolId,
-      details: { email },
-      ipAddress,
-      userAgent,
-    });
-    throw new TooManyRequestsError(
-      "Too many failed sign-in attempts. Please wait 15 minutes or reset your password."
-    );
-  }
-
-  // Account is deactivated or deleted
-  if (!user.isActive || user.deletedAt !== null) {
-    await verifyPassword(password, user.passwordHash);
-    await logAuditEvent({
-      action: "AUTH_LOGIN_FAILED",
-      entityType: "User",
-      userId: user.id,
-      schoolId: user.schoolId,
-      details: { email, reason: "Account deactivated or soft-deleted" },
-      ipAddress,
-      userAgent,
-    });
-    throw new UnauthorizedError("Invalid email or password");
-  }
-
-  // School is deactivated for school-scoped users
-  if (user.schoolId && user.school && !user.school.isActive) {
-    await verifyPassword(password, user.passwordHash);
-    await logAuditEvent({
-      action: "AUTH_LOGIN_FAILED",
-      entityType: "User",
-      userId: user.id,
-      schoolId: user.schoolId,
-      details: { email, reason: "Associated school is inactive" },
-      ipAddress,
-      userAgent,
-    });
-    throw new UnauthorizedError("Invalid email or password");
-  }
-
-  // Verify password
-  const isValidPassword = await verifyPassword(password, user.passwordHash);
-  if (!isValidPassword) {
-    await logAuditEvent({
-      action: "AUTH_LOGIN_FAILED",
-      entityType: "User",
-      userId: user.id,
-      schoolId: user.schoolId,
-      details: { email, reason: "Invalid password" },
-      ipAddress,
-      userAgent,
-    });
-    throw new UnauthorizedError("Invalid email or password");
-  }
-
-  // Successful login
-  const token = await createSessionToken({
-    userId: user.id,
-    schoolId: user.schoolId,
-    role: user.role,
-    email: user.email,
-    phone: user.phone,
-    sessionVersion: user.sessionVersion,
-  });
-
-  await logAuditEvent({
-    action: "AUTH_LOGIN_SUCCESS",
-    entityType: "User",
-    userId: user.id,
-    schoolId: user.schoolId,
-    details: { email: user.email, role: user.role },
-    ipAddress,
-    userAgent,
-  });
+  const { user, token } = await loginWithPassword({ ...parseResult.data, ...requestMeta(req) });
 
   const response = successResponse({
     user: {

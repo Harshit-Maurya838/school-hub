@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { AcademicNav } from "@/components/academics/AcademicNav";
-import { AcademicSectionsClient } from "@/components/academics/AcademicSectionsClient";
-import { listSections } from "@/lib/academics";
-import { getAcademicSetupReadiness } from "@/lib/school-readiness";
+import { AcademicNav } from "@/modules/academics";
+import { AcademicSectionsClient } from "@/modules/academics";
+import { listSections } from "@/modules/academics";
+import { getAcademicSetupReadiness } from "@/modules/onboarding";
 
 interface PageProps {
   params: Promise<{

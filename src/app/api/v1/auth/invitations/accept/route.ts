@@ -2,9 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { acceptInvitation } from "@/lib/invitations";
-import { createSessionToken, setSessionCookieOnResponse } from "@/lib/auth";
-import { passwordSchema } from "@/modules/auth";
+import { acceptInvitation } from "@/modules/onboarding";
+import { createSessionToken, setSessionCookieOnResponse, passwordSchema } from "@/modules/auth";
 
 const acceptSchema = z.object({
   token: z.string().min(1, "Token is required"),

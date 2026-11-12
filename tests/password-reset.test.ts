@@ -6,7 +6,7 @@ import { POST as forgotPasswordHandler } from "../src/app/api/v1/auth/forgot-pas
 import { POST as resetPasswordHandler } from "../src/app/api/v1/auth/reset-password/route.js";
 import { GET as meHandler } from "../src/app/api/v1/auth/me/route.js";
 import { prisma } from "../src/lib/prisma.js";
-import { hashPassword } from "../src/lib/password.js";
+import { hashPassword } from "../src/modules/auth/services/password.js";
 import { clearSentEmails, getLatestEmailFor } from "../src/lib/email.js";
 import { SESSION_COOKIE_NAME, LOGIN_MAX_FAILURES } from "../src/modules/auth/index.js";
 

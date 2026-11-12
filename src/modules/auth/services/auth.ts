@@ -233,3 +233,23 @@ export async function isLoginLocked(userId: string): Promise<boolean> {
     recent.length === LOGIN_MAX_FAILURES && recent.every((e) => e.action === "AUTH_LOGIN_FAILED")
   );
 }
+
+/** The signed-in user's own profile, with their school summary when they belong to one. */
+export async function getCurrentUserProfile(user: AuthenticatedUser) {
+  const school = user.schoolId
+    ? await prisma.school.findUnique({
+        where: { id: user.schoolId },
+        select: { id: true, name: true, slug: true, code: true, isActive: true },
+      })
+    : null;
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    role: user.role,
+    schoolId: user.schoolId,
+    school,
+  };
+}

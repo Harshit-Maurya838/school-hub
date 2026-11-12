@@ -1,8 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { FeesClient } from "@/components/fees/FeesClient";
+import { FeesClient } from "@/modules/fees";
 import { Shield } from "lucide-react";
 
 interface FeesPageProps {

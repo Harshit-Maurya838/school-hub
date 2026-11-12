@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiHandler } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { clearSessionCookieOnResponse, getSession } from "@/lib/auth";
+import { clearSessionCookieOnResponse, getSession } from "@/modules/auth";
 import { logAuditEvent } from "@/lib/audit";
 
 export const POST = apiHandler(async (req: NextRequest) => {

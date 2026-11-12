@@ -3,7 +3,10 @@ import { z } from "zod";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { correctAttendanceRegister, resolveSchoolAndAuthorizeAttendance } from "@/lib/attendance";
+import {
+  correctAttendanceRegister,
+  resolveSchoolAndAuthorizeAttendance,
+} from "@/modules/attendance";
 
 const correctRegisterSchema = z.object({
   registerId: z.string().min(1, "Register ID is required"),

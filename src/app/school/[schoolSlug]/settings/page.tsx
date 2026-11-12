@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Shield } from "lucide-react";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { getSchoolDetailsReadiness } from "@/lib/school-readiness";
+import { getSchoolDetailsReadiness } from "@/modules/onboarding";
 import { getSchoolProfile } from "@/modules/onboarding/services/school-profile";
-import { SchoolSettingsClient } from "@/components/settings/SchoolSettingsClient";
+import { SchoolSettingsClient } from "@/modules/onboarding";
 
 interface PageProps {
   params: Promise<{

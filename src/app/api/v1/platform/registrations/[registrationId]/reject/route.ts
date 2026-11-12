@@ -2,8 +2,8 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
-import { requireAuth, requireRole, requirePermission } from "@/lib/rbac";
-import { rejectRegistration } from "@/lib/school-registration";
+import { requireAuth, requireRole, requirePermission } from "@/modules/auth";
+import { rejectRegistration } from "@/modules/onboarding";
 import { BadRequestError } from "@/lib/errors";
 
 const rejectSchema = z.object({

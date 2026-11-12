@@ -9,8 +9,8 @@ import {
 import { POST as bulkStaffHandler } from "../src/app/api/v1/school/[schoolSlug]/staff/bulk/route.js";
 import { POST as staffInviteHandler } from "../src/app/api/v1/school/[schoolSlug]/staff/[staffId]/invite/route.js";
 import { POST as resendInviteHandler } from "../src/app/api/v1/school/[schoolSlug]/invitations/[invitationId]/resend/route.js";
-import { acceptInvitation } from "../src/lib/invitations.js";
-import { createSessionToken, SESSION_COOKIE_NAME } from "../src/lib/auth.js";
+import { acceptInvitation } from "../src/modules/onboarding/services/invitations.js";
+import { createSessionToken, SESSION_COOKIE_NAME } from "../src/modules/auth/services/auth.js";
 
 describe("Staff Profile Creation, Bulk Addition & Re-invitation Workflow", () => {
   let schoolA: { id: string; slug: string; name: string };

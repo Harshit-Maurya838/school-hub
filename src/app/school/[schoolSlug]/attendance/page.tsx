@@ -1,9 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser, getTeacherActiveAssignments } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
-import { AttendanceClient } from "@/components/attendance/AttendanceClient";
-import { getTeacherActiveAssignments } from "@/lib/rbac";
+import { AttendanceClient } from "@/modules/attendance";
 import { Shield, BookOpen } from "lucide-react";
 
 interface AttendancePageProps {

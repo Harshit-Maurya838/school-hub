@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function SchoolIndexPage() {

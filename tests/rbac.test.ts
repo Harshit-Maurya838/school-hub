@@ -5,7 +5,7 @@ import {
   requireRole,
   requirePermission,
   assertSchoolAccess,
-} from "../src/lib/rbac.js";
+} from "../src/modules/auth/services/rbac.js";
 import { ForbiddenError } from "../src/lib/errors.js";
 import { Role } from "../src/generated/prisma/enums.js";
 

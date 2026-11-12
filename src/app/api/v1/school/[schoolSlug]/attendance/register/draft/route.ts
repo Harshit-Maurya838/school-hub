@@ -3,7 +3,7 @@ import { z } from "zod";
 import { apiHandler, RouteContext } from "@/lib/api-handler";
 import { successResponse } from "@/lib/api-response";
 import { BadRequestError } from "@/lib/errors";
-import { saveAttendanceDraft, resolveSchoolAndAuthorizeAttendance } from "@/lib/attendance";
+import { saveAttendanceDraft, resolveSchoolAndAuthorizeAttendance } from "@/modules/attendance";
 
 const saveDraftSchema = z.object({
   sectionId: z.string().min(1, "Section ID is required"),

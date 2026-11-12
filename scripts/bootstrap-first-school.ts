@@ -1,5 +1,5 @@
 import { prisma } from "../src/lib/prisma";
-import { provisionSchoolWithAdmin } from "../src/lib/provisioning";
+import { provisionSchoolWithAdmin } from "../src/modules/onboarding/services/provisioning.js";
 import { logger } from "../src/lib/logger";
 
 async function bootstrapFirstSchool() {

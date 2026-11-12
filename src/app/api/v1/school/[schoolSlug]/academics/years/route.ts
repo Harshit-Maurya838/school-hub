@@ -6,7 +6,7 @@ import {
   createAcademicYearSchema,
   listAcademicYears,
   resolveSchoolAndAuthorize,
-} from "@/lib/academics";
+} from "@/modules/academics";
 import { BadRequestError } from "@/lib/errors";
 
 type Context = RouteContext<{ schoolSlug: string }>;

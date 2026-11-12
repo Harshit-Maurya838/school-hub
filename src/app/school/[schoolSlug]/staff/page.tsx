@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { getAuthenticatedUser } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 import { getStaffDirectoryWithInviteStatus } from "@/modules/staff";
 import { AddStaffModal } from "@/modules/staff/components/AddStaffModal";
