@@ -1,12 +1,12 @@
-# CampusPulse (School Management SaaS)
+# Academix AI (School Management SaaS)
 
-A production-grade, multi-tenant School Management SaaS application designed for K-12 academic institutions, administrators, educators, students, and parents. CampusPulse operates as a modular monolith providing rigorous tenant data isolation, granular role-based access control (RBAC), academic configuration, student admission lifecycles, faculty allocation, daily attendance tracking, examination and marks publishing workflows, and auditable fee/finance operations.
+A production-grade, multi-tenant School Management SaaS application designed for K-12 academic institutions, administrators, educators, students, and parents. Academix AI operates as a modular monolith providing rigorous tenant data isolation, granular role-based access control (RBAC), academic configuration, student admission lifecycles, faculty allocation, daily attendance tracking, examination and marks publishing workflows, and auditable fee/finance operations.
 
 ---
 
 ## 1. Project Name & Purpose
 
-**CampusPulse** provides a unified administrative backbone for schools operating in a SaaS environment. The platform offers:
+**Academix AI** provides a unified administrative backbone for schools operating in a SaaS environment. The platform offers:
 
 - Multi-tenant school isolation with database-level tenant filtering.
 - Public customer onboarding, email verification, and platform administrator provisioning.
@@ -145,7 +145,7 @@ BOOTSTRAP_ADMIN_PASSWORD="AdminSecurePass123!"
 
 ## 7. Database Setup & Safe Migration Commands
 
-CampusPulse uses Prisma with versioned, immutable SQL migrations under `prisma/migrations/`.
+Academix AI uses Prisma with versioned, immutable SQL migrations under `prisma/migrations/`.
 
 - **Validate schema**:
   ```bash

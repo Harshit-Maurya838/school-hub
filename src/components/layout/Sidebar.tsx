@@ -341,7 +341,7 @@ export function Sidebar({
         <div className="border-t border-slate-100 bg-slate-50/50 p-3">
           <Link
             href={`/school/${schoolSlug}`}
-            aria-label="Classic Giga dashboard"
+            aria-label="Academix AI dashboard"
             onClick={() => setIsMobileOpen?.(false)}
             className={`flex items-center gap-2.5 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
               isCollapsed && !isMobileOpen ? "md:justify-center" : ""

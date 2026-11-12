@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Classic Giga School Management",
-    short_name: "Classic Giga",
+    name: "Academix AI School Management",
+    short_name: "Academix AI",
     description: "Enterprise-grade multi-tenant school management platform",
     start_url: "/",
     display: "standalone",

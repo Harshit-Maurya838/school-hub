@@ -8,15 +8,15 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# CampusPulse: Coding Agent & Architecture Guidelines
+# Academix AI: Coding Agent & Architecture Guidelines
 
-This document provides mandatory, actionable rules for all AI coding assistants, automated tools, and engineers working on the CampusPulse School Management codebase.
+This document provides mandatory, actionable rules for all AI coding assistants, automated tools, and engineers working on the Academix AI School Management codebase.
 
 ---
 
 ## 1. Repository Architecture & Module Ownership
 
-CampusPulse is structured as a **modular monolith** with explicit domain boundaries:
+Academix AI is structured as a **modular monolith** with explicit domain boundaries:
 
 ```
 src/

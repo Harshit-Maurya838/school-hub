@@ -7,7 +7,7 @@ import { AuthScreen } from "./AuthScreen";
 export const metadata: Metadata = {
   title: "Sign in or register your school",
   description:
-    "Sign in to Classic Giga, or register your school and verify your email to open your school dashboard.",
+    "Sign in to Academix AI, or register your school and verify your email to open your school dashboard.",
 };
 
 export default async function AuthPage(props: PageProps<"/auth">) {

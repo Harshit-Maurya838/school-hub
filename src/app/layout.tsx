@@ -24,16 +24,16 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Classic Giga | School Management for K-12 Schools",
-    template: "%s | Classic Giga",
+    default: "Academix AI | School Management for K-12 Schools",
+    template: "%s | Academix AI",
   },
   description:
-    "Classic Giga is an enterprise-grade multi-tenant school management platform featuring academic years, attendance tracking, examinations, student profiles, and fee collections.",
-  applicationName: "Classic Giga",
-  authors: [{ name: "Classic Giga Team" }],
+    "Academix AI is an enterprise-grade multi-tenant school management platform featuring academic years, attendance tracking, examinations, student profiles, and fee collections.",
+  applicationName: "Academix AI",
+  authors: [{ name: "Academix AI Team" }],
   generator: "Next.js",
   keywords: [
-    "Classic Giga",
+    "Academix AI",
     "School Management System",
     "Education SaaS",
     "School ERP",
@@ -45,8 +45,8 @@ export const metadata: Metadata = {
     "Multi-tenant Education",
   ],
   referrer: "origin-when-cross-origin",
-  creator: "Classic Giga",
-  publisher: "Classic Giga",
+  creator: "Academix AI",
+  publisher: "Academix AI",
   formatDetection: {
     email: false,
     address: false,
@@ -56,14 +56,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "Classic Giga",
-    title: "Classic Giga | School Management for K-12 Schools",
+    siteName: "Academix AI",
+    title: "Academix AI | School Management for K-12 Schools",
     description:
       "Enterprise-grade multi-tenant school management platform for academic administration, attendance registers, examinations, and fee collections.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Classic Giga | School Management for K-12 Schools",
+    title: "Academix AI | School Management for K-12 Schools",
     description:
       "Enterprise-grade multi-tenant school management platform for academic administration, attendance registers, examinations, and fee collections.",
   },

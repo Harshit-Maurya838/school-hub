@@ -21,7 +21,7 @@ export const envSchema = z.object({
   ),
   EMAIL_FROM: z.preprocess(
     (val) => (typeof val === "string" && val.trim() !== "" ? val.trim() : undefined),
-    z.string().default("CampusPulse <noreply@campuspulse.edu>")
+    z.string().default("Academix AI <noreply@campuspulse.edu>")
   ),
   APP_URL: z.preprocess(
     (val) =>

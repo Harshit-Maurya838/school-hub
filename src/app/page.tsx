@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/layout/PublicShell";
 import { primaryButtonClass, secondaryButtonClass } from "@/components/common/FormControls";
 
 export const metadata: Metadata = {
-  title: "Classic Giga | School Management for K-12 Schools",
+  title: "Academix AI | School Management for K-12 Schools",
   description:
     "Attendance, examinations, students, staff and fees for K-12 schools, with locked registers, reviewed marks, numbered receipts and a full audit trail.",
 };

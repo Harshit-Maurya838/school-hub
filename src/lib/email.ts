@@ -283,13 +283,13 @@ export function renderInvitationEmailHtml(params: {
     <div class="card">
       <div class="header">
         <h1>${schoolName}</h1>
-        <p>CampusPulse Portal Invitation</p>
+        <p>Academix AI Portal Invitation</p>
       </div>
       <div class="content">
         <div class="badge">Portal Invitation</div>
         <h2 class="greeting">You're invited!</h2>
         <p class="body-text">
-          You have been invited to join <strong>${schoolName}</strong> on CampusPulse as a <strong>${role}</strong>.
+          You have been invited to join <strong>${schoolName}</strong> on Academix AI as a <strong>${role}</strong>.
           Activate your account to access your personalized dashboard and academic tools.
         </p>
         <div class="callout">
@@ -310,10 +310,10 @@ export function renderInvitationEmailHtml(params: {
       <div class="footer">
         <p>
           <strong>Why did you receive this email?</strong><br>
-          An authorized administrator at ${schoolName} issued an invitation for your account on CampusPulse.
+          An authorized administrator at ${schoolName} issued an invitation for your account on Academix AI.
           If you believe this invitation was sent in error, please contact your school administrator.
         </p>
-        <p>© ${new Date().getFullYear()} ${schoolName} via CampusPulse. All rights reserved.</p>
+        <p>© ${new Date().getFullYear()} ${schoolName} via Academix AI. All rights reserved.</p>
       </div>
     </div>
   </div>
@@ -413,7 +413,7 @@ export async function sendEmail(options: SendEmailOptions): Promise<SendEmailRes
       text: options.text,
       html: options.html,
       from: config.from,
-      fromName: options.fromName || "CampusPulse",
+      fromName: options.fromName || "Academix AI",
       name: options.recipientName,
     };
 
@@ -512,13 +512,13 @@ export async function sendRegistrationOtpEmail(options: {
   const text = [
     `Hello ${name},`,
     "",
-    `Your verification code to register ${options.schoolName} on CampusPulse is: ${options.otp}`,
+    `Your verification code to register ${options.schoolName} on Academix AI is: ${options.otp}`,
     "",
     `This code expires in ${minutes} minutes. Do not share it with anyone.`,
     "If you did not try to register a school, you can ignore this email.",
     "",
     "---",
-    "CampusPulse School Management Platform",
+    "Academix AI School Management Platform",
   ].join("\n");
 
   const html = renderSimpleEmailHtml(
@@ -551,12 +551,12 @@ export async function sendRegistrationSuccessEmail(options: {
   const text = [
     `Hello ${name},`,
     "",
-    `${options.schoolName} has been registered on CampusPulse and your admin account is ready.`,
+    `${options.schoolName} has been registered on Academix AI and your admin account is ready.`,
     `Sign in with ${options.to} and the password you chose:`,
     options.loginUrl,
     "",
     "---",
-    "CampusPulse School Management Platform",
+    "Academix AI School Management Platform",
   ].join("\n");
 
   const html = renderSimpleEmailHtml(
@@ -570,7 +570,7 @@ export async function sendRegistrationSuccessEmail(options: {
 
   return sendEmail({
     to: options.to,
-    subject: `${options.schoolName} is registered on CampusPulse`,
+    subject: `${options.schoolName} is registered on Academix AI`,
     text,
     html,
     actionUrl: options.loginUrl,
@@ -604,10 +604,10 @@ export async function sendInvitationEmail(
     `This invitation link will expire in ${hours} hours.`,
     "",
     "Why did you receive this email?",
-    `An authorized administrator at ${options.schoolName} invited you to access their CampusPulse portal. If you believe this invitation was sent by mistake, please contact your school administration.`,
+    `An authorized administrator at ${options.schoolName} invited you to access their Academix AI portal. If you believe this invitation was sent by mistake, please contact your school administration.`,
     "",
     "---",
-    `${options.schoolName} on CampusPulse`,
+    `${options.schoolName} on Academix AI`,
   ].join("\n");
 
   return sendEmail({
@@ -643,14 +643,14 @@ export async function sendPasswordResetEmail(options: {
   const text = [
     `Hello ${options.recipientName || "there"},`,
     "",
-    "We received a request to reset your CampusPulse password. Choose a new one here:",
+    "We received a request to reset your Academix AI password. Choose a new one here:",
     options.resetUrl,
     "",
     `This link expires in ${minutes} minutes and can be used once.`,
     "If you did not ask for this, ignore this email; your password will not change.",
     "",
     "---",
-    "CampusPulse School Management Platform",
+    "Academix AI School Management Platform",
   ].join("\n");
 
   const html = `<!DOCTYPE html>
@@ -659,7 +659,7 @@ export async function sendPasswordResetEmail(options: {
 <body style="margin:0;padding:40px 16px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#0f172a;">
   <div style="max-width:520px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:32px;">
     <h1 style="margin:0 0 16px;font-size:20px;">Reset your password</h1>
-    <p style="font-size:15px;line-height:1.6;color:#334155;">Hello ${name}, we received a request to reset your CampusPulse password.</p>
+    <p style="font-size:15px;line-height:1.6;color:#334155;">Hello ${name}, we received a request to reset your Academix AI password.</p>
     <p style="text-align:center;margin:28px 0;">
       <a href="${safeUrl}" style="display:inline-block;background:#059669;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 28px;border-radius:8px;">Choose a new password</a>
     </p>
@@ -671,7 +671,7 @@ export async function sendPasswordResetEmail(options: {
 
   return sendEmail({
     to: options.to,
-    subject: "Reset your CampusPulse password",
+    subject: "Reset your Academix AI password",
     text,
     html,
     actionUrl: options.resetUrl,

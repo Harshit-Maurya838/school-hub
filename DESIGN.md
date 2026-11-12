@@ -1,5 +1,5 @@
 ---
-name: Classic Giga
+name: Academix AI
 description: School management for Indian K-12 schools, kept like a well-run register.
 colors:
   register-green: "#047857"
@@ -129,13 +129,13 @@ components:
     padding: "4px 10px"
 ---
 
-# Design System: Classic Giga
+# Design System: Academix AI
 
 ## Overview
 
 **Creative North Star: "The School Register"**
 
-Classic Giga should feel like a school office's best-kept register: paper-clear, ordered, and written in green ink that carries authority. Each screen is a page of records. Its job is to show what stands, who entered it, and what can happen next. The interface is calm because the work is serious: attendance becomes a legal record, marks reach parents, and fees have to reconcile.
+Academix AI should feel like a school office's best-kept register: paper-clear, ordered, and written in green ink that carries authority. Each screen is a page of records. Its job is to show what stands, who entered it, and what can happen next. The interface is calm because the work is serious: attendance becomes a legal record, marks reach parents, and fees have to reconcile.
 
 Screens are dense but well organized. Office staff and teachers work through lists of students, sections and invoices, so the system uses small, firm type, white sheets on a pale slate desk, and thin dividing lines rather than heavy panels. Green is used sparingly as the ink of authority: the main action, the current page, a confirmed state. The rest stays in slate.
 
@@ -301,6 +301,7 @@ The register for one class and section, drawn as a bound book: a 48–56px green
 
 ### Do:
 
+- **Do** keep the logo's blue to the logo and the "AI" of the wordmark. The infinity-ribbon mark is the brand's one blue; interface accents stay Register Green.
 - **Do** keep every app screen on the Canvas desk with white Surface sheets and hairline borders.
 - **Do** use Register Green for the one primary action per view and for confirmed states, and nothing else.
 - **Do** map workflow states to the fixed status inks: green for final, amber for pending or draft, rose for missing, owed or undone.

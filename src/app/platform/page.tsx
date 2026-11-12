@@ -11,7 +11,7 @@ import { PlatformSchoolsTable } from "@/modules/onboarding";
 export const metadata: Metadata = {
   title: "Platform Administration",
   description:
-    "Super Administrator console for managing educational institutions and registered schools on Classic Giga.",
+    "Super Administrator console for managing educational institutions and registered schools on Academix AI.",
 };
 
 export default async function PlatformPage() {

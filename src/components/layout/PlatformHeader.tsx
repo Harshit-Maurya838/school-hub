@@ -26,7 +26,7 @@ export function PlatformHeader({ userName, userEmail, userRole }: PlatformHeader
         <BrandEmblem size="lg" />
         <span className="flex min-w-0 flex-col leading-tight">
           <span className="truncate text-sm font-black tracking-tight text-slate-900 uppercase sm:text-base">
-            Classic <span className="text-emerald-700">Giga</span>
+            Academix <span className="text-blue-700">AI</span>
           </span>
           <span className="truncate font-mono text-[11px] text-slate-500">Platform console</span>
         </span>

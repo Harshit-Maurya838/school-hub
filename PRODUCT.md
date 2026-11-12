@@ -17,7 +17,7 @@ web
 
 ## Product Purpose
 
-Classic Giga gives small and mid-sized private schools in India one system for academics, students, staff, attendance, examinations, and fees, replacing registers, spreadsheets, and ad hoc tools. It succeeds when a school can onboard itself, run daily attendance and term exams without disputes, and collect fees with records that reconcile.
+Academix AI gives small and mid-sized private schools in India one system for academics, students, staff, attendance, examinations, and fees, replacing registers, spreadsheets, and ad hoc tools. It succeeds when a school can onboard itself, run daily attendance and term exams without disputes, and collect fees with records that reconcile.
 
 ## Positioning
 
@@ -40,8 +40,9 @@ Built for correctness and accountability. Attendance registers lock once submitt
 
 ## Brand Commitments
 
-- Product name: **Classic Giga**. The codebase still says "CampusPulse" (README, AGENTS.md) and "CampusPlus" (app metadata, landing page); both are outdated and should be renamed when that copy is touched.
-- No logo or brand assets exist yet (`public/` only holds Next.js defaults).
+- Product name: **Academix AI** (renamed from Classic Giga; earlier drafts said CampusPulse and CampusPlus). The email sender address domain in `.env` is still the old one until a real sending domain exists.
+- Logo: an infinity sign drawn as three thin blue ribbon strands that turn over at the centre (`BrandEmblem` in `src/components/common/Brand.tsx`, favicon `src/app/icon.svg`).
+- Brand assets live in code (`Brand.tsx`, `src/app/icon.svg`, `src/app/favicon.ico`); `public/` only holds Next.js defaults.
 
 ## Evidence on Hand
 
