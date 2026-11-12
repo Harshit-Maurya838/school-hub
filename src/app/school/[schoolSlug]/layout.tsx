@@ -4,7 +4,13 @@ import { getAuthenticatedUser } from "@/modules/auth";
 import { prisma } from "@/lib/prisma";
 import { SchoolLayoutClient } from "@/components/layout/SchoolLayoutClient";
 import type { ManagementContact } from "@/components/layout/topbar/ProfileMenu";
-import { HOS_DESIGNATIONS, labelFor } from "@/modules/onboarding";
+import {
+  HOS_DESIGNATIONS,
+  LEADER_DESIGNATIONS,
+  formatIndianPhone,
+  labelFor,
+  type OtherLeader,
+} from "@/modules/onboarding";
 
 interface SchoolLayoutProps {
   children: React.ReactNode;
@@ -85,6 +91,7 @@ export default async function SchoolSlugLayout({ children, params }: SchoolLayou
         hosMobile: true,
         managementName: true,
         managementPhone: true,
+        otherLeaders: true,
       },
     }),
     prisma.user.findMany({
@@ -100,7 +107,7 @@ export default async function SchoolSlugLayout({ children, params }: SchoolLayou
     management.push({
       title: "Management / Trust",
       name: profile.managementName,
-      phone: profile.managementPhone,
+      phone: formatIndianPhone(profile.managementPhone),
     });
   }
   if (profile?.hosName) {
@@ -108,7 +115,15 @@ export default async function SchoolSlugLayout({ children, params }: SchoolLayou
       title: labelFor(HOS_DESIGNATIONS, profile.hosDesignation) || "Head of School",
       name: profile.hosName,
       email: profile.hosEmail,
-      phone: profile.hosMobile,
+      phone: formatIndianPhone(profile.hosMobile),
+    });
+  }
+  for (const leader of (profile?.otherLeaders as OtherLeader[] | undefined) ?? []) {
+    management.push({
+      title: labelFor(LEADER_DESIGNATIONS, leader.designation) || "Leadership",
+      name: leader.name,
+      email: leader.email,
+      phone: formatIndianPhone(leader.mobile),
     });
   }
   for (const admin of schoolAdmins) {
