@@ -22,7 +22,6 @@ export interface SchoolProfileView {
   school: { id: string; name: string; code: string; slug: string };
   identity: {
     name: string;
-    nameHindi: string;
     udiseCode: string;
     establishmentYear: number | null;
     recognitionNumber: string;
@@ -67,7 +66,6 @@ const STEP_COMPLETED_FIELD = {
 
 const STEP_FIELDS: Record<ProfileStep, readonly string[]> = {
   identity: [
-    "nameHindi",
     "udiseCode",
     "establishmentYear",
     "recognitionNumber",
@@ -135,7 +133,6 @@ export async function getSchoolProfile(schoolId: string): Promise<SchoolProfileV
     school: { id: school.id, name: school.name, code: school.code, slug: school.slug },
     identity: {
       name: school.name,
-      nameHindi: p?.nameHindi ?? "",
       udiseCode: p?.udiseCode ?? "",
       establishmentYear: p?.establishmentYear ?? null,
       recognitionNumber: p?.recognitionNumber ?? "",

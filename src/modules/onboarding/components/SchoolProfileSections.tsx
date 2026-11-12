@@ -64,7 +64,6 @@ function describeProvisioning(p: ProvisioningResult): string {
 
 type IdentityForm = {
   name: string;
-  nameHindi: string;
   udiseCode: string;
   establishmentYear: string;
   recognitionNumber: string;
@@ -499,23 +498,6 @@ export function SchoolProfileSections({
             aria-invalid={Boolean(errors.name)}
             aria-describedby={describedBy(id("name"), errors.name)}
             className={inputClass(Boolean(errors.name))}
-          />
-        </Field>
-        <Field
-          label="School name (Hindi)"
-          htmlFor={id("nameHindi")}
-          required
-          error={errors.nameHindi}
-        >
-          <input
-            id={id("nameHindi")}
-            lang="hi"
-            value={identity.nameHindi}
-            onChange={(e) => setIdentity({ ...identity, nameHindi: e.target.value })}
-            placeholder="उदा. दीप्ति मोंटेसरी स्कूल"
-            aria-invalid={Boolean(errors.nameHindi)}
-            aria-describedby={describedBy(id("nameHindi"), errors.nameHindi)}
-            className={inputClass(Boolean(errors.nameHindi))}
           />
         </Field>
         <Field

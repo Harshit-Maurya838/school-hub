@@ -42,7 +42,6 @@ async function setLock(slug: string, token: string | undefined, locked: unknown)
 
 const validIdentity = {
   name: "Deepti Montessori School",
-  nameHindi: "दीप्ति मोंटेसरी स्कूल",
   udiseCode: "09260100000",
   establishmentYear: 1998,
   recognitionNumber: "REC-UP-88741/2023",

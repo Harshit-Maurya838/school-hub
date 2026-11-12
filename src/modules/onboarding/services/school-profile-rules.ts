@@ -191,7 +191,6 @@ const requiredEnum = <T extends readonly { value: string }[]>(list: T, label: st
 
 export const identityStepSchema = z.object({
   name: requiredText("School name (English)", 2, 100),
-  nameHindi: requiredText("School name (Hindi)", 2, 150),
   udiseCode: z
     .string({ error: "U-DISE code is required" })
     .trim()

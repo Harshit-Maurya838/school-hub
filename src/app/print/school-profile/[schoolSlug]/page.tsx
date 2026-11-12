@@ -102,11 +102,6 @@ export default async function PrintSchoolProfilePage({ params }: PageProps) {
               <h1 className="text-2xl font-black tracking-tight text-slate-900">
                 {p.identity.name}
               </h1>
-              {p.identity.nameHindi && (
-                <p lang="hi" className="mt-1 text-lg text-slate-700">
-                  {p.identity.nameHindi}
-                </p>
-              )}
               <p className="mt-2 text-sm text-slate-600">UDISE+ master school profile</p>
             </div>
             <div className="shrink-0 text-right text-xs text-slate-600">
