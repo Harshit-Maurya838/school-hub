@@ -8,4 +8,5 @@ export { AcademicHubClient } from "./components/AcademicHubClient";
 export { AcademicNav } from "./components/AcademicNav";
 export { AcademicSectionsClient } from "./components/AcademicSectionsClient";
 export { AcademicSessionsClient } from "./components/AcademicSessionsClient";
+export { AcademicSessionModal } from "./components/AcademicSessionModal";
 export { ClassSubjectSetupClient } from "./components/ClassSubjectSetupClient";

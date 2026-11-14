@@ -21,6 +21,8 @@ import {
 import { getRoleDisplayName } from "@/modules/auth/services/role-ui";
 import { BrandEmblem, BrandWordmark } from "@/components/common/Brand";
 import { useT } from "@/lib/i18n";
+// Deep import: the module index also exports server services.
+import { AcademicSessionModal } from "@/modules/academics/components/AcademicSessionModal";
 
 export interface SidebarProps {
   schoolSlug: string;
@@ -45,6 +47,7 @@ export function Sidebar({
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [prevPathname, setPrevPathname] = useState(rawPathname);
   const [, startNavTransition] = useTransition();
+  const [isSessionOpen, setIsSessionOpen] = useState(false);
 
   if (rawPathname !== prevPathname) {
     setPrevPathname(rawPathname);
@@ -62,12 +65,22 @@ export function Sidebar({
   const allMainModules = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "School Dashboard",
       icon: LayoutDashboard,
       href: `/school/${schoolSlug}`,
       roles: ["SUPER_ADMIN", "SCHOOL_ADMIN", "TEACHER", "ACCOUNTANT", "PARENT", "STUDENT"],
       isActive:
         pathname === `/school/${schoolSlug}` || pathname === `/school/${schoolSlug}/dashboard`,
+    },
+    {
+      id: "settings",
+      label: "School Profile",
+      icon: Settings,
+      href: `/school/${schoolSlug}/settings`,
+      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
+      isActive:
+        pathname.startsWith(`/school/${schoolSlug}/settings`) &&
+        !pathname.startsWith(`/school/${schoolSlug}/settings/academic`),
     },
     {
       id: "attendance",
@@ -132,31 +145,7 @@ export function Sidebar({
 
   const examModules = allExamModules.filter((m) => m.roles.includes(userRole));
 
-  const allManagementModules = [
-    {
-      id: "academic-settings",
-      label: "Academic Settings",
-      icon: CalendarDays,
-      href: `/school/${schoolSlug}/settings/academic`,
-      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
-      isActive:
-        pathname.startsWith(`/school/${schoolSlug}/settings/academic`) ||
-        pathname.startsWith(`/school/${schoolSlug}/academics/sessions`),
-    },
-    {
-      id: "settings",
-      label: "School Profile",
-      icon: Settings,
-      href: `/school/${schoolSlug}/settings`,
-      roles: ["SUPER_ADMIN", "SCHOOL_ADMIN"],
-      isActive:
-        pathname === `/school/${schoolSlug}/settings` ||
-        (pathname.startsWith(`/school/${schoolSlug}/settings`) &&
-          !pathname.startsWith(`/school/${schoolSlug}/settings/academic`)),
-    },
-  ];
-
-  const managementModules = allManagementModules.filter((m) => m.roles.includes(userRole));
+  const canManageSessions = userRole === "SUPER_ADMIN" || userRole === "SCHOOL_ADMIN";
 
   // Escape closes the mobile drawer
   useEffect(() => {
@@ -323,22 +312,33 @@ export function Sidebar({
               <nav className="space-y-1">{examModules.map(renderNavItem)}</nav>
             </div>
           )}
-
-          {/* Management */}
-          {managementModules.length > 0 && (
-            <div>
-              {(!isCollapsed || isMobileOpen) && (
-                <p className="mb-2 px-3 text-[11px] font-bold tracking-wider text-slate-500 uppercase">
-                  {t("Management")}
-                </p>
-              )}
-              <nav className="space-y-1">{managementModules.map(renderNavItem)}</nav>
-            </div>
-          )}
         </div>
 
         {/* Sidebar Footer */}
-        <div className="border-t border-slate-100 bg-slate-50/50 p-3">
+        <div className="space-y-2 border-t border-slate-100 bg-slate-50/50 p-3">
+          {canManageSessions && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsSessionOpen(true);
+                setIsMobileOpen?.(false);
+              }}
+              title={isCollapsed ? t("Academic Session") : undefined}
+              aria-haspopup="dialog"
+              className={`group flex w-full cursor-pointer items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100/70 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:outline-none ${
+                isCollapsed ? "md:justify-center md:px-2" : ""
+              }`}
+            >
+              <CalendarDays
+                className="h-5 w-5 shrink-0 text-slate-500 group-hover:text-slate-700"
+                strokeWidth={1.75}
+                aria-hidden="true"
+              />
+              {(!isCollapsed || isMobileOpen) && (
+                <span className="flex-1 truncate text-left">{t("Academic Session")}</span>
+              )}
+            </button>
+          )}
           <Link
             href={`/school/${schoolSlug}`}
             aria-label="Academix AI dashboard"
@@ -359,6 +359,14 @@ export function Sidebar({
           </Link>
         </div>
       </aside>
+
+      {canManageSessions && (
+        <AcademicSessionModal
+          schoolSlug={schoolSlug}
+          isOpen={isSessionOpen}
+          onClose={() => setIsSessionOpen(false)}
+        />
+      )}
     </>
   );
 }

@@ -59,6 +59,8 @@ const HI: Record<string, string> = {
   "Head of School": "विद्यालय प्रमुख",
   // Sidebar
   Dashboard: "डैशबोर्ड",
+  "School Dashboard": "विद्यालय डैशबोर्ड",
+  "Academic Session": "शैक्षणिक सत्र",
   "Daily Attendance": "दैनिक उपस्थिति",
   "Student Roster": "विद्यार्थी सूची",
   "Student Billing Roll": "विद्यार्थी बिलिंग सूची",
