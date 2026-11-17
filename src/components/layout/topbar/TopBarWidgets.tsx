@@ -4,12 +4,10 @@ import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore }
 import { useRouter } from "next/navigation";
 import { LANGUAGES, setLanguage, useT } from "@/lib/i18n";
 import {
-  Calculator,
   CalendarDays,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Languages,
   Loader2,
   Power,
   X,
@@ -118,215 +116,6 @@ export function ToolPopover({
         </div>
       )}
     </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Calculator
-// ---------------------------------------------------------------------------
-
-type Operator = "+" | "-" | "×" | "÷";
-
-function applyOperator(a: number, b: number, op: Operator): number {
-  switch (op) {
-    case "+":
-      return a + b;
-    case "-":
-      return a - b;
-    case "×":
-      return a * b;
-    case "÷":
-      return b === 0 ? NaN : a / b;
-  }
-}
-
-function formatResult(value: number): string {
-  if (!Number.isFinite(value)) return "Error";
-  return String(Number.parseFloat(value.toPrecision(12)));
-}
-
-function CalculatorPad() {
-  const [display, setDisplay] = useState("0");
-  const [stored, setStored] = useState<number | null>(null);
-  const [operator, setOperator] = useState<Operator | null>(null);
-  const [freshEntry, setFreshEntry] = useState(true);
-
-  const inputDigit = (digit: string) => {
-    if (display === "Error" || freshEntry) {
-      setDisplay(digit === "." ? "0." : digit);
-      setFreshEntry(false);
-      return;
-    }
-    if (digit === "." && display.includes(".")) return;
-    if (display.length >= 14) return;
-    setDisplay(display === "0" && digit !== "." ? digit : display + digit);
-  };
-
-  const chooseOperator = (op: Operator) => {
-    const current = Number.parseFloat(display);
-    if (stored !== null && operator && !freshEntry) {
-      const result = formatResult(applyOperator(stored, current, operator));
-      setDisplay(result);
-      setStored(result === "Error" ? null : Number.parseFloat(result));
-    } else if (display !== "Error") {
-      setStored(current);
-    }
-    setOperator(op);
-    setFreshEntry(true);
-  };
-
-  const evaluate = () => {
-    if (stored === null || !operator) return;
-    const result = formatResult(applyOperator(stored, Number.parseFloat(display), operator));
-    setDisplay(result);
-    setStored(null);
-    setOperator(null);
-    setFreshEntry(true);
-  };
-
-  const clear = () => {
-    setDisplay("0");
-    setStored(null);
-    setOperator(null);
-    setFreshEntry(true);
-  };
-
-  const backspace = () => {
-    if (freshEntry || display === "Error") return;
-    setDisplay(display.length > 1 ? display.slice(0, -1) : "0");
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    const { key } = e;
-    if (/^[0-9.]$/.test(key)) inputDigit(key);
-    else if (key === "+" || key === "-") chooseOperator(key);
-    else if (key === "*") chooseOperator("×");
-    else if (key === "/") chooseOperator("÷");
-    else if (key === "=" || key === "Enter") evaluate();
-    else if (key === "Backspace") backspace();
-    else if (key === "Delete" || key.toLowerCase() === "c") clear();
-    else return;
-    e.preventDefault();
-  };
-
-  const keyClass = `flex h-11 cursor-pointer items-center justify-center rounded-xl text-sm font-bold transition-colors ${focusRing}`;
-  const digitClass = `${keyClass} bg-slate-50 text-slate-800 hover:bg-slate-100`;
-  const opClass = (op: Operator) =>
-    `${keyClass} ${operator === op && freshEntry ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"}`;
-
-  return (
-    <div className="space-y-3 p-4" onKeyDown={onKeyDown}>
-      <output
-        aria-live="polite"
-        className="block rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-right"
-      >
-        <span className="block h-4 font-mono text-[11px] text-slate-400">
-          {stored !== null && operator ? `${formatResult(stored)} ${operator}` : ""}
-        </span>
-        <span className="block truncate font-mono text-2xl font-bold text-slate-900">
-          {display}
-        </span>
-      </output>
-      <div className="grid grid-cols-4 gap-2">
-        <button
-          type="button"
-          onClick={clear}
-          className={`${keyClass} bg-rose-50 text-rose-700 hover:bg-rose-100`}
-        >
-          C
-        </button>
-        <button type="button" onClick={backspace} className={digitClass} aria-label="Backspace">
-          ⌫
-        </button>
-        <button
-          type="button"
-          onClick={() => chooseOperator("÷")}
-          className={opClass("÷")}
-          aria-label="Divide"
-        >
-          ÷
-        </button>
-        <button
-          type="button"
-          onClick={() => chooseOperator("×")}
-          className={opClass("×")}
-          aria-label="Multiply"
-        >
-          ×
-        </button>
-        {["7", "8", "9"].map((d) => (
-          <button key={d} type="button" onClick={() => inputDigit(d)} className={digitClass}>
-            {d}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => chooseOperator("-")}
-          className={opClass("-")}
-          aria-label="Subtract"
-        >
-          −
-        </button>
-        {["4", "5", "6"].map((d) => (
-          <button key={d} type="button" onClick={() => inputDigit(d)} className={digitClass}>
-            {d}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => chooseOperator("+")}
-          className={opClass("+")}
-          aria-label="Add"
-        >
-          +
-        </button>
-        {["1", "2", "3"].map((d) => (
-          <button key={d} type="button" onClick={() => inputDigit(d)} className={digitClass}>
-            {d}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={evaluate}
-          className={`${keyClass} row-span-2 h-auto bg-emerald-700 text-white hover:bg-emerald-800`}
-          aria-label="Equals"
-        >
-          =
-        </button>
-        <button
-          type="button"
-          onClick={() => inputDigit("0")}
-          className={`${digitClass} col-span-2`}
-        >
-          0
-        </button>
-        <button
-          type="button"
-          onClick={() => inputDigit(".")}
-          className={digitClass}
-          aria-label="Decimal point"
-        >
-          .
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export function CalculatorTool({ className }: { className?: string }) {
-  const { t } = useT();
-  return (
-    <ToolPopover
-      id="topbar-calculator"
-      label={t("Open calculator")}
-      title={t("Quick Calculator")}
-      icon={Calculator}
-      triggerText={t("Calc")}
-      className={className}
-      panelClassName="w-72"
-    >
-      {() => <CalculatorPad />}
-    </ToolPopover>
   );
 }
 
@@ -465,25 +254,44 @@ export function CalendarTool({ className }: { className?: string }) {
 // Language
 // ---------------------------------------------------------------------------
 
-export function LanguageTool({ className }: { className?: string }) {
+/** Minimal language switch: shows the current language, dropdown lists only the choices. */
+export function LanguageTool({ className = "" }: { className?: string }) {
   const { t, language } = useT();
   const current = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(ref, open, close);
 
   useEffect(() => {
     document.documentElement.lang = current.code;
   }, [current.code]);
 
   return (
-    <ToolPopover
-      id="topbar-language"
-      label={`${t("Language")}: ${current.native}`}
-      title={t("Language")}
-      icon={Languages}
-      className={className}
-      panelClassName="w-56"
-    >
-      {(close) => (
-        <ul className="p-2" role="listbox" aria-label={t("Choose language")}>
+    <div className={`relative ${className}`} ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={`${t("Language")}: ${current.label}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls="topbar-language"
+        className={`inline-flex h-9 cursor-pointer items-center gap-1 rounded-lg px-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-100 ${focusRing}`}
+      >
+        {current.label}
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-slate-500 transition-transform ${open ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
+
+      {open && (
+        <ul
+          id="topbar-language"
+          role="listbox"
+          aria-label={t("Choose language")}
+          className="absolute right-0 z-50 mt-2 w-32 rounded-xl border border-slate-200 bg-white p-1 shadow-lg"
+        >
           {LANGUAGES.map((l) => {
             const selected = l.code === current.code;
             return (
@@ -496,19 +304,18 @@ export function LanguageTool({ className }: { className?: string }) {
                     setLanguage(l.code);
                     close();
                   }}
-                  className={`flex w-full cursor-pointer items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-semibold transition-colors ${focusRing} ${
+                  className={`w-full cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold transition-colors ${focusRing} ${
                     selected ? "bg-emerald-50 text-emerald-800" : "text-slate-700 hover:bg-slate-50"
                   }`}
                 >
-                  <span>{l.native}</span>
-                  <span className="text-[11px] font-medium text-slate-400">{l.label}</span>
+                  {l.label}
                 </button>
               </li>
             );
           })}
         </ul>
       )}
-    </ToolPopover>
+    </div>
   );
 }
 
@@ -538,14 +345,14 @@ export function LogoutIconButton({ redirectTo = "/auth" }: { redirectTo?: string
       type="button"
       onClick={handleLogout}
       disabled={loggingOut}
-      aria-label={t(loggingOut ? "Signing out" : "Sign out")}
-      title={t("Sign out")}
-      className={`inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-700 transition-colors hover:border-rose-300 hover:bg-rose-100 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60`}
+      aria-label={t(loggingOut ? "Signing out" : "Logout")}
+      className="inline-flex shrink-0 cursor-pointer flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-rose-600 transition-colors hover:text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
     >
+      <span className="text-xs font-semibold underline underline-offset-2">{t("Logout")}</span>
       {loggingOut ? (
-        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
       ) : (
-        <Power className="h-4 w-4" aria-hidden="true" />
+        <Power className="h-5 w-5" strokeWidth={2.2} aria-hidden="true" />
       )}
     </button>
   );

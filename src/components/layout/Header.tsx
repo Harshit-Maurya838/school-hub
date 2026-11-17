@@ -16,7 +16,6 @@ import {
 import { canManageSettings } from "@/modules/auth/services/role-ui";
 import { Modal } from "@/components/common/Modal";
 import {
-  CalculatorTool,
   CalendarTool,
   LanguageTool,
   LogoutIconButton,
@@ -47,7 +46,7 @@ export interface HeaderProps {
 
 /**
  * Full-width school top bar.
- * Left: school identity. Right (in order): search · session · calculator · calendar ·
+ * Left: school identity. Right (in order): search · session · calendar ·
  * language · profile (with school management) · logout.
  */
 export function Header({
@@ -116,6 +115,7 @@ export function Header({
             </kbd>
           </button>
 
+          <span className="hidden h-8 w-px bg-slate-200 lg:block" aria-hidden="true" />
           <span
             className="hidden h-9 items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-2.5 text-xs font-semibold text-emerald-800 lg:inline-flex"
             title={t("Current academic session")}
@@ -127,10 +127,12 @@ export function Header({
             </span>
           </span>
 
-          <CalculatorTool className="hidden sm:block" />
+          <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
           <CalendarTool className="hidden sm:block" />
+          <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
           <LanguageTool />
 
+          <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
           <ProfileMenu
             userName={userName}
             userEmail={userEmail}
@@ -192,6 +194,7 @@ export function Header({
             )}
           />
 
+          <span className="hidden h-8 w-px bg-slate-200 sm:block" aria-hidden="true" />
           <LogoutIconButton redirectTo={`/auth?callbackUrl=/school/${schoolSlug}`} />
         </div>
       </header>

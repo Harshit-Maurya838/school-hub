@@ -25,12 +25,10 @@ const HI: Record<string, string> = {
   Today: "आज",
   "Previous month": "पिछला महीना",
   "Next month": "अगला महीना",
-  "Open calculator": "कैलकुलेटर खोलें",
-  "Quick Calculator": "कैलकुलेटर",
-  Calc: "कैलकुलेटर",
   Language: "भाषा",
   "Choose language": "भाषा चुनें",
   "Sign out": "साइन आउट",
+  Logout: "लॉग आउट",
   "Signing out": "साइन आउट हो रहा है",
   // Profile menu
   Account: "खाता",

@@ -3,13 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { BrandEmblem } from "@/components/common/Brand";
-import {
-  CalculatorTool,
-  CalendarTool,
-  LanguageTool,
-  LogoutIconButton,
-  focusRing,
-} from "./topbar/TopBarWidgets";
+import { CalendarTool, LanguageTool, LogoutIconButton, focusRing } from "./topbar/TopBarWidgets";
 import { ProfileMenu } from "./topbar/ProfileMenu";
 
 export interface PlatformHeaderProps {
@@ -33,7 +27,6 @@ export function PlatformHeader({ userName, userEmail, userRole }: PlatformHeader
       </Link>
 
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <CalculatorTool className="hidden sm:block" />
         <CalendarTool className="hidden sm:block" />
         <LanguageTool />
         <ProfileMenu userName={userName} userEmail={userEmail} userRole={userRole} />
