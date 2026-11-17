@@ -42,6 +42,9 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
   serverExternalPackages: ["pino", "pino-pretty"],
+  experimental: {
+    agentUpgrade: "security",
+  },
   /* config options here */
   turbopack: {
     rules: {
